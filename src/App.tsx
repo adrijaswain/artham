@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import Onboarding from "./pages/Onboarding";
+import LandingPage from "./pages/LandingPage";
 import Intake from "./pages/Intake";
 import MedicalInput from "./pages/MedicalInput";
 import Dashboard from "./pages/Dashboard";
@@ -12,7 +12,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Onboarding />} />
+        <Route path="/" element={<LandingPage />} />
         <Route path="/intake" element={<Intake />} />
         <Route path="/medical-input" element={<MedicalInput />} />
         <Route path="/dashboard" element={<Dashboard />} />
