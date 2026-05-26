@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Financial Navigator Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700;800&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .gauge-container {
+            position: relative;
+            width: 160px;
+            height: 80px;
+            overflow: hidden;
+        }
+        .gauge-body {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 200%;
+            border-radius: 50%;
+            border: 16px solid #e5eeff;
+            border-bottom-color: transparent;
+            border-left-color: transparent;
+            transform: rotate(-45deg);
+        }
+        .gauge-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 200%;
+            border-radius: 50%;
+            border: 16px solid transparent;
+            border-bottom-color: #006a68;
+            border-left-color: #006a68;
+            transform: rotate(45deg);
+            transition: transform 1s ease-in-out;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary": "#ffffff",
+                        "tertiary-fixed": "#ffe088",
+                        "on-primary-container": "#93bcfc",
+                        "outline": "#737781",
+                        "error-container": "#ffdad6",
+                        "surface-container-highest": "#d3e4fe",
+                        "surface-container-low": "#eff4ff",
+                        "surface-tint": "#335f99",
+                        "surface-bright": "#f8f9ff",
+                        "on-error-container": "#93000a",
+                        "on-secondary-fixed": "#00201f",
+                        "tertiary": "#735c00",
+                        "primary-container": "#1a4b84",
+                        "on-primary-fixed-variant": "#144780",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-secondary-container": "#006e6c",
+                        "on-error": "#ffffff",
+                        "secondary-fixed": "#94f2ef",
+                        "on-primary": "#ffffff",
+                        "on-primary-fixed": "#001c3b",
+                        "on-surface": "#0b1c30",
+                        "on-background": "#0b1c30",
+                        "on-tertiary-fixed-variant": "#574500",
+                        "inverse-surface": "#213145",
+                        "on-tertiary-container": "#4f3e00",
+                        "on-secondary-fixed-variant": "#00504e",
+                        "inverse-primary": "#a6c8ff",
+                        "secondary": "#006a68",
+                        "primary-fixed-dim": "#a6c8ff",
+                        "tertiary-fixed-dim": "#e9c349",
+                        "outline-variant": "#c3c6d1",
+                        "surface-container": "#e5eeff",
+                        "error": "#ba1a1a",
+                        "secondary-fixed-dim": "#78d6d2",
+                        "surface-container-high": "#dce9ff",
+                        "tertiary-container": "#cca830",
+                        "surface-dim": "#cbdbf5",
+                        "on-tertiary-fixed": "#241a00",
+                        "primary": "#003466",
+                        "background": "#f8f9ff",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "surface-variant": "#d3e4fe",
+                        "primary-fixed": "#d5e3ff",
+                        "surface": "#f8f9ff",
+                        "on-surface-variant": "#424750",
+                        "secondary-container": "#91f0ec"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "base": "8px",
+                        "xl": "80px",
+                        "container-max": "1200px",
+                        "md": "24px",
+                        "lg": "48px",
+                        "margin-mobile": "16px",
+                        "xs": "4px",
+                        "gutter": "24px",
+                        "sm": "12px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Public Sans"],
+                        "body-sm": ["Public Sans"],
+                        "label-sm": ["Public Sans"],
+                        "headline-lg-mobile": ["Public Sans"],
+                        "label-md": ["Public Sans"],
+                        "body-lg": ["Public Sans"],
+                        "body-md": ["Public Sans"],
+                        "headline-sm": ["Public Sans"],
+                        "headline-lg": ["Public Sans"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "label-md": ["14px", { "lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background text-on-surface font-body-md overflow-x-hidden">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center px-md py-sm w-full fixed top-0 z-50 bg-surface dark:bg-surface-dim border-b border-outline-variant dark:border-outline shadow-sm">
+<div class="flex items-center gap-sm">
+<span class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed-dim">Treatment Navigator</span>
+</div>
+<div class="flex items-center gap-md">
+<button class="p-xs rounded-full hover:bg-surface-container-low transition-all duration-200">
+<span class="material-symbols-outlined text-on-surface-variant">notifications</span>
+</button>
+<button class="p-xs rounded-full hover:bg-surface-container-low transition-all duration-200">
+<span class="material-symbols-outlined text-on-surface-variant">account_circle</span>
+</button>
+</div>
+</header>
+<div class="flex min-h-screen pt-xl">
+<!-- SideNavBar -->
+<aside class="hidden md:flex flex-col h-full py-lg w-64 fixed left-0 top-16 bg-surface-container-low dark:bg-surface-container-lowest shadow-md">
+<div class="px-md mb-lg">
+<h2 class="font-headline-sm text-headline-sm text-primary dark:text-primary-fixed-dim">Financial Planning</h2>
+<p class="font-label-md text-label-md text-on-surface-variant opacity-70">Empathetic Clarity</p>
+</div>
+<nav class="flex-grow">
+<ul class="space-y-sm">
+<li>
+<a class="flex items-center gap-sm text-on-surface-variant px-4 py-3 hover:bg-surface-container-high transition-transform duration-150 scale-98" href="#">
+<span class="material-symbols-outlined">assignment</span>
+<span class="font-label-md text-label-md">Intake</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-sm text-on-surface-variant px-4 py-3 hover:bg-surface-container-high transition-transform duration-150 scale-98" href="#">
+<span class="material-symbols-outlined">medical_services</span>
+<span class="font-label-md text-label-md">Medical Input</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-sm text-primary dark:text-primary-fixed-dim font-bold border-r-4 border-primary dark:border-primary-fixed-dim bg-surface-container-highest px-4 py-3 transition-transform duration-150 scale-98" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-label-md">Financial Dashboard</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-sm text-on-surface-variant px-4 py-3 hover:bg-surface-container-high transition-transform duration-150 scale-98" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="font-label-md text-label-md">Cost Breakdown</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-sm text-on-surface-variant px-4 py-3 hover:bg-surface-container-high transition-transform duration-150 scale-98" href="#">
+<span class="material-symbols-outlined">lightbulb</span>
+<span class="font-label-md text-label-md">Action Plan</span>
+</a>
+</li>
+</ul>
+</nav>
+<div class="px-md mt-auto pt-lg space-y-md">
+<button class="w-full bg-primary text-on-primary py-sm rounded-lg font-label-md flex items-center justify-center gap-xs shadow-md hover:opacity-90 transition-all">
+<span class="material-symbols-outlined">download</span>
+                    Download Report
+                </button>
+<div class="flex flex-col gap-sm">
+<a class="flex items-center gap-xs text-on-surface-variant font-label-sm hover:text-primary" href="#">
+<span class="material-symbols-outlined text-sm">help</span> Support
+                    </a>
+<a class="flex items-center gap-xs text-on-surface-variant font-label-sm hover:text-primary" href="#">
+<span class="material-symbols-outlined text-sm">shield</span> Privacy
+                    </a>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-grow ml-0 md:ml-64 p-md md:p-lg max-w-container-max mx-auto">
+<!-- Hero Results Section -->
+<section class="mb-lg animate-in fade-in slide-in-from-bottom duration-700">
+<div class="bg-primary text-on-primary p-lg rounded-xl shadow-lg relative overflow-hidden">
+<div class="relative z-10 flex flex-col md:flex-row justify-between items-end gap-md">
+<div>
+<span class="font-label-md text-on-primary-container bg-primary-container px-sm py-xs rounded-full inline-block mb-sm">Estimated Total Treatment Cost Range</span>
+<h1 class="font-headline-lg text-headline-lg mb-xs">₹2,50,000 - ₹4,00,000</h1>
+<p class="text-on-primary opacity-80 font-body-md max-w-xl">Based on your clinical input for Laparoscopic Myomectomy with a 3-day recovery period in Bengaluru.</p>
+</div>
+<div class="flex flex-col items-center bg-white/10 backdrop-blur-md p-md rounded-lg">
+<p class="font-label-sm mb-sm uppercase tracking-wider">Confidence Level</p>
+<div class="gauge-container">
+<div class="gauge-body"></div>
+<div class="gauge-fill" style="transform: rotate(135deg);"></div>
+<div class="absolute bottom-0 left-0 right-0 text-center font-bold text-headline-sm">High</div>
+</div>
+<p class="font-body-sm text-center mt-xs opacity-90">Verified provider rates</p>
+</div>
+</div>
+<!-- Decorative background glow -->
+<div class="absolute -top-1/2 -right-1/4 w-96 h-96 bg-secondary-container rounded-full blur-[100px] opacity-20"></div>
+</div>
+</section>
+<!-- Grid Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+<!-- Center Content: Comparison & Coverage -->
+<div class="lg:col-span-8 space-y-lg">
+<!-- Scenario Comparison -->
+<div>
+<div class="flex justify-between items-center mb-md">
+<h3 class="font-headline-sm text-headline-sm text-primary">Scenario Comparison</h3>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer">info</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-md">
+<!-- Card 1 -->
+<div class="bg-surface-container-lowest p-md rounded-xl border border-outline-variant hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start mb-sm">
+<span class="font-label-md text-secondary">Best Case</span>
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">trending_down</span>
+</div>
+<p class="font-headline-sm text-headline-sm mb-xs">₹2,35,000</p>
+<p class="font-body-sm text-on-surface-variant">No complications, minimal stay, and generic medication used.</p>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-container-highest p-md rounded-xl border-2 border-primary shadow-sm">
+<div class="flex justify-between items-start mb-sm">
+<span class="font-label-md text-primary">Expected Case</span>
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">stars</span>
+</div>
+<p class="font-headline-sm text-headline-sm mb-xs">₹3,10,000</p>
+<p class="font-body-sm text-on-surface-variant font-medium">Standard recovery path with average specialist billing.</p>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface-container-lowest p-md rounded-xl border border-outline-variant hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start mb-sm">
+<span class="font-label-md text-tertiary">Complex Case</span>
+<span class="material-symbols-outlined text-tertiary" style="font-variation-settings: 'FILL' 1;">warning</span>
+</div>
+<p class="font-headline-sm text-headline-sm mb-xs">₹4,45,000</p>
+<p class="font-body-sm text-on-surface-variant">Extended ICU monitoring or specialized surgical consumables.</p>
+</div>
+</div>
+</div>
+<!-- Insurance & Government Section -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+<!-- Insurance Widget -->
+<div class="bg-white p-lg rounded-xl shadow-sm border border-outline-variant">
+<h3 class="font-headline-sm text-headline-sm text-primary mb-md">Insurance Coverage</h3>
+<div class="space-y-md">
+<div class="flex justify-between items-center mb-xs">
+<span class="font-body-md">Covered by Star Health</span>
+<span class="font-bold text-secondary">₹1,80,000</span>
+</div>
+<div class="w-full h-4 bg-surface-container rounded-full overflow-hidden flex">
+<div class="h-full bg-secondary" style="width: 60%"></div>
+<div class="h-full bg-tertiary-container" style="width: 40%"></div>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-body-md">Out-of-Pocket Estimate</span>
+<span class="font-bold text-tertiary">₹1,30,000</span>
+</div>
+<div class="p-sm bg-surface-container-low rounded-lg flex items-start gap-sm mt-sm">
+<span class="material-symbols-outlined text-primary">info</span>
+<p class="font-body-sm text-on-surface-variant">Your policy has a 10% co-payment clause for non-network hospitals.</p>
+</div>
+</div>
+</div>
+<!-- Government Schemes -->
+<div class="bg-surface-container-low p-lg rounded-xl border-l-8 border-secondary-container">
+<div class="flex items-center gap-sm mb-md">
+<span class="material-symbols-outlined text-secondary" style="font-size: 32px;">account_balance</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Govt. Schemes</h3>
+</div>
+<div class="bg-white p-md rounded-lg border border-secondary-container mb-md">
+<div class="flex justify-between items-center mb-xs">
+<span class="font-label-md text-primary">Ayushman Bharat (PM-JAY)</span>
+<span class="px-xs py-[2px] bg-secondary-container text-on-secondary-container rounded font-label-sm">Eligible</span>
+</div>
+<p class="font-body-sm text-on-surface-variant">You may be eligible for coverage up to ₹5 Lakhs for this procedure.</p>
+<button class="mt-sm text-secondary font-label-md flex items-center gap-xs">
+                                    Check documentation <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+<p class="font-label-sm text-on-surface-variant opacity-80 italic">Last verified: 24 Oct 2024</p>
+</div>
+</div>
+</div>
+<!-- Sidebar: Personalized Savings Tips -->
+<aside class="lg:col-span-4">
+<div class="sticky top-md">
+<div class="bg-white p-lg rounded-xl shadow-sm border border-outline-variant">
+<div class="flex items-center gap-sm mb-lg">
+<span class="material-symbols-outlined text-tertiary-container" style="font-size: 28px; font-variation-settings: 'FILL' 1;">lightbulb</span>
+<h3 class="font-headline-sm text-headline-sm">Savings for You</h3>
+</div>
+<div class="space-y-lg">
+<!-- Tip 1 -->
+<div class="group cursor-pointer">
+<div class="flex gap-md">
+<div class="flex-shrink-0 w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
+<span class="material-symbols-outlined">medical_information</span>
+</div>
+<div>
+<h4 class="font-label-md mb-xs">Switch to Semi-Private Room</h4>
+<p class="font-body-sm text-on-surface-variant">Save up to <span class="font-bold text-secondary">₹18,000</span> on room rent and associated nursing charges.</p>
+</div>
+</div>
+</div>
+<!-- Tip 2 -->
+<div class="group cursor-pointer">
+<div class="flex gap-md">
+<div class="flex-shrink-0 w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
+<span class="material-symbols-outlined">privacy</span>
+</div>
+<div>
+<h4 class="font-label-md mb-xs">Generic Post-Op Meds</h4>
+<p class="font-body-sm text-on-surface-variant">Ask your surgeon for Pradhan Mantri Bhartiya Janaushadhi Pariyojana alternatives.</p>
+</div>
+</div>
+</div>
+<!-- Tip 3 -->
+<div class="group cursor-pointer">
+<div class="flex gap-md">
+<div class="flex-shrink-0 w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
+<span class="material-symbols-outlined">calendar_month</span>
+</div>
+<div>
+<h4 class="font-label-md mb-xs">Pre-Surgical Lab Work</h4>
+<p class="font-body-sm text-on-surface-variant">Completing labs at a partner diagnostic center can save <span class="font-bold text-secondary">₹4,500</span>.</p>
+</div>
+</div>
+</div>
+</div>
+<img class="w-full h-40 object-cover rounded-lg mt-lg shadow-sm" data-alt="A clean, minimalist high-key photograph of a medical stethoscope resting on a stack of organized financial documents and a calculator. The scene is bathed in soft, natural daylight coming from a window, creating a calm and professional atmosphere. The color palette is dominated by soft whites and cool blues, reflecting a sense of empathetic clarity and medical reliability. The composition is focused and serene, highlighting the intersection of healthcare and financial planning." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDXaiBA6c6CJixGrrE1NSXjpcHWCQkqB4u0xIWX110UMufAL01r0Ego9BSn1htc_5O0preJHoux3lZtuNAupWCR24RR5gVk2XS0lx3QVQZ7YmQHabUhUTbCnPIPSAZ_C6rDjqh9A3SWY2qY8GWmqHMeviQ0JAEkmDgf12R1MgxeEk55pS3ee5EOqojFDuSXZlvc54C3dG45yXxpfs-BvBJemd7NVmxki3sShnMNIh1Nb0-ddg5dK3ZrupkpMeh3-iD_wVZgkcrlvL6s"/>
+</div>
+</div>
+</aside>
+</div>
+</main>
+</div>
+<!-- Footer -->
+<footer class="w-full py-md bg-surface dark:bg-surface-dim border-t border-outline-variant dark:border-outline mt-xl">
+<div class="max-w-container-max mx-auto flex flex-col md:flex-row justify-between items-center px-md">
+<p class="font-body-sm text-body-sm text-secondary dark:text-secondary-fixed-dim mb-sm md:mb-0">© 2024 Treatment Navigator. All rights reserved.</p>
+<div class="flex gap-md">
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">Support</a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">Privacy Policy</a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">Terms of Service</a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">Insurance Partners</a>
+</div>
+</div>
+</footer>
+<!-- Bottom Nav for Mobile -->
+<nav class="md:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-outline-variant px-md py-sm flex justify-around items-center z-50">
+<a class="flex flex-col items-center gap-xs text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">assignment</span>
+<span class="text-[10px]">Intake</span>
+</a>
+<a class="flex flex-col items-center gap-xs text-primary" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="text-[10px] font-bold">Dashboard</span>
+</a>
+<a class="flex flex-col items-center gap-xs text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="text-[10px]">Costs</span>
+</a>
+<a class="flex flex-col items-center gap-xs text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">account_circle</span>
+<span class="text-[10px]">Profile</span>
+</a>
+</nav>
+<script>
+        // Simple micro-interaction for the gauge
+        window.addEventListener('load', () => {
+            const gaugeFill = document.querySelector('.gauge-fill');
+            // Animate gauge from 0 to 80% (which is about 135deg in this layout)
+            setTimeout(() => {
+                gaugeFill.style.transform = 'rotate(135deg)';
+            }, 500);
+        });
+
+        // Add active hover scale effect
+        document.querySelectorAll('.group').forEach(item => {
+            item.addEventListener('mouseenter', () => {
+                item.style.transform = 'translateX(4px)';
+                item.style.transition = 'transform 0.2s ease-out';
+            });
+            item.addEventListener('mouseleave', () => {
+                item.style.transform = 'translateX(0)';
+            });
+        });
+    </script>
+</body></html>

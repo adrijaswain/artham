@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Smart Intake | Treatment Navigator</title>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary": "#ffffff",
+                        "tertiary-fixed": "#ffe088",
+                        "on-primary-container": "#93bcfc",
+                        "outline": "#737781",
+                        "error-container": "#ffdad6",
+                        "surface-container-highest": "#d3e4fe",
+                        "surface-container-low": "#eff4ff",
+                        "surface-tint": "#335f99",
+                        "surface-bright": "#f8f9ff",
+                        "on-error-container": "#93000a",
+                        "on-secondary-fixed": "#00201f",
+                        "tertiary": "#735c00",
+                        "primary-container": "#1a4b84",
+                        "on-primary-fixed-variant": "#144780",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-secondary-container": "#006e6c",
+                        "on-error": "#ffffff",
+                        "secondary-fixed": "#94f2ef",
+                        "on-primary": "#ffffff",
+                        "on-primary-fixed": "#001c3b",
+                        "on-surface": "#0b1c30",
+                        "on-background": "#0b1c30",
+                        "on-tertiary-fixed-variant": "#574500",
+                        "inverse-surface": "#213145",
+                        "on-tertiary-container": "#4f3e00",
+                        "on-secondary-fixed-variant": "#00504e",
+                        "inverse-primary": "#a6c8ff",
+                        "secondary": "#006a68",
+                        "primary-fixed-dim": "#a6c8ff",
+                        "tertiary-fixed-dim": "#e9c349",
+                        "outline-variant": "#c3c6d1",
+                        "surface-container": "#e5eeff",
+                        "error": "#ba1a1a",
+                        "secondary-fixed-dim": "#78d6d2",
+                        "surface-container-high": "#dce9ff",
+                        "tertiary-container": "#cca830",
+                        "surface-dim": "#cbdbf5",
+                        "on-tertiary-fixed": "#241a00",
+                        "primary": "#003466",
+                        "background": "#f8f9ff",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "surface-variant": "#d3e4fe",
+                        "primary-fixed": "#d5e3ff",
+                        "surface": "#f8f9ff",
+                        "on-surface-variant": "#424750",
+                        "secondary-container": "#91f0ec"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "base": "8px",
+                        "xl": "80px",
+                        "container-max": "1200px",
+                        "md": "24px",
+                        "lg": "48px",
+                        "margin-mobile": "16px",
+                        "xs": "4px",
+                        "gutter": "24px",
+                        "sm": "12px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Public Sans"],
+                        "body-sm": ["Public Sans"],
+                        "label-sm": ["Public Sans"],
+                        "headline-lg-mobile": ["Public Sans"],
+                        "label-md": ["Public Sans"],
+                        "body-lg": ["Public Sans"],
+                        "body-md": ["Public Sans"],
+                        "headline-sm": ["Public Sans"],
+                        "headline-lg": ["Public Sans"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "600"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                        "label-md": ["14px", {"lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "600"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Public Sans', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .step-transition { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .quiet-shadow { box-shadow: 0 4px 12px rgba(0, 52, 102, 0.1); }
+    </style>
+</head>
+<body class="bg-background text-on-surface min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<nav class="flex justify-between items-center px-md py-sm w-full fixed top-0 z-50 bg-surface dark:bg-surface-dim border-b border-outline-variant dark:border-outline shadow-sm transition-all duration-200 ease-in-out">
+<div class="flex items-center gap-sm">
+<span class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed-dim">Treatment Navigator</span>
+</div>
+<div class="flex items-center gap-md">
+<button class="material-symbols-outlined text-on-surface-variant hover:bg-surface-container-low p-2 rounded-full transition-colors">notifications</button>
+<button class="material-symbols-outlined text-on-surface-variant hover:bg-surface-container-low p-2 rounded-full transition-colors">account_circle</button>
+</div>
+</nav>
+<!-- SideNavBar (Hidden on Mobile) -->
+<aside class="hidden md:flex flex-col h-full py-lg w-64 fixed left-0 top-0 bg-surface-container-low dark:bg-surface-container-lowest shadow-md z-40 mt-[64px]">
+<div class="px-md mb-lg">
+<h2 class="font-headline-sm text-headline-sm text-primary dark:text-primary-fixed-dim">Financial Planning</h2>
+<p class="font-label-md text-label-md text-on-surface-variant">Empathetic Clarity</p>
+</div>
+<nav class="flex-grow">
+<a class="flex items-center gap-sm text-primary dark:text-primary-fixed-dim font-bold border-r-4 border-primary dark:border-primary-fixed-dim bg-surface-container-highest px-4 py-3 transition-transform duration-150 scale-98" href="#">
+<span class="material-symbols-outlined">assignment</span>
+<span class="font-label-md text-label-md">Intake</span>
+</a>
+<a class="flex items-center gap-sm text-on-surface-variant dark:text-on-surface-variant px-4 py-3 hover:bg-surface-container-high transition-transform duration-150" href="#">
+<span class="material-symbols-outlined">medical_services</span>
+<span class="font-label-md text-label-md">Medical Input</span>
+</a>
+<a class="flex items-center gap-sm text-on-surface-variant dark:text-on-surface-variant px-4 py-3 hover:bg-surface-container-high transition-transform duration-150" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-label-md">Financial Dashboard</span>
+</a>
+<a class="flex items-center gap-sm text-on-surface-variant dark:text-on-surface-variant px-4 py-3 hover:bg-surface-container-high transition-transform duration-150" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="font-label-md text-label-md">Cost Breakdown</span>
+</a>
+<a class="flex items-center gap-sm text-on-surface-variant dark:text-on-surface-variant px-4 py-3 hover:bg-surface-container-high transition-transform duration-150" href="#">
+<span class="material-symbols-outlined">lightbulb</span>
+<span class="font-label-md text-label-md">Action Plan</span>
+</a>
+</nav>
+<div class="px-md mt-auto pt-md border-t border-outline-variant">
+<button class="w-full bg-primary text-on-primary py-sm rounded-lg font-label-md text-label-md shadow-sm hover:opacity-90 transition-opacity">Download Report</button>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-grow pt-[88px] md:pl-64 pb-xl">
+<div class="max-w-container-max mx-auto px-margin-mobile md:px-gutter">
+<!-- Progress Stepper (Quiet Stepper) -->
+<div class="w-full max-w-3xl mx-auto mb-lg pt-sm">
+<div class="flex justify-between items-center relative">
+<!-- Progress Line Background -->
+<div class="absolute top-1/2 left-0 w-full h-[2px] bg-outline-variant -z-10 -translate-y-1/2"></div>
+<!-- Actual Progress Line -->
+<div class="absolute top-1/2 left-0 h-[2px] bg-primary -z-10 -translate-y-1/2 transition-all duration-500" id="progress-bar" style="width: 0%;"></div>
+<!-- Steps -->
+<div class="flex flex-col items-center group cursor-pointer" onclick="goToStep(1)">
+<div class="w-10 h-10 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold shadow-sm step-transition" id="step-1-circle">1</div>
+<span class="font-label-sm text-label-sm text-on-surface mt-2">Demographics</span>
+</div>
+<div class="flex flex-col items-center group cursor-pointer" onclick="goToStep(2)">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest text-outline flex items-center justify-center font-bold shadow-sm step-transition" id="step-2-circle">2</div>
+<span class="font-label-sm text-label-sm text-outline mt-2">Hospital</span>
+</div>
+<div class="flex flex-col items-center group cursor-pointer" onclick="goToStep(3)">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest text-outline flex items-center justify-center font-bold shadow-sm step-transition" id="step-3-circle">3</div>
+<span class="font-label-sm text-label-sm text-outline mt-2">Insurance</span>
+</div>
+<div class="flex flex-col items-center group cursor-pointer" onclick="goToStep(4)">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest text-outline flex items-center justify-center font-bold shadow-sm step-transition" id="step-4-circle">4</div>
+<span class="font-label-sm text-label-sm text-outline mt-2">Income</span>
+</div>
+</div>
+</div>
+<!-- Form Container -->
+<div class="max-w-2xl mx-auto">
+<form class="space-y-lg" id="intake-form">
+<!-- Section 1: Demographics -->
+<section class="step-section bg-surface-container-lowest p-lg rounded-xl quiet-shadow border border-outline-variant/30" id="section-1">
+<div class="flex justify-between items-start mb-md">
+<div>
+<h3 class="font-headline-md text-headline-md text-primary mb-1">Tell us about yourself</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Basic information helps us narrow down local rates and age-specific coverage.</p>
+</div>
+<span class="material-symbols-outlined text-secondary text-3xl" data-weight="fill">person</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+<div class="space-y-xs">
+<label class="font-label-md text-label-md text-on-surface">Age</label>
+<input class="w-full px-md py-sm border border-outline-variant rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all font-body-md text-body-md" placeholder="e.g. 45" type="number"/>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Age impacts Medicare/Medicaid eligibility.</p>
+</div>
+<div class="space-y-xs">
+<label class="font-label-md text-label-md text-on-surface">Location (Zip Code)</label>
+<input class="w-full px-md py-sm border border-outline-variant rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all font-body-md text-body-md" placeholder="90210" type="text"/>
+</div>
+</div>
+<div class="mt-lg pt-md border-t border-outline-variant flex justify-between items-center">
+<button class="text-secondary font-label-md text-label-md hover:underline" type="button">I don't know</button>
+<button class="bg-primary text-on-primary px-lg py-sm rounded-lg font-label-md text-label-md hover:opacity-90 transition-opacity flex items-center gap-2" onclick="nextStep(2)" type="button">
+                                Save &amp; Continue <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</section>
+<!-- Section 2: Hospital (Initially Hidden) -->
+<section class="step-section hidden bg-surface-container-lowest p-lg rounded-xl quiet-shadow border border-outline-variant/30" id="section-2">
+<div class="flex justify-between items-start mb-md">
+<div>
+<h3 class="font-headline-md text-headline-md text-primary mb-1">Hospital Preferences</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Different hospital types have vastly different billing structures.</p>
+</div>
+<span class="material-symbols-outlined text-secondary text-3xl" data-weight="fill">domain</span>
+</div>
+<div class="space-y-md">
+<label class="font-label-md text-label-md text-on-surface block mb-2">What type of hospital are you considering?</label>
+<div class="grid grid-cols-1 gap-sm">
+<label class="flex items-center gap-md p-md border border-outline-variant rounded-lg cursor-pointer hover:bg-surface-container transition-colors group">
+<input class="w-5 h-5 text-primary border-outline focus:ring-primary" name="hospital_type" type="radio"/>
+<div>
+<span class="font-body-md text-body-md font-bold block">Government / Public Hospital</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Often lower cost, but might have longer wait times.</span>
+</div>
+</label>
+<label class="flex items-center gap-md p-md border border-outline-variant rounded-lg cursor-pointer hover:bg-surface-container transition-colors">
+<input class="w-5 h-5 text-primary border-outline focus:ring-primary" name="hospital_type" type="radio"/>
+<div>
+<span class="font-body-md text-body-md font-bold block">Private Medical Center</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Typically higher costs, often more amenities.</span>
+</div>
+</label>
+<label class="flex items-center gap-md p-md border border-outline-variant rounded-lg cursor-pointer hover:bg-surface-container transition-colors">
+<input class="w-5 h-5 text-primary border-outline focus:ring-primary" name="hospital_type" type="radio"/>
+<div>
+<span class="font-body-md text-body-md font-bold block">I'm Unsure</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">We'll show you averages for both.</span>
+</div>
+</label>
+</div>
+</div>
+<div class="mt-lg pt-md border-t border-outline-variant flex justify-between items-center">
+<button class="text-on-surface-variant font-label-md text-label-md hover:underline" onclick="prevStep(1)" type="button">Back</button>
+<div class="flex gap-md">
+<button class="text-secondary font-label-md text-label-md hover:underline" onclick="nextStep(3)" type="button">Skip for now</button>
+<button class="bg-primary text-on-primary px-lg py-sm rounded-lg font-label-md text-label-md hover:opacity-90 transition-opacity" onclick="nextStep(3)" type="button">Save &amp; Continue</button>
+</div>
+</div>
+</section>
+<!-- Section 3: Insurance (Initially Hidden) -->
+<section class="step-section hidden bg-surface-container-lowest p-lg rounded-xl quiet-shadow border border-outline-variant/30" id="section-3">
+<div class="flex justify-between items-start mb-md">
+<div>
+<h3 class="font-headline-md text-headline-md text-primary mb-1">Insurance Coverage</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Your coverage determines your final out-of-pocket estimates.</p>
+</div>
+<span class="material-symbols-outlined text-secondary text-3xl" data-weight="fill">shield_with_heart</span>
+</div>
+<div class="space-y-lg">
+<div class="flex items-center justify-between p-md bg-surface-container rounded-lg">
+<div>
+<span class="font-label-md text-label-md text-on-surface block">Do you currently have insurance?</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Includes Medicare, Medicaid, or Private plans.</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="w-14 h-7 bg-outline-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-secondary"></div>
+</label>
+</div>
+<div class="space-y-xs">
+<label class="font-label-md text-label-md text-on-surface">Insurance Provider &amp; Plan Name</label>
+<input class="w-full px-md py-sm border border-outline-variant rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all font-body-md text-body-md" placeholder="e.g. Blue Cross Silver PPO" type="text"/>
+</div>
+</div>
+<div class="mt-lg pt-md border-t border-outline-variant flex justify-between items-center">
+<button class="text-on-surface-variant font-label-md text-label-md hover:underline" onclick="prevStep(2)" type="button">Back</button>
+<div class="flex gap-md">
+<button class="text-secondary font-label-md text-label-md hover:underline" type="button">Help finding plan info</button>
+<button class="bg-primary text-on-primary px-lg py-sm rounded-lg font-label-md text-label-md hover:opacity-90 transition-opacity" onclick="nextStep(4)" type="button">Save &amp; Continue</button>
+</div>
+</div>
+</section>
+<!-- Section 4: Income (Initially Hidden) -->
+<section class="step-section hidden bg-surface-container-lowest p-lg rounded-xl quiet-shadow border border-outline-variant/30" id="section-4">
+<div class="flex justify-between items-start mb-md">
+<div>
+<h3 class="font-headline-md text-headline-md text-primary mb-1">Financial Assistance</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">You may be eligible for charity care or government subsidies.</p>
+</div>
+<span class="material-symbols-outlined text-secondary text-3xl" data-weight="fill">payments</span>
+</div>
+<div class="space-y-md">
+<div class="space-y-xs">
+<label class="font-label-md text-label-md text-on-surface">Approximate Household Annual Income</label>
+<select class="w-full px-md py-sm border border-outline-variant rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all font-body-md text-body-md bg-white">
+<option value="">Select an income bracket</option>
+<option value="1">Below $25,000</option>
+<option value="2">$25,000 - $50,000</option>
+<option value="3">$50,000 - $75,000</option>
+<option value="4">$75,000 - $100,000</option>
+<option value="5">Above $100,000</option>
+</select>
+<p class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1 mt-2">
+<span class="material-symbols-outlined text-sm">lock</span> 
+                                    Your data is encrypted and only used for subsidy calculation.
+                                </p>
+</div>
+<div class="bg-surface-container-high p-md rounded-lg flex gap-md items-start border border-primary/10">
+<span class="material-symbols-outlined text-primary">info</span>
+<p class="font-body-sm text-body-sm text-on-surface">Based on your state, families earning under $40k may qualify for 100% financial assistance at nonprofit hospitals.</p>
+</div>
+</div>
+<div class="mt-lg pt-md border-t border-outline-variant flex justify-between items-center">
+<button class="text-on-surface-variant font-label-md text-label-md hover:underline" onclick="prevStep(3)" type="button">Back</button>
+<div class="flex gap-md">
+<button class="text-secondary font-label-md text-label-md hover:underline" type="button">Privacy Policy</button>
+<button class="bg-primary text-on-primary px-lg py-sm rounded-lg font-label-md text-label-md hover:opacity-90 transition-opacity" type="button">Complete Intake</button>
+</div>
+</div>
+</section>
+</form>
+</div>
+<!-- Compassionate Gauge (Visual Anchor) -->
+<div class="max-w-2xl mx-auto mt-lg p-lg bg-white rounded-xl border border-outline-variant flex flex-col items-center text-center">
+<h4 class="font-headline-sm text-headline-sm text-on-surface-variant mb-md">Estimate Reliability</h4>
+<div class="relative w-48 h-24 mb-sm overflow-hidden">
+<div class="absolute inset-0 rounded-t-full border-[12px] border-surface-container-high"></div>
+<div class="absolute inset-0 rounded-t-full border-[12px] border-t-secondary border-r-secondary border-l-transparent border-b-transparent rotate-45 transition-transform duration-700 origin-bottom" id="gauge-bar"></div>
+<div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-4 bg-primary rounded-full"></div>
+</div>
+<p class="font-label-md text-label-md text-primary">High Reliability Score</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant max-w-sm">Based on verified provider rates and your specific insurance policy data. Accuracy: ~92%.</p>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="w-full py-md bg-surface dark:bg-surface-dim border-t border-outline-variant dark:border-outline mt-auto">
+<div class="max-w-container-max mx-auto flex flex-col md:flex-row justify-between items-center px-md">
+<span class="font-body-sm text-body-sm text-secondary dark:text-secondary-fixed-dim">© 2024 Treatment Navigator. All rights reserved.</span>
+<div class="flex gap-md mt-sm md:mt-0">
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Support</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Privacy Policy</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Terms of Service</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Insurance Partners</a>
+</div>
+</div>
+</footer>
+<script>
+        let currentStep = 1;
+
+        function updateStepper() {
+            const steps = [1, 2, 3, 4];
+            const progressBar = document.getElementById('progress-bar');
+            
+            // Update Progress Line
+            progressBar.style.width = ((currentStep - 1) / (steps.length - 1)) * 100 + '%';
+
+            steps.forEach(step => {
+                const circle = document.getElementById(`step-${step}-circle`);
+                const label = circle.nextElementSibling;
+
+                if (step < currentStep) {
+                    // Completed Step
+                    circle.classList.remove('bg-primary', 'text-on-primary', 'bg-surface-container-highest', 'text-outline');
+                    circle.classList.add('bg-secondary', 'text-on-secondary');
+                    circle.innerHTML = '<span class="material-symbols-outlined">check</span>';
+                    label.classList.replace('text-outline', 'text-secondary');
+                } else if (step === currentStep) {
+                    // Active Step
+                    circle.classList.remove('bg-secondary', 'text-on-secondary', 'bg-surface-container-highest', 'text-outline');
+                    circle.classList.add('bg-primary', 'text-on-primary');
+                    circle.innerHTML = step;
+                    label.classList.replace('text-outline', 'text-on-surface');
+                } else {
+                    // Future Step
+                    circle.classList.remove('bg-primary', 'text-on-primary', 'bg-secondary', 'text-on-secondary');
+                    circle.classList.add('bg-surface-container-highest', 'text-outline');
+                    circle.innerHTML = step;
+                    label.classList.replace('text-on-surface', 'text-outline');
+                    label.classList.replace('text-secondary', 'text-outline');
+                }
+            });
+
+            // Update Gauge Rotation
+            const gauge = document.getElementById('gauge-bar');
+            const rotation = 45 + (currentStep * 30); // Dynamic feel
+            gauge.style.transform = `rotate(${rotation}deg)`;
+        }
+
+        function nextStep(step) {
+            document.querySelectorAll('.step-section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`section-${step}`).classList.remove('hidden');
+            currentStep = step;
+            updateStepper();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function prevStep(step) {
+            document.querySelectorAll('.step-section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`section-${step}`).classList.remove('hidden');
+            currentStep = step;
+            updateStepper();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function goToStep(step) {
+            if(step <= currentStep || step === currentStep + 1) { // Allow navigation to past steps or immediate next
+                nextStep(step);
+            }
+        }
+
+        // Initialize
+        updateStepper();
+    </script>
+</body></html>

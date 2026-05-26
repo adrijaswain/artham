@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Cost Breakdown | Treatment Navigator</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "background": "#f8f9ff",
+                        "primary-fixed-dim": "#a6c8ff",
+                        "on-secondary-fixed-variant": "#00504e",
+                        "tertiary-fixed-dim": "#e9c349",
+                        "on-primary-container": "#93bcfc",
+                        "on-secondary-container": "#006e6c",
+                        "on-surface-variant": "#424750",
+                        "on-secondary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "secondary-container": "#91f0ec",
+                        "on-surface": "#0b1c30",
+                        "surface-container": "#e5eeff",
+                        "on-tertiary-fixed": "#241a00",
+                        "surface-dim": "#cbdbf5",
+                        "tertiary-fixed": "#ffe088",
+                        "secondary-fixed-dim": "#78d6d2",
+                        "surface": "#f8f9ff",
+                        "tertiary": "#735c00",
+                        "surface-variant": "#d3e4fe",
+                        "error-container": "#ffdad6",
+                        "surface-tint": "#335f99",
+                        "secondary-fixed": "#94f2ef",
+                        "on-tertiary": "#ffffff",
+                        "secondary": "#006a68",
+                        "outline": "#737781",
+                        "on-secondary-fixed": "#00201f",
+                        "surface-container-highest": "#d3e4fe",
+                        "primary-fixed": "#d5e3ff",
+                        "tertiary-container": "#cca830",
+                        "surface-container-high": "#dce9ff",
+                        "on-primary-fixed": "#001c3b",
+                        "error": "#ba1a1a",
+                        "on-tertiary-container": "#4f3e00",
+                        "inverse-surface": "#213145",
+                        "on-tertiary-fixed-variant": "#574500",
+                        "surface-container-low": "#eff4ff",
+                        "surface-bright": "#f8f9ff",
+                        "primary-container": "#1a4b84",
+                        "outline-variant": "#c3c6d1",
+                        "inverse-primary": "#a6c8ff",
+                        "on-background": "#0b1c30",
+                        "on-primary-fixed-variant": "#144780",
+                        "on-primary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "surface-container-lowest": "#ffffff",
+                        "inverse-on-surface": "#eaf1ff",
+                        "primary": "#003466"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "24px",
+                        "container-max": "1200px",
+                        "xs": "4px",
+                        "margin-mobile": "16px",
+                        "sm": "12px",
+                        "base": "8px",
+                        "lg": "48px",
+                        "md": "24px",
+                        "xl": "80px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Public Sans"],
+                        "body-sm": ["Public Sans"],
+                        "body-lg": ["Public Sans"],
+                        "headline-sm": ["Public Sans"],
+                        "label-md": ["Public Sans"],
+                        "headline-lg-mobile": ["Public Sans"],
+                        "label-sm": ["Public Sans"],
+                        "headline-lg": ["Public Sans"],
+                        "body-md": ["Public Sans"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "label-md": ["14px", {"lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "600"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "600"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Public Sans', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .gauge-svg { transform: rotate(-90deg); transform-origin: 50% 50%; }
+        .glass-card { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); }
+    </style>
+</head>
+<body class="bg-background text-on-background">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center px-md py-sm w-full fixed top-0 z-50 bg-surface dark:bg-surface-dim border-b border-outline-variant dark:border-outline shadow-sm">
+<div class="flex items-center gap-base">
+<span class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed-dim">Treatment Navigator</span>
+</div>
+<div class="flex items-center gap-md">
+<button class="material-symbols-outlined text-on-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-container p-2 rounded-full transition-all duration-200">notifications</button>
+<button class="material-symbols-outlined text-on-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-container p-2 rounded-full transition-all duration-200">account_circle</button>
+</div>
+</header>
+<!-- SideNavBar -->
+<aside class="hidden md:flex flex-col h-full py-lg bg-surface-container-low dark:bg-surface-container-lowest h-full w-64 fixed left-0 top-0 shadow-md z-40">
+<div class="px-md mb-xl mt-md">
+<h2 class="font-headline-sm text-headline-sm text-primary dark:text-primary-fixed-dim">Financial Planning</h2>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Empathetic Clarity</p>
+</div>
+<nav class="flex-1 space-y-xs">
+<a class="flex items-center gap-sm px-4 py-3 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-high transition-transform duration-150 scale-98" href="#">
+<span class="material-symbols-outlined">assignment</span>
+<span class="font-label-md text-label-md">Intake</span>
+</a>
+<a class="flex items-center gap-sm px-4 py-3 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-high transition-transform duration-150 scale-98" href="#">
+<span class="material-symbols-outlined">medical_services</span>
+<span class="font-label-md text-label-md">Medical Input</span>
+</a>
+<a class="flex items-center gap-sm px-4 py-3 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-high transition-transform duration-150 scale-98" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-label-md">Financial Dashboard</span>
+</a>
+<a class="flex items-center gap-sm px-4 py-3 text-primary dark:text-primary-fixed-dim font-bold border-r-4 border-primary dark:border-primary-fixed-dim bg-surface-container-highest transition-transform duration-150 scale-98" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="font-label-md text-label-md">Cost Breakdown</span>
+</a>
+<a class="flex items-center gap-sm px-4 py-3 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-high transition-transform duration-150 scale-98" href="#">
+<span class="material-symbols-outlined">lightbulb</span>
+<span class="font-label-md text-label-md">Action Plan</span>
+</a>
+</nav>
+<div class="px-md pt-lg border-t border-outline-variant">
+<button class="w-full bg-primary text-on-primary py-sm rounded-lg font-label-md transition-all hover:opacity-90 shadow-sm flex items-center justify-center gap-xs">
+<span class="material-symbols-outlined text-[18px]">download</span>
+                Download Report
+            </button>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="md:ml-64 pt-xl min-h-screen px-margin-mobile md:px-gutter pb-xl">
+<div class="max-w-container-max mx-auto mt-md">
+<!-- Header Section -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-lg gap-md">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-primary mb-xs">Estimated Treatment Journey</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Comprehensive financial forecast for your breast cancer treatment cycle.</p>
+</div>
+<div class="flex gap-sm">
+<div class="bg-surface-container p-sm rounded-xl border border-outline-variant flex items-center gap-sm shadow-sm">
+<div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined">check_circle</span>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Reliability Score</p>
+<p class="font-headline-sm text-headline-sm text-primary">High (92%)</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Bento Summary Cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-md mb-xl">
+<div class="bg-surface-container-lowest p-md rounded-xl shadow-[0_4px_12px_rgba(0,52,102,0.1)] border border-outline-variant">
+<p class="font-label-md text-label-md text-on-surface-variant mb-xs">Total Estimate</p>
+<p class="font-headline-md text-headline-md text-primary">$84,200.00</p>
+<div class="w-full h-1 bg-surface-container mt-md rounded-full overflow-hidden">
+<div class="bg-primary w-full h-full"></div>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-md rounded-xl shadow-[0_4px_12px_rgba(0,52,102,0.1)] border border-outline-variant">
+<p class="font-label-md text-label-md text-on-surface-variant mb-xs">Insurance Coverage</p>
+<p class="font-headline-md text-headline-md text-secondary">$68,500.00</p>
+<div class="w-full h-1 bg-surface-container mt-md rounded-full overflow-hidden">
+<div class="bg-secondary w-[81%] h-full"></div>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-md rounded-xl shadow-[0_4px_12px_rgba(0,52,102,0.1)] border border-outline-variant">
+<p class="font-label-md text-label-md text-on-surface-variant mb-xs">Out-of-Pocket</p>
+<p class="font-headline-md text-headline-md text-tertiary">$15,700.00</p>
+<div class="w-full h-1 bg-surface-container mt-md rounded-full overflow-hidden">
+<div class="bg-tertiary w-[19%] h-full"></div>
+</div>
+</div>
+</div>
+<!-- Detailed Breakdown Timeline -->
+<div class="space-y-lg relative">
+<!-- Vertical Line -->
+<div class="absolute left-8 top-0 bottom-0 w-0.5 bg-outline-variant hidden md:block"></div>
+<!-- Category 1: Pre-treatment Diagnostics -->
+<section class="relative">
+<div class="flex items-center gap-md mb-md">
+<div class="z-10 w-16 h-16 rounded-full bg-primary flex items-center justify-center text-on-primary shadow-md shrink-0">
+<span class="material-symbols-outlined text-[32px]">biotech</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-primary">Pre-treatment Diagnostics</h3>
+</div>
+<div class="md:ml-20 space-y-sm">
+<!-- Line Item 1 -->
+<div class="bg-surface-container-lowest p-md rounded-xl border border-outline-variant hover:shadow-md transition-all duration-200">
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-sm">
+<div class="flex-1">
+<h4 class="font-label-md text-label-md text-primary">Biopsy &amp; Pathology</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Comprehensive tissue analysis and grading.</p>
+</div>
+<div class="grid grid-cols-3 gap-md w-full md:w-auto text-right md:text-left">
+<div>
+<p class="font-label-sm text-label-sm text-outline">Estimate</p>
+<p class="font-body-md text-body-md font-bold text-on-surface">$2,400</p>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-outline">Insurance</p>
+<p class="font-body-md text-body-md text-secondary">$1,920</p>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-outline">OOP</p>
+<p class="font-body-md text-body-md text-tertiary font-bold">$480</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Line Item 2 -->
+<div class="bg-surface-container-lowest p-md rounded-xl border border-outline-variant hover:shadow-md transition-all duration-200">
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-sm">
+<div class="flex-1">
+<h4 class="font-label-md text-label-md text-primary">PET Scan &amp; MRI</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Staging and whole-body imaging for localization.</p>
+</div>
+<div class="grid grid-cols-3 gap-md w-full md:w-auto text-right md:text-left">
+<div>
+<p class="font-label-sm text-label-sm text-outline">Estimate</p>
+<p class="font-body-md text-body-md font-bold text-on-surface">$4,800</p>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-outline">Insurance</p>
+<p class="font-body-md text-body-md text-secondary">$4,000</p>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-outline">OOP</p>
+<p class="font-body-md text-body-md text-tertiary font-bold">$800</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Category 2: Primary Treatment -->
+<section class="relative">
+<div class="flex items-center gap-md mb-md">
+<div class="z-10 w-16 h-16 rounded-full bg-primary flex items-center justify-center text-on-primary shadow-md shrink-0">
+<span class="material-symbols-outlined text-[32px]">healing</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-primary">Primary Treatment</h3>
+</div>
+<div class="md:ml-20 space-y-sm">
+<!-- Surgery -->
+<div class="bg-surface-container-lowest p-md rounded-xl border border-outline-variant hover:shadow-md transition-all duration-200">
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-sm">
+<div class="flex-1">
+<h4 class="font-label-md text-label-md text-primary">Lumpectomy / Mastectomy</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Surgical intervention including anesthesia and recovery.</p>
+</div>
+<div class="grid grid-cols-3 gap-md w-full md:w-auto text-right md:text-left">
+<div>
+<p class="font-label-sm text-label-sm text-outline">Estimate</p>
+<p class="font-body-md text-body-md font-bold text-on-surface">$22,000</p>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-outline">Insurance</p>
+<p class="font-body-md text-body-md text-secondary">$18,500</p>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-outline">OOP</p>
+<p class="font-body-md text-body-md text-tertiary font-bold">$3,500</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Chemotherapy -->
+<div class="bg-surface-container-lowest p-md rounded-xl border border-outline-variant hover:shadow-md transition-all duration-200">
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-sm">
+<div class="flex-1">
+<h4 class="font-label-md text-label-md text-primary">Chemotherapy (6 Cycles)</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Systemic treatment plan including infusion and monitoring.</p>
+</div>
+<div class="grid grid-cols-3 gap-md w-full md:w-auto text-right md:text-left">
+<div>
+<p class="font-label-sm text-label-sm text-outline">Estimate</p>
+<p class="font-body-md text-body-md font-bold text-on-surface">$28,000</p>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-outline">Insurance</p>
+<p class="font-body-md text-body-md text-secondary">$24,000</p>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-outline">OOP</p>
+<p class="font-body-md text-body-md text-tertiary font-bold">$4,000</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Radiation -->
+<div class="bg-surface-container-lowest p-md rounded-xl border border-outline-variant hover:shadow-md transition-all duration-200">
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-sm">
+<div class="flex-1">
+<h4 class="font-label-md text-label-md text-primary">Radiation Therapy</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Targeted localized radiation treatment course.</p>
+</div>
+<div class="grid grid-cols-3 gap-md w-full md:w-auto text-right md:text-left">
+<div>
+<p class="font-label-sm text-label-sm text-outline">Estimate</p>
+<p class="font-body-md text-body-md font-bold text-on-surface">$12,000</p>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-outline">Insurance</p>
+<p class="font-body-md text-body-md text-secondary">$9,800</p>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-outline">OOP</p>
+<p class="font-body-md text-body-md text-tertiary font-bold">$2,200</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Category 3: Medication -->
+<section class="relative">
+<div class="flex items-center gap-md mb-md">
+<div class="z-10 w-16 h-16 rounded-full bg-primary flex items-center justify-center text-on-primary shadow-md shrink-0">
+<span class="material-symbols-outlined text-[32px]">medication</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-primary">Medication</h3>
+</div>
+<div class="md:ml-20 space-y-sm">
+<div class="bg-surface-container-lowest p-md rounded-xl border border-outline-variant hover:shadow-md transition-all duration-200">
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-sm">
+<div class="flex-1">
+<h4 class="font-label-md text-label-md text-primary">Long-term Hormonal Therapy</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Annual supply of maintenance oral medication.</p>
+</div>
+<div class="grid grid-cols-3 gap-md w-full md:w-auto text-right md:text-left">
+<div>
+<p class="font-label-sm text-label-sm text-outline">Estimate</p>
+<p class="font-body-md text-body-md font-bold text-on-surface">$3,000</p>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-outline">Insurance</p>
+<p class="font-body-md text-body-md text-secondary">$2,200</p>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-outline">OOP</p>
+<p class="font-body-md text-body-md text-tertiary font-bold">$800</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Category 4: Hospitalization -->
+<section class="relative">
+<div class="flex items-center gap-md mb-md">
+<div class="z-10 w-16 h-16 rounded-full bg-primary flex items-center justify-center text-on-primary shadow-md shrink-0">
+<span class="material-symbols-outlined text-[32px]">domain</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-primary">Hospitalization</h3>
+</div>
+<div class="md:ml-20 space-y-sm">
+<div class="bg-surface-container-lowest p-md rounded-xl border border-outline-variant hover:shadow-md transition-all duration-200">
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-sm">
+<div class="flex-1">
+<h4 class="font-label-md text-label-md text-primary">Room, ICU &amp; Nursing</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">5-day inpatient stay including intensive care monitoring.</p>
+</div>
+<div class="grid grid-cols-3 gap-md w-full md:w-auto text-right md:text-left">
+<div>
+<p class="font-label-sm text-label-sm text-outline">Estimate</p>
+<p class="font-body-md text-body-md font-bold text-on-surface">$12,000</p>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-outline">Insurance</p>
+<p class="font-body-md text-body-md text-secondary">$8,080</p>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-outline">OOP</p>
+<p class="font-body-md text-body-md text-tertiary font-bold">$3,920</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Compassionate Insight -->
+<div class="mt-xl bg-primary-container text-on-primary-container p-lg rounded-xl flex flex-col md:flex-row gap-lg items-center overflow-hidden relative">
+<div class="flex-1 z-10">
+<h2 class="font-headline-md text-headline-md mb-sm">Financial Resilience Insight</h2>
+<p class="font-body-lg text-body-lg opacity-90">Based on your specific insurance plan and provider network, we've identified $2,400 in potential savings by opting for a verified specialized oncology center. Our estimates are verified against 4,200 local billing records.</p>
+<div class="mt-md flex gap-sm">
+<button class="bg-secondary px-md py-sm rounded-lg font-label-md text-on-secondary shadow-lg hover:brightness-110 transition-all">Review Savings Options</button>
+</div>
+</div>
+<div class="w-full md:w-64 flex flex-col items-center gap-base z-10">
+<!-- Custom Compassionate Gauge -->
+<div class="relative w-48 h-24 overflow-hidden">
+<svg class="w-full h-full" viewbox="0 0 100 50">
+<path class="opacity-20 text-on-primary-container" d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="currentColor" stroke-width="12"></path>
+<path class="text-secondary-container" d="M 10 50 A 40 40 0 0 1 80 15" fill="none" stroke="currentColor" stroke-width="12"></path>
+</svg>
+<div class="absolute bottom-0 left-1/2 -translate-x-1/2 text-center">
+<p class="font-headline-sm text-headline-sm text-on-primary-container">Excellent</p>
+</div>
+</div>
+<p class="font-label-sm text-label-sm text-center uppercase tracking-wider opacity-80">Network Alignment</p>
+</div>
+<!-- Abstract visual element -->
+<div class="absolute -right-20 -bottom-20 w-80 h-80 rounded-full bg-primary-fixed-dim/10 blur-3xl"></div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="md:ml-64 bg-surface dark:bg-surface-dim border-t border-outline-variant dark:border-outline py-md">
+<div class="max-w-container-max mx-auto flex flex-col md:flex-row justify-between items-center px-md gap-md">
+<div class="flex flex-col items-center md:items-start">
+<span class="font-label-md text-label-md text-on-surface-variant">© 2024 Treatment Navigator. All rights reserved.</span>
+</div>
+<nav class="flex gap-md">
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Support</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Privacy Policy</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Terms of Service</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Insurance Partners</a>
+</nav>
+</div>
+</footer>
+<!-- Mobile Nav Bar -->
+<nav class="md:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-outline-variant flex justify-around py-sm z-50 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+<button class="flex flex-col items-center gap-xs text-on-surface-variant">
+<span class="material-symbols-outlined">assignment</span>
+<span class="text-[10px] font-label-sm">Intake</span>
+</button>
+<button class="flex flex-col items-center gap-xs text-on-surface-variant">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-[10px] font-label-sm">Dashboard</span>
+</button>
+<button class="flex flex-col items-center gap-xs text-primary font-bold">
+<span class="material-symbols-outlined">payments</span>
+<span class="text-[10px] font-label-sm">Costs</span>
+</button>
+<button class="flex flex-col items-center gap-xs text-on-surface-variant">
+<span class="material-symbols-outlined">account_circle</span>
+<span class="text-[10px] font-label-sm">Profile</span>
+</button>
+</nav>
+<script>
+        // Simple micro-interactions for hover states
+        document.querySelectorAll('.bg-surface-container-lowest').forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-2px)';
+            });
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0px)';
+            });
+        });
+    </script>
+</body></html>

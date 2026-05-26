@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Treatment Navigator - Onboarding</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            font-family: 'Public Sans', sans-serif;
+            scroll-behavior: smooth;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .tonal-card-shadow {
+            box-shadow: 0 4px 12px rgba(0, 52, 102, 0.1);
+        }
+        .glass-effect {
+            backdrop-filter: blur(8px);
+            background: rgba(255, 255, 255, 0.8);
+        }
+        .active-ring {
+            box-shadow: 0 0 0 2px #003466;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-secondary": "#ffffff",
+                      "tertiary-fixed": "#ffe088",
+                      "on-primary-container": "#93bcfc",
+                      "outline": "#737781",
+                      "error-container": "#ffdad6",
+                      "surface-container-highest": "#d3e4fe",
+                      "surface-container-low": "#eff4ff",
+                      "surface-tint": "#335f99",
+                      "surface-bright": "#f8f9ff",
+                      "on-error-container": "#93000a",
+                      "on-secondary-fixed": "#00201f",
+                      "tertiary": "#735c00",
+                      "primary-container": "#1a4b84",
+                      "on-primary-fixed-variant": "#144780",
+                      "inverse-on-surface": "#eaf1ff",
+                      "on-secondary-container": "#006e6c",
+                      "on-error": "#ffffff",
+                      "secondary-fixed": "#94f2ef",
+                      "on-primary": "#ffffff",
+                      "on-primary-fixed": "#001c3b",
+                      "on-surface": "#0b1c30",
+                      "on-background": "#0b1c30",
+                      "on-tertiary-fixed-variant": "#574500",
+                      "inverse-surface": "#213145",
+                      "on-tertiary-container": "#4f3e00",
+                      "on-secondary-fixed-variant": "#00504e",
+                      "inverse-primary": "#a6c8ff",
+                      "secondary": "#006a68",
+                      "primary-fixed-dim": "#a6c8ff",
+                      "tertiary-fixed-dim": "#e9c349",
+                      "outline-variant": "#c3c6d1",
+                      "surface-container": "#e5eeff",
+                      "error": "#ba1a1a",
+                      "secondary-fixed-dim": "#78d6d2",
+                      "surface-container-high": "#dce9ff",
+                      "tertiary-container": "#cca830",
+                      "surface-dim": "#cbdbf5",
+                      "on-tertiary-fixed": "#241a00",
+                      "primary": "#003466",
+                      "background": "#f8f9ff",
+                      "surface-container-lowest": "#ffffff",
+                      "on-tertiary": "#ffffff",
+                      "surface-variant": "#d3e4fe",
+                      "primary-fixed": "#d5e3ff",
+                      "surface": "#f8f9ff",
+                      "on-surface-variant": "#424750",
+                      "secondary-container": "#91f0ec"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "base": "8px",
+                      "xl": "80px",
+                      "container-max": "1200px",
+                      "md": "24px",
+                      "lg": "48px",
+                      "margin-mobile": "16px",
+                      "xs": "4px",
+                      "gutter": "24px",
+                      "sm": "12px"
+              },
+              "fontFamily": {
+                      "headline-md": ["Public Sans"],
+                      "body-sm": ["Public Sans"],
+                      "label-sm": ["Public Sans"],
+                      "headline-lg-mobile": ["Public Sans"],
+                      "label-md": ["Public Sans"],
+                      "body-lg": ["Public Sans"],
+                      "body-md": ["Public Sans"],
+                      "headline-sm": ["Public Sans"],
+                      "headline-lg": ["Public Sans"]
+              },
+              "fontSize": {
+                      "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                      "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "600"}],
+                      "headline-lg-mobile": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                      "label-md": ["14px", {"lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "600"}],
+                      "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                      "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+              }
+            },
+          },
+        }
+      </script>
+</head>
+<body class="bg-surface text-on-surface">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center px-md py-sm w-full fixed top-0 z-50 bg-surface dark:bg-surface-dim border-b border-outline-variant dark:border-outline shadow-sm">
+<div class="flex items-center gap-sm">
+<span class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed-dim">Treatment Navigator</span>
+</div>
+<div class="flex items-center gap-md">
+<div class="relative group">
+<button class="flex items-center gap-xs px-sm py-xs rounded-lg hover:bg-surface-container-low transition-all duration-200">
+<span class="material-symbols-outlined text-on-surface-variant">language</span>
+<span class="font-label-md text-label-md text-on-surface-variant">English</span>
+<span class="material-symbols-outlined text-on-surface-variant">expand_more</span>
+</button>
+<!-- Language Dropdown -->
+<div class="absolute right-0 mt-2 w-48 bg-surface-container-lowest rounded-xl shadow-lg border border-outline-variant hidden group-hover:block transition-all duration-200">
+<a class="block px-md py-sm font-body-sm text-body-sm hover:bg-surface-container-low text-on-surface" href="#">English</a>
+<a class="block px-md py-sm font-body-sm text-body-sm hover:bg-surface-container-low text-on-surface" href="#">Hindi</a>
+<a class="block px-md py-sm font-body-sm text-body-sm hover:bg-surface-container-low text-on-surface" href="#">Spanish</a>
+</div>
+</div>
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary cursor-pointer" data-icon="notifications">notifications</span>
+<span class="material-symbols-outlined text-primary cursor-pointer" data-icon="account_circle">account_circle</span>
+</div>
+</div>
+</header>
+<main class="mt-xl pt-lg pb-xl max-w-container-max mx-auto px-margin-mobile md:px-md">
+<!-- Welcome Section -->
+<section class="text-center mb-lg animate-fade-in">
+<h1 class="font-headline-lg text-headline-lg text-primary mb-sm">Welcome to Financial Treatment Navigator</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-[720px] mx-auto">
+                We help you navigate the financial journey of your medical treatment with clarity and empathy. Choose how you'd like to share your information to get started.
+            </p>
+</section>
+<!-- Intake Choice Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter mb-xl">
+<!-- Voice Input Card -->
+<button class="group relative flex flex-col items-center text-center p-lg bg-surface-container-lowest rounded-xl tonal-card-shadow border border-transparent hover:border-primary transition-all duration-300 scale-100 hover:scale-[1.02] text-left">
+<div class="w-16 h-16 rounded-full bg-primary-fixed flex items-center justify-center mb-md group-hover:bg-primary transition-colors duration-300">
+<span class="material-symbols-outlined text-[32px] text-primary group-hover:text-on-primary" data-icon="mic">mic</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-xs">Voice Input</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">"Speak naturally to provide details"</p>
+<div class="mt-md flex items-center text-primary font-label-md text-label-md opacity-0 group-hover:opacity-100 transition-opacity">
+                    Start speaking <span class="material-symbols-outlined ml-xs">arrow_forward</span>
+</div>
+</button>
+<!-- Text Input Card -->
+<button class="group relative flex flex-col items-center text-center p-lg bg-surface-container-lowest rounded-xl tonal-card-shadow border border-transparent hover:border-primary transition-all duration-300 scale-100 hover:scale-[1.02] text-left">
+<div class="w-16 h-16 rounded-full bg-secondary-fixed flex items-center justify-center mb-md group-hover:bg-secondary transition-colors duration-300">
+<span class="material-symbols-outlined text-[32px] text-secondary group-hover:text-on-secondary" data-icon="edit_note">edit_note</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-xs">Text Input</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">"Answer guided questions"</p>
+<div class="mt-md flex items-center text-secondary font-label-md text-label-md opacity-0 group-hover:opacity-100 transition-opacity">
+                    Begin questionnaire <span class="material-symbols-outlined ml-xs">arrow_forward</span>
+</div>
+</button>
+<!-- Document Upload Card -->
+<button class="group relative flex flex-col items-center text-center p-lg bg-surface-container-lowest rounded-xl tonal-card-shadow border border-transparent hover:border-primary transition-all duration-300 scale-100 hover:scale-[1.02] text-left">
+<div class="w-16 h-16 rounded-full bg-tertiary-fixed flex items-center justify-center mb-md group-hover:bg-tertiary transition-colors duration-300">
+<span class="material-symbols-outlined text-[32px] text-tertiary group-hover:text-on-tertiary" data-icon="upload_file">upload_file</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-xs">Document Upload</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">"Upload prescriptions, bills, or insurance papers"</p>
+<div class="mt-md flex items-center text-tertiary font-label-md text-label-md opacity-0 group-hover:opacity-100 transition-opacity">
+                    Select files <span class="material-symbols-outlined ml-xs">arrow_forward</span>
+</div>
+</button>
+</div>
+<!-- How It Works Summary -->
+<section class="bg-surface-container rounded-xl p-lg md:p-xl">
+<div class="flex flex-col md:flex-row items-center gap-lg">
+<div class="w-full md:w-1/2">
+<h2 class="font-headline-md text-headline-md text-primary mb-md">How it works</h2>
+<div class="space-y-md">
+<div class="flex gap-md">
+<div class="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold">1</div>
+<div>
+<h4 class="font-label-md text-label-md text-on-surface">Data Collection</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Securely share your treatment plan and insurance details.</p>
+</div>
+</div>
+<div class="flex gap-md">
+<div class="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold">2</div>
+<div>
+<h4 class="font-label-md text-label-md text-on-surface">Analysis &amp; Projection</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Our engine calculates out-of-pocket costs and identifies financial aid.</p>
+</div>
+</div>
+<div class="flex gap-md">
+<div class="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold">3</div>
+<div>
+<h4 class="font-label-md text-label-md text-on-surface">Clarity &amp; Confidence</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Receive a personalized roadmap for managing your treatment costs.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="w-full md:w-1/2 rounded-xl overflow-hidden shadow-md">
+<img alt="Financial Planning Interface" class="w-full h-auto object-cover" data-alt="A professional medical administrative setting showing a high-resolution tablet displaying clear financial graphs and healthcare charts. The environment is bright, clinical yet warm, with soft daylight filtering through a window. The aesthetic is clean and modern, using a corporate blue and white color palette to evoke trust and clarity. Minimalist medical decor sits in the blurred background to emphasize the focus on the financial dashboard." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDfGJAsemcRb5rY_oLmdgWPKYTrz2jmo3QFslaPRRtuEaBVK_Onwee4iKck0vGIA7iJAFxouZeXB8S4nW2zhM9GGmtQZheCZ5iK5CcoNzWbncAqqtUSY66FaKWsVUCZn-yYott8CHfkNVoYo13yBGd8Rs_dNc-301WQeffV7Awtekw_FnxKbgqRjOpNrXef26uDv3uWrt4_ezV4uTjZSfeMYIHuPXH8PcrnIXUVh9_asWTRHNQnae9b9GiS-_5LojfLwjM6lTQJksdg"/>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full py-md bg-surface dark:bg-surface-dim border-t border-outline-variant dark:border-outline">
+<div class="max-w-container-max mx-auto flex flex-col md:flex-row justify-between items-center px-md">
+<p class="font-body-sm text-body-sm text-secondary dark:text-secondary-fixed-dim mb-sm md:mb-0">
+                © 2024 Treatment Navigator. All rights reserved.
+            </p>
+<nav class="flex gap-md">
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Support</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Privacy Policy</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Terms of Service</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Insurance Partners</a>
+</nav>
+</div>
+</footer>
+<script>
+        // Simple entry animation logic
+        document.addEventListener('DOMContentLoaded', () => {
+            const observerOptions = {
+                threshold: 0.1
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('opacity-100', 'translate-y-0');
+                        entry.target.classList.remove('opacity-0', 'translate-y-4');
+                    }
+                });
+            }, observerOptions);
+
+            const animatedElements = document.querySelectorAll('.animate-fade-in');
+            animatedElements.forEach(el => {
+                el.classList.add('transition-all', 'duration-700', 'opacity-0', 'translate-y-4');
+                observer.observe(el);
+            });
+        });
+    </script>
+</body></html>
