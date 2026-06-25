@@ -27,6 +27,17 @@ export default function Intake() {
   const [insuranceProvider, setInsuranceProvider] = useState<string>(() => localStorage.getItem("artham_intake_insurance_provider") || "");
   const [incomeBracket, setIncomeBracket] = useState<string>(() => localStorage.getItem("artham_intake_income_bracket") || "");
 
+  // Profile Summary transition screen state
+  const [showSummaryScreen, setShowSummaryScreen] = useState<boolean>(() => {
+    const savedState = localStorage.getItem("artham_intake_state");
+    const savedAge = localStorage.getItem("artham_intake_age");
+    const savedStage = localStorage.getItem("artham_intake_stage");
+    return !!savedState && !!savedAge && !!savedStage;
+  });
+
+  // Summary Edit mode toggle
+  const [isEditingSummary, setIsEditingSummary] = useState<boolean>(false);
+
   useEffect(() => {
     const checkAuthAndSync = () => {
       setIsLoggedIn(localStorage.getItem("artham_is_logged_in") === "true");
@@ -49,13 +60,11 @@ export default function Intake() {
     };
 
     window.addEventListener("auth-change", checkAuthAndSync);
-
     return () => window.removeEventListener("auth-change", checkAuthAndSync);
   }, []);
 
   // Debounced auto-save to localStorage and Firestore when filling intake data
   useEffect(() => {
-    // Determine if inputs are completely default/empty to prevent saving empty state on initial load
     const isEmpty = !patientState && !age && !stage && !hormoneStatus && hospitalType === "Government / Public Hospital" && hasInsurance && !insuranceProvider && !incomeBracket;
     if (isEmpty) return;
 
@@ -90,15 +99,14 @@ export default function Intake() {
         });
       }
 
-      // Notify other views (like CostBreakdown or Dashboard) to re-evaluate their pricing models
       window.dispatchEvent(new CustomEvent("auth-change"));
-    }, 1000); // 1-second debounce
+    }, 1000);
 
     return () => clearTimeout(timer);
   }, [patientState, age, stage, hormoneStatus, surgery, chemo, radiation, hospitalType, hasInsurance, insuranceProvider, incomeBracket, step]);
 
   const handleResetProfile = () => {
-    if (window.confirm("Are you sure you want to reset your intake profile data? This will clear all entered answers.")) {
+    if (window.confirm("Are you sure you want to clear your intake profile data? This will restart onboarding.")) {
       setPatientState("");
       setAge("");
       setStage("");
@@ -111,6 +119,8 @@ export default function Intake() {
       setInsuranceProvider("");
       setIncomeBracket("");
       setStep(1);
+      setShowSummaryScreen(false);
+      setIsEditingSummary(false);
 
       // Clear from localStorage immediately
       const INTAKE_KEYS = [
@@ -125,11 +135,12 @@ export default function Intake() {
         "artham_intake_has_insurance",
         "artham_intake_insurance_provider",
         "artham_intake_income_bracket",
-        "artham_intake_step"
+        "artham_intake_step",
+        "artham_chatbot_diagnosis_details",
+        "artham_chatbot_next_steps"
       ];
       INTAKE_KEYS.forEach(key => localStorage.removeItem(key));
 
-      // Clear from Firestore immediately if logged in
       if (auth.currentUser) {
         saveUserIntakeToFirestore(auth.currentUser.uid, {
           artham_intake_state: "",
@@ -149,6 +160,45 @@ export default function Intake() {
 
       window.dispatchEvent(new CustomEvent("auth-change"));
     }
+  };
+
+  const handleSummaryFieldChange = (key: string, val: string | boolean) => {
+    // 1. Update React hook state
+    if (key === "state") setPatientState(val as string);
+    else if (key === "age") setAge(val as string);
+    else if (key === "stage") setStage(val as string);
+    else if (key === "hormone_status") setHormoneStatus(val as string);
+    else if (key === "surgery") setSurgery(val as string);
+    else if (key === "chemo") setChemo(val as string);
+    else if (key === "radiation") setRadiation(val as string);
+    else if (key === "hospital_type") setHospitalType(val as string);
+    else if (key === "has_insurance") setHasInsurance(val === "true" || val === true);
+    else if (key === "insurance_provider") setInsuranceProvider(val as string);
+    else if (key === "income_bracket") setIncomeBracket(val as string);
+
+    // 2. Save directly to LocalStorage
+    localStorage.setItem(`artham_intake_${key}`, String(val));
+
+    // 3. Save to firestore if logged in
+    if (auth.currentUser) {
+      saveUserIntakeToFirestore(auth.currentUser.uid, {
+        artham_intake_state: key === "state" ? (val as string) : patientState,
+        artham_intake_age: key === "age" ? (val as string) : age,
+        artham_intake_stage: key === "stage" ? (val as string) : stage,
+        artham_intake_hormone_status: key === "hormone_status" ? (val as string) : hormoneStatus,
+        artham_intake_surgery: key === "surgery" ? (val as string) : surgery,
+        artham_intake_chemo: key === "chemo" ? (val as string) : chemo,
+        artham_intake_radiation: key === "radiation" ? (val as string) : radiation,
+        artham_intake_hospital_type: key === "hospital_type" ? (val as string) : hospitalType,
+        artham_intake_has_insurance: key === "has_insurance" ? String(val) : String(hasInsurance),
+        artham_intake_insurance_provider: key === "insurance_provider" ? (val as string) : insuranceProvider,
+        artham_intake_income_bracket: key === "income_bracket" ? (val as string) : incomeBracket,
+        artham_intake_step: String(step)
+      });
+    }
+
+    // 4. Notify other views reactively
+    window.dispatchEvent(new CustomEvent("auth-change"));
   };
 
   const goNext = () => {
@@ -187,13 +237,252 @@ export default function Intake() {
       }
 
       window.dispatchEvent(new CustomEvent("auth-change"));
-      nav("/medical-input");
+      setShowSummaryScreen(true); // Show live profile summary on completion
+      setIsEditingSummary(false); // Default to locked view
     }
   };
+
   const goPrev = () => {
     const prevStep = Math.max(1, step - 1);
     setStep(prevStep);
   };
+
+  // Full Screen Profile Summary View
+  if (showSummaryScreen) {
+    return (
+      <AppShell>
+        <div className="max-w-container-max mx-auto px-margin-mobile md:px-gutter pt-md pb-xl space-y-md animate-fade-in">
+          
+          {/* Header */}
+          <header className="mb-md border-b border-outline-variant/40 pb-sm">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-sm">
+              <div>
+                <h1 className="font-headline-lg text-headline-lg text-primary font-bold tracking-tight">
+                  Your Intake Profile Summary
+                </h1>
+                <p className="font-body-md text-on-surface-variant text-xs font-normal">
+                  Onboarding complete! Your details are saved. Click **Edit Profile** to toggle edit mode for minor adjustments.
+                </p>
+              </div>
+              <span className="px-sm py-1 bg-secondary-container text-on-secondary-container text-xs font-bold rounded-full uppercase tracking-wider border border-secondary-container">
+                Onboarding Saved
+              </span>
+            </div>
+          </header>
+
+          {/* Grid of editable cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-md">
+            
+            {/* Age Card */}
+            <SummaryCard icon="calendar_month" label="Patient Age" value={age || "Not specified"} isEditing={isEditingSummary}>
+              <input
+                type="number"
+                value={age}
+                onChange={(e) => handleSummaryFieldChange("age", e.target.value)}
+                className="w-full bg-transparent border-b border-outline-variant/60 focus:border-primary py-1 outline-none text-xs font-bold text-on-surface"
+              />
+            </SummaryCard>
+
+            {/* State Card */}
+            <SummaryCard icon="map" label="Indian State" value={patientState || "Not specified"} isEditing={isEditingSummary}>
+              <select
+                value={patientState}
+                onChange={(e) => handleSummaryFieldChange("state", e.target.value)}
+                className="w-full bg-transparent border-b border-outline-variant/60 focus:border-primary py-1 outline-none text-xs font-bold text-on-surface cursor-pointer"
+              >
+                <option value="">Select State</option>
+                <option value="Karnataka">Karnataka</option>
+                <option value="Maharashtra">Maharashtra</option>
+                <option value="Delhi">Delhi</option>
+                <option value="Tamil Nadu">Tamil Nadu</option>
+                <option value="West Bengal">West Bengal</option>
+                <option value="Kerala">Kerala</option>
+                <option value="Gujarat">Gujarat</option>
+                <option value="Telangana">Telangana</option>
+                <option value="Andhra Pradesh">Andhra Pradesh</option>
+                <option value="Uttar Pradesh">Uttar Pradesh</option>
+                <option value="Rajasthan">Rajasthan</option>
+                <option value="Odisha">Odisha</option>
+                <option value="Other">Other State</option>
+              </select>
+            </SummaryCard>
+
+            {/* Cancer Stage Card */}
+            <SummaryCard icon="biotech" label="Cancer Stage" value={stage || "Not specified"} isEditing={isEditingSummary}>
+              <select
+                value={stage}
+                onChange={(e) => handleSummaryFieldChange("stage", e.target.value)}
+                className="w-full bg-transparent border-b border-outline-variant/60 focus:border-primary py-1 outline-none text-xs font-bold text-on-surface cursor-pointer"
+              >
+                <option value="">Select Stage</option>
+                <option value="Stage I">Stage I (Early local)</option>
+                <option value="Stage II">Stage II (Invasive local)</option>
+                <option value="Stage III">Stage III (Locally advanced)</option>
+                <option value="Stage IV">Stage IV (Metastatic)</option>
+                <option value="Unsure">Unsure / Stage pending</option>
+              </select>
+            </SummaryCard>
+
+            {/* Hormone Status Card */}
+            <SummaryCard icon="clinical_notes" label="Receptor / Hormone Status" value={hormoneStatus || "Not specified"} isEditing={isEditingSummary}>
+              <select
+                value={hormoneStatus}
+                onChange={(e) => handleSummaryFieldChange("hormone_status", e.target.value)}
+                className="w-full bg-transparent border-b border-outline-variant/60 focus:border-primary py-1 outline-none text-xs font-bold text-on-surface cursor-pointer"
+              >
+                <option value="">Select receptor status</option>
+                <option value="HER2 Positive">HER2 Positive (requires targeted therapy)</option>
+                <option value="Triple Negative">Triple Negative (highly chemo-responsive)</option>
+                <option value="ER+/PR+ Positive">ER+/PR+ Positive (hormone responsive)</option>
+                <option value="Unsure">Unsure / Receptor pending</option>
+              </select>
+            </SummaryCard>
+
+            {/* Surgery Card */}
+            <SummaryCard icon="medical_services" label="Surgery Indicated" value={surgery} isEditing={isEditingSummary}>
+              <select
+                value={surgery}
+                onChange={(e) => handleSummaryFieldChange("surgery", e.target.value)}
+                className="w-full bg-transparent border-b border-outline-variant/60 focus:border-primary py-1 outline-none text-xs font-bold text-on-surface cursor-pointer"
+              >
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+                <option value="Unsure">Unsure</option>
+              </select>
+            </SummaryCard>
+
+            {/* Chemo Card */}
+            <SummaryCard icon="medication" label="Chemo Indicated" value={chemo} isEditing={isEditingSummary}>
+              <select
+                value={chemo}
+                onChange={(e) => handleSummaryFieldChange("chemo", e.target.value)}
+                className="w-full bg-transparent border-b border-outline-variant/60 focus:border-primary py-1 outline-none text-xs font-bold text-on-surface cursor-pointer"
+              >
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+                <option value="Unsure">Unsure</option>
+              </select>
+            </SummaryCard>
+
+            {/* Radiation Card */}
+            <SummaryCard icon="bolt" label="Radiation Indicated" value={radiation} isEditing={isEditingSummary}>
+              <select
+                value={radiation}
+                onChange={(e) => handleSummaryFieldChange("radiation", e.target.value)}
+                className="w-full bg-transparent border-b border-outline-variant/60 focus:border-primary py-1 outline-none text-xs font-bold text-on-surface cursor-pointer"
+              >
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+                <option value="Unsure">Unsure</option>
+              </select>
+            </SummaryCard>
+
+            {/* Hospital Preference Card */}
+            <SummaryCard icon="home_health" label="Hospital Preference" value={hospitalType} isEditing={isEditingSummary}>
+              <select
+                value={hospitalType}
+                onChange={(e) => handleSummaryFieldChange("hospital_type", e.target.value)}
+                className="w-full bg-transparent border-b border-outline-variant/60 focus:border-primary py-1 outline-none text-xs font-bold text-on-surface cursor-pointer"
+              >
+                <option value="Government / Public Hospital">Government / Public Hospital</option>
+                <option value="Private Medical Center">Private Medical Center</option>
+                <option value="Premium Corporate Hospital">Premium Corporate Hospital</option>
+                <option value="I'm Unsure">I'm Unsure</option>
+              </select>
+            </SummaryCard>
+
+            {/* Insurance Card */}
+            <SummaryCard icon="shield" label="Insurance Status" value={hasInsurance ? "Insured" : "Not Insured"} isEditing={isEditingSummary}>
+              <select
+                value={hasInsurance ? "Insured" : "Not Insured"}
+                onChange={(e) => handleSummaryFieldChange("has_insurance", e.target.value === "Insured")}
+                className="w-full bg-transparent border-b border-outline-variant/60 focus:border-primary py-1 outline-none text-xs font-bold text-on-surface cursor-pointer"
+              >
+                <option value="Insured">Insured</option>
+                <option value="Not Insured">Not Insured</option>
+              </select>
+            </SummaryCard>
+
+            {/* Insurance Provider Card (conditional) */}
+            {hasInsurance && (
+              <SummaryCard icon="verified_user" label="Insurance Provider" value={insuranceProvider || "Not specified"} isEditing={isEditingSummary}>
+                <input
+                  type="text"
+                  value={insuranceProvider}
+                  onChange={(e) => handleSummaryFieldChange("insurance_provider", e.target.value)}
+                  className="w-full bg-transparent border-b border-outline-variant/60 focus:border-primary py-1 outline-none text-xs font-bold text-on-surface"
+                  placeholder="e.g. Star Health"
+                />
+              </SummaryCard>
+            )}
+
+            {/* Household Income Card */}
+            <SummaryCard icon="payments" label="Household Annual Income" value={incomeBracket || "Not specified"} isEditing={isEditingSummary}>
+              <select
+                value={incomeBracket}
+                onChange={(e) => handleSummaryFieldChange("income_bracket", e.target.value)}
+                className="w-full bg-transparent border-b border-outline-variant/60 focus:border-primary py-1 outline-none text-xs font-bold text-on-surface cursor-pointer"
+              >
+                <option value="">Select income bracket</option>
+                <option value="Below ₹2,50,000">Below ₹2,50,000</option>
+                <option value="₹2,50,000 – ₹5,00,000">₹2,50,000 – ₹5,00,000</option>
+                <option value="₹5,00,000 – ₹10,00,000">₹5,00,000 – ₹10,00,000</option>
+                <option value="Above ₹10,00,000">Above ₹10,00,000</option>
+              </select>
+            </SummaryCard>
+
+          </div>
+
+          {/* Action Bar */}
+          <div className="pt-md border-t border-outline-variant/60 flex flex-col sm:flex-row justify-between items-center gap-sm">
+            <div className="flex gap-sm">
+              {isEditingSummary ? (
+                <button
+                  onClick={() => setIsEditingSummary(false)}
+                  className="px-md py-sm bg-primary text-on-primary rounded-xl text-xs font-bold hover:brightness-110 active:scale-95 transition-all flex items-center gap-xs shadow-md animate-fade-in"
+                >
+                  <span className="material-symbols-outlined text-[16px]">check</span>
+                  Save Changes
+                </button>
+              ) : (
+                <button
+                  onClick={() => setIsEditingSummary(true)}
+                  className="px-md py-sm bg-secondary text-on-secondary rounded-xl text-xs font-bold hover:brightness-110 active:scale-95 transition-all flex items-center gap-xs shadow-md animate-fade-in"
+                >
+                  <span className="material-symbols-outlined text-[16px]">edit</span>
+                  Edit Profile Summary
+                </button>
+              )}
+              <button
+                onClick={handleResetProfile}
+                className="px-md py-sm border border-outline-variant hover:bg-surface-container rounded-xl text-xs font-bold text-outline hover:text-error transition-all active:scale-95 flex items-center gap-xs"
+              >
+                <span className="material-symbols-outlined text-[16px]">restart_alt</span>
+                Clear Profile & Restart
+              </button>
+            </div>
+
+            <div className="flex gap-sm w-full sm:w-auto">
+              <button
+                onClick={() => nav("/dashboard")}
+                className="flex-1 sm:flex-none px-lg py-sm border border-primary text-primary rounded-xl text-xs font-bold hover:bg-primary/5 active:scale-95 transition-all flex justify-center items-center gap-xs"
+              >
+                <span className="material-symbols-outlined text-[16px]">dashboard</span>
+                Financial Dashboard
+              </button>
+              <button
+                onClick={() => nav("/medical-input")}
+                className="flex-1 sm:flex-none px-lg py-sm bg-primary text-on-primary rounded-xl text-xs font-bold hover:brightness-110 active:scale-95 transition-all flex justify-center items-center gap-xs shadow-md"
+              >
+                <span>Proceed to Medical Input Chatbot</span>
+                <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>
@@ -593,10 +882,12 @@ export default function Intake() {
               </div>
 
               <div className="space-y-sm pt-sm border-t border-outline-variant/30">
-                {/* Action Buttons */}
                 <div className="flex gap-sm">
                   <button
-                    onClick={() => setStep(1)}
+                    onClick={() => {
+                      setShowSummaryScreen(true);
+                      setIsEditingSummary(true);
+                    }}
                     className="flex-1 py-1.5 border border-outline-variant hover:bg-surface-container-high rounded-xl text-[10px] font-bold text-primary active:scale-95 transition-all flex items-center justify-center gap-xs"
                   >
                     <span className="material-symbols-outlined text-[14px]">edit</span>
@@ -611,7 +902,6 @@ export default function Intake() {
                   </button>
                 </div>
 
-                {/* Status bar */}
                 <div className="text-[9px] text-outline font-bold uppercase tracking-wider flex items-center gap-xs pt-xs">
                   <span className={`h-2 w-2 rounded-full ${step === 4 ? "bg-secondary" : "bg-primary animate-pulse"}`} />
                   {step === 4 ? "Profile Ready for Analysis" : `Filling Section ${step} of 4`}
@@ -696,6 +986,36 @@ function FooterBar({
         {nextLabel}
         <span className="material-symbols-outlined text-sm">arrow_forward</span>
       </button>
+    </div>
+  );
+}
+
+function SummaryCard({
+  icon,
+  label,
+  value,
+  isEditing,
+  children,
+}: {
+  icon: string;
+  label: string;
+  value: string;
+  isEditing: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="bg-white p-md rounded-2xl border border-outline-variant/60 shadow-xs hover:shadow transition-shadow flex items-start gap-sm">
+      <div className="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center text-primary shrink-0">
+        <span className="material-symbols-outlined text-[18px]">{icon}</span>
+      </div>
+      <div className="flex-grow space-y-1">
+        <span className="font-label-sm text-[10px] text-on-surface-variant uppercase tracking-wider font-bold">{label}</span>
+        {isEditing ? (
+          <div>{children}</div>
+        ) : (
+          <div className="text-xs font-bold text-on-surface py-[5px]">{value}</div>
+        )}
+      </div>
     </div>
   );
 }

@@ -84,15 +84,16 @@ User Intake Profile (DO NOT reprint or list these parameters back to the user un
 - Insurance Status: ${insurance}
 - Household Income: ${incomeBracket}
 
-Be professional, empathetic, and clear. Maintain a focused guidance matching how this platform is designed:
-1. Short & Crisp: Keep responses simple, direct, and crisp. Limit your reply to 1-3 short paragraphs or clean bullet points. Do not dump large walls of text or list the user's profile details.
-2. Greeting Behavior: If the user says a greeting (like "Hi" or "Hello"), respond with a single warm sentence greeting them and asking how you can help, without giving a long clinical readout.
-3. Personalization: Tailor your responses to directly align with the User's Intake Profile. E.g. if their state is Karnataka, focus on Arogya Karnataka. If they are Stage II, mention the clinical stage expectations. If they are HER2 Positive, you can mention targeted therapies like Trastuzumab.
-4. Cost Context: Discuss staging, surgery (lumpectomy, mastectomy), chemotherapy, radiation, and targeted therapy (HER2+), referencing costs in Indian Rupees (₹) and Lakhs.
-5. Scheme & Welfare Integration: Frame suggestions around Indian welfare schemes like Ayushman Bharat (PM-JAY), Rashtriya Arogya Nidhi (RAN), and State Illness Assistance funds.
-6. Platform Feature Referrals: When helpful, guide patients to use other parts of Artham (Cost Breakdown, Preventive Plans, Action Plan & Dashboard, Evidence Vault).
-7. Output Style: Always structure your responses with clean Markdown, using bold headers, bullet lists, and crisp summaries. Keep advice practical and navigation-oriented.
-8. Disclaimer: Remind the user that Artham provides financial navigation support and is not a substitute for qualified oncologists.`;
+Be professional, empathetic, clear, and extremely concise. Keep responses highly focused:
+1. STRICT CONCISENESS: Limit your response to 100-150 words max. Do not exceed this limit. Bullet points and short paragraphs only.
+2. NO SPIRALING: Answer the user's question directly and stay on point. Avoid general explanations or repeating clinical basic facts unless explicitly asked.
+3. Greeting Behavior: If the user says a greeting (like "Hi" or "Hello"), respond with a single warm sentence greeting them and asking how you can help, without giving a long clinical readout.
+4. Personalization: Tailor your responses to directly align with the User's Intake Profile. E.g. if their state is Karnataka, focus on Arogya Karnataka. If they are Stage II, mention the clinical stage expectations. If they are HER2 Positive, you can mention targeted therapies like Trastuzumab.
+5. Cost Context: Discuss staging, surgery (lumpectomy, mastectomy), chemotherapy, radiation, and targeted therapy (HER2+), referencing costs in Indian Rupees (₹) and Lakhs.
+6. Scheme & Welfare Integration: Frame suggestions around Indian welfare schemes like Ayushman Bharat (PM-JAY), Rashtriya Arogya Nidhi (RAN), and State Illness Assistance funds.
+7. Platform Feature Referrals: When helpful, guide patients to use other parts of Artham (Cost Breakdown, Preventive Plans, Action Plan & Dashboard, Evidence Vault).
+8. Output Style: Always structure your responses with clean Markdown, using bold headers, bullet lists, and crisp summaries. Keep advice practical and navigation-oriented.
+9. Disclaimer: Include a brief single-sentence disclaimer that Artham is for financial navigation support and is not a substitute for oncologists.`;
   
   // Format history for Gemini API
   const contents = history.map(h => ({
@@ -410,17 +411,17 @@ export default function MedicalInput() {
       setTimeout(() => {
         setIsChatLoading(false);
         const lowerText = text.toLowerCase();
-        let reply = "Thanks for providing additional clinical context. I've updated your pathway preferences.";
+        let reply = "I have updated your profile context. Let me know if you need specific scheme or cost details.";
         let badge = undefined;
         
         if (lowerText.includes("hospital") || lowerText.includes("apollo") || lowerText.includes("max")) {
-          reply = "I've updated your hospital setting. We will match this with empanelled general insurers and calculate regional room rent limits.";
+          reply = "Hospital setting updated. We will match this with empanelled insurers and apply room rent limits.";
           badge = "Extracted: Preference — Private Empanelled";
         } else if (lowerText.includes("cost") || lowerText.includes("price") || lowerText.includes("lakh")) {
-          reply = "I've added the estimated cost quotation to your clinical records. This will be analyzed against your general insurance critical illness ceilings.";
+          reply = "Cost quotation noted. This will be analyzed against critical illness policy ceilings.";
           badge = "Extracted: Cost Quote Captured";
         } else if (lowerText.includes("stage") || lowerText.includes("cancer") || lowerText.includes("heart")) {
-          reply = "Understood. The severity level has been updated. This triggers additional eligibility metrics under RAN and national cancer funds.";
+          reply = "Severity status updated. This triggers national and state illness assistance (RAN) eligibility rules.";
           badge = "Extracted: Diagnosis Severity Updated";
         }
 
