@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import AppShell from "../components/AppShell";
 import { auth, saveUserVaultToFirestore, saveUserMessagesToFirestore } from "../firebase";
+import MarkdownRenderer from "../components/MarkdownRenderer";
 
 export type Msg = { 
   role: "bot" | "user"; 
@@ -71,7 +72,7 @@ const queryGeminiChat = async (history: Msg[], apiKey: string): Promise<string> 
 
   const systemPrompt = `You are the Artham Clinical Navigator, an expert clinical AI and financial navigation assistant for breast cancer in India. Your goal is to guide the user in understanding their clinical context, diagnostics, treatments, and costs in direct alignment with the Artham web application.
 
-User Intake Profile:
+User Intake Profile (DO NOT reprint or list these parameters back to the user unless directly asked. Keep it implicitly in context):
 - State: ${patientState}
 - Age: ${age}
 - Cancer Stage: ${stage}
@@ -84,16 +85,14 @@ User Intake Profile:
 - Household Income: ${incomeBracket}
 
 Be professional, empathetic, and clear. Maintain a focused guidance matching how this platform is designed:
-1. Personalization: Tailor your responses to directly align with the User's Intake Profile above. E.g. if their state is Karnataka, focus on Arogya Karnataka. If they are Stage II, mention the clinical stage expectations. If they are HER2 Positive, you can mention targeted therapies like Trastuzumab.
-2. Cost Context: Discuss staging, surgery (lumpectomy, mastectomy), chemotherapy, radiation, and targeted therapy (HER2+), referencing costs in Indian Rupees (₹) and Lakhs rather than USD ($).
-3. Scheme & Welfare Integration: Frame suggestions around Indian welfare schemes like Ayushman Bharat (PM-JAY), Rashtriya Arogya Nidhi (RAN), and State Illness Assistance funds, as well as Room Rent limits and co-pays for private general insurers.
-4. Platform Feature Referrals: When helpful, guide patients to use other parts of Artham:
-   - Direct them to the 'Cost Breakdown' page to explore dynamic treatment phase estimates.
-   - Refer them to the 'Preventive Plans & Cost Estimator' to look up pricing tiers by city.
-   - Point them to the 'Action Plan & Dashboard' to check matched state welfare schemes, document checklists, and crowdfunding tips.
-   - Guide them to upload diagnostic files (MRI, biopsy reports, bills) to the 'Evidence Vault' for AI-powered claims auditing.
-5. Output Style: Always structure your responses with clean Markdown, using bold headers, bullet lists, and crisp summaries. Keep advice practical and navigation-oriented.
-6. Disclaimer: Remind the user that Artham provides financial navigation support and is not a substitute for direct consultations with qualified oncologists.`;
+1. Short & Crisp: Keep responses simple, direct, and crisp. Limit your reply to 1-3 short paragraphs or clean bullet points. Do not dump large walls of text or list the user's profile details.
+2. Greeting Behavior: If the user says a greeting (like "Hi" or "Hello"), respond with a single warm sentence greeting them and asking how you can help, without giving a long clinical readout.
+3. Personalization: Tailor your responses to directly align with the User's Intake Profile. E.g. if their state is Karnataka, focus on Arogya Karnataka. If they are Stage II, mention the clinical stage expectations. If they are HER2 Positive, you can mention targeted therapies like Trastuzumab.
+4. Cost Context: Discuss staging, surgery (lumpectomy, mastectomy), chemotherapy, radiation, and targeted therapy (HER2+), referencing costs in Indian Rupees (₹) and Lakhs.
+5. Scheme & Welfare Integration: Frame suggestions around Indian welfare schemes like Ayushman Bharat (PM-JAY), Rashtriya Arogya Nidhi (RAN), and State Illness Assistance funds.
+6. Platform Feature Referrals: When helpful, guide patients to use other parts of Artham (Cost Breakdown, Preventive Plans, Action Plan & Dashboard, Evidence Vault).
+7. Output Style: Always structure your responses with clean Markdown, using bold headers, bullet lists, and crisp summaries. Keep advice practical and navigation-oriented.
+8. Disclaimer: Remind the user that Artham provides financial navigation support and is not a substitute for qualified oncologists.`;
   
   // Format history for Gemini API
   const contents = history.map(h => ({
@@ -108,8 +107,9 @@ Be professional, empathetic, and clear. Maintain a focused guidance matching how
     }
   };
 
+  const modelName = (import.meta.env.VITE_GEMINI_MODEL as string) || "gemini-1.5-flash";
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: {
@@ -182,8 +182,9 @@ const analyzeDocumentWithGemini = async (file: VaultFile, apiKey: string): Promi
     contents: [{ parts }]
   };
 
+  const modelName = (import.meta.env.VITE_GEMINI_MODEL as string) || "gemini-1.5-flash";
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: {
@@ -232,8 +233,25 @@ export default function MedicalInput() {
   const [draft, setDraft] = useState("");
   const [isChatLoading, setIsChatLoading] = useState(false);
 
+  // Evidence Vault states
+  const [vaultFiles, setVaultFiles] = useState<VaultFile[]>(() => {
+    const savedFiles = localStorage.getItem("artham_vault_files");
+    if (savedFiles) {
+      try {
+        return JSON.parse(savedFiles);
+      } catch (e) {
+        console.error("Error loading files from localStorage", e);
+      }
+    }
+    return initialVaultFiles;
+  });
+
   // API Key management
-  const apiKey = localStorage.getItem("gemini_api_key") || (import.meta.env.VITE_GEMINI_API_KEY as string) || "";
+  const [customApiKey, setCustomApiKey] = useState(() => localStorage.getItem("gemini_api_key") || "");
+  const [showKeyModal, setShowKeyModal] = useState(false);
+  const [tempKey, setTempKey] = useState("");
+  const apiKey = customApiKey || (import.meta.env.VITE_GEMINI_API_KEY as string) || "";
+
   const [isVaultOpen, setIsVaultOpen] = useState(false);
 
   const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem("artham_is_logged_in") === "true");
@@ -241,6 +259,30 @@ export default function MedicalInput() {
   useEffect(() => {
     const checkAuth = () => {
       setIsLoggedIn(localStorage.getItem("artham_is_logged_in") === "true");
+
+      // Reload chat messages from cache (where firestore syncs them)
+      const savedMessages = localStorage.getItem("artham_chat_messages");
+      if (savedMessages) {
+        try {
+          setMessages(JSON.parse(savedMessages));
+        } catch (e) {
+          console.error("Error parsing chat messages:", e);
+        }
+      } else {
+        setMessages([]);
+      }
+
+      // Reload vault files from cache (where firestore syncs them)
+      const savedFiles = localStorage.getItem("artham_vault_files");
+      if (savedFiles) {
+        try {
+          setVaultFiles(JSON.parse(savedFiles));
+        } catch (e) {
+          console.error("Error parsing vault files:", e);
+        }
+      } else {
+        setVaultFiles(initialVaultFiles);
+      }
     };
     window.addEventListener("auth-change", checkAuth);
     return () => window.removeEventListener("auth-change", checkAuth);
@@ -263,18 +305,6 @@ export default function MedicalInput() {
 
   const currentSuggestions = allSuggestions.slice(promptOffset, promptOffset + 4);
 
-  // Evidence Vault states
-  const [vaultFiles, setVaultFiles] = useState<VaultFile[]>(() => {
-    const savedFiles = localStorage.getItem("artham_vault_files");
-    if (savedFiles) {
-      try {
-        return JSON.parse(savedFiles);
-      } catch (e) {
-        console.error("Error loading files from localStorage", e);
-      }
-    }
-    return initialVaultFiles;
-  });
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [modalMode, setModalMode] = useState<"configure" | "send">("send");
   const [selectedUploadFile, setSelectedUploadFile] = useState<File | null>(null);
@@ -654,14 +684,41 @@ Failed to analyze document: ${errMsg}.
             <span className="material-symbols-outlined text-primary text-[22px]">forum</span>
             Clinical Context Navigator
           </h3>
-          <button
-            onClick={() => setMessages([])}
-            className="flex items-center gap-xs px-3 py-1.5 rounded-xl border border-outline-variant bg-surface-bright text-xs font-bold text-outline hover:text-primary hover:border-primary transition-all active:scale-95"
-            title="Clear chat and start new conversation"
-          >
-            <span className="material-symbols-outlined text-[18px]">add</span>
-            <span>New Chat</span>
-          </button>
+          <div className="flex items-center gap-xs">
+            {/* Gemini API Status Badge */}
+            {apiKey ? (
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 text-[11px] font-bold">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Gemini Active
+              </span>
+            ) : (
+              <button 
+                onClick={() => { setShowKeyModal(true); setTempKey(customApiKey); }}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-700 border border-amber-500/20 text-[11px] font-bold hover:bg-amber-500/20 transition-all cursor-pointer"
+                title="Configure Gemini API Key"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                Gemini Demo Mode
+              </button>
+            )}
+            
+            <button
+              onClick={() => { setShowKeyModal(true); setTempKey(customApiKey); }}
+              className="p-1.5 hover:bg-surface-container rounded-full text-outline hover:text-primary transition-all flex items-center justify-center"
+              title="Configure Gemini API Key"
+            >
+              <span className="material-symbols-outlined text-[18px]">settings_accessibility</span>
+            </button>
+
+            <button
+              onClick={() => setMessages([])}
+              className="flex items-center gap-xs px-3 py-1.5 rounded-xl border border-outline-variant bg-surface-bright text-xs font-bold text-outline hover:text-primary hover:border-primary transition-all active:scale-95"
+              title="Clear chat and start new conversation"
+            >
+              <span className="material-symbols-outlined text-[18px]">add</span>
+              <span>New Chat</span>
+            </button>
+          </div>
         </header>
 
         {/* Scrollable Conversation Workspace */}
@@ -750,7 +807,9 @@ Failed to analyze document: ${errMsg}.
                           }`
                     }`}
                   >
-                    <p className="whitespace-pre-line leading-relaxed text-sm">{m.text}</p>
+                    <div className="leading-relaxed text-sm">
+                      <MarkdownRenderer text={m.text} />
+                    </div>
                     
                     {m.meta && (
                       <div className="mt-sm pt-sm border-t border-outline-variant/40 flex items-center gap-xs text-secondary font-bold text-xs">
@@ -1178,6 +1237,118 @@ Failed to analyze document: ${errMsg}.
         </div>
       )}
 
+      {/* 3. Gemini API Key Configuration Modal */}
+      {showKeyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-md bg-on-surface/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-surface-bright border border-outline-variant/60 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-zoom-in">
+            <div className="p-md md:p-lg border-b border-outline-variant/40 bg-surface-container-low flex justify-between items-center">
+              <h3 className="font-headline-sm text-headline-sm text-primary flex items-center gap-xs">
+                <span className="material-symbols-outlined text-primary text-[22px]">vpn_key</span>
+                Gemini API Configuration
+              </h3>
+              <button
+                onClick={() => setShowKeyModal(false)}
+                className="p-2 hover:bg-surface-container-high rounded-full text-outline hover:text-on-surface transition-all flex items-center justify-center focus-visible:ring-2 focus-visible:ring-primary"
+                aria-label="Close API Key Configuration"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+            
+            <div className="p-md md:p-lg space-y-md">
+              <p className="text-xs text-outline leading-relaxed">
+                By default, Artham loads the Gemini API key from the environment variable <code>VITE_GEMINI_API_KEY</code>. You can also paste your key below to save it in your browser cache.
+              </p>
+
+              {/* Status Indicator */}
+              <div className={`p-sm rounded-xl border flex items-start gap-sm text-xs ${
+                import.meta.env.VITE_GEMINI_API_KEY
+                  ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-800"
+                  : customApiKey
+                  ? "bg-blue-500/10 border-blue-500/20 text-blue-800"
+                  : "bg-amber-500/10 border-amber-500/20 text-amber-800"
+              }`}>
+                <span className="material-symbols-outlined mt-0.5 text-[18px]">
+                  {import.meta.env.VITE_GEMINI_API_KEY || customApiKey ? "check_circle" : "info"}
+                </span>
+                <div>
+                  <p className="font-bold">
+                    {import.meta.env.VITE_GEMINI_API_KEY
+                      ? "Using Key from Environment (.env)"
+                      : customApiKey
+                      ? "Using Key from Browser Storage"
+                      : "Currently in Demo Mock Mode"}
+                  </p>
+                  <p className="text-[11px] opacity-80 mt-0.5">
+                    {import.meta.env.VITE_GEMINI_API_KEY
+                      ? "VITE_GEMINI_API_KEY is configured in the project environment variables."
+                      : customApiKey
+                      ? "A custom key is stored locally in this browser."
+                      : "No key found. AI features will use pre-recorded simulated responses."}
+                  </p>
+                </div>
+              </div>
+
+              {/* Key Input */}
+              <div className="space-y-xs">
+                <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider pl-1">
+                  Gemini API Key
+                </label>
+                <div className="relative">
+                  <input
+                    type="password"
+                    placeholder="AIzaSy..."
+                    value={tempKey}
+                    onChange={(e) => setTempKey(e.target.value)}
+                    className="w-full pl-3 pr-10 py-2.5 rounded-xl border border-outline-variant bg-surface-bright font-body-sm text-on-surface outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                  />
+                  <span className="material-symbols-outlined absolute right-3 top-3 text-outline text-[18px] pointer-events-none">
+                    vpn_key
+                  </span>
+                </div>
+                <p className="text-[10px] text-outline pl-1">
+                  Your key is sent directly to Google Gemini APIs and is never uploaded to external servers.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-md md:p-lg border-t border-outline-variant/40 bg-surface-container-low flex justify-end gap-sm">
+              {customApiKey && (
+                <button
+                  onClick={() => {
+                    localStorage.removeItem("gemini_api_key");
+                    setCustomApiKey("");
+                    setTempKey("");
+                    setShowKeyModal(false);
+                  }}
+                  className="px-md py-2.5 rounded-xl text-xs font-bold text-error border border-error-container hover:bg-error/5 transition-all"
+                >
+                  Clear Custom Key
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setShowKeyModal(false);
+                }}
+                className="px-md py-2.5 rounded-xl text-xs font-bold text-outline hover:bg-surface-container-high transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  localStorage.setItem("gemini_api_key", tempKey.trim());
+                  setCustomApiKey(tempKey.trim());
+                  setShowKeyModal(false);
+                }}
+                className="px-lg py-2.5 bg-primary text-on-primary hover:brightness-110 rounded-xl font-label-md text-label-md shadow-md active:scale-95 transition-all"
+              >
+                Save Key
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 2. Slide-over Detailed Evidence Drawer / Modal */}
       {activeDetailedFile && (
         <div className="fixed inset-0 z-50 flex justify-end transition-all duration-300">
@@ -1287,8 +1458,8 @@ Failed to analyze document: ${errMsg}.
                       AI AUDITED
                     </div>
                     
-                    <div className="prose prose-sm dark:prose-invert max-w-none text-on-surface leading-relaxed whitespace-pre-line text-sm">
-                      {activeDetailedFile.aiAnalysis}
+                    <div className="prose prose-sm dark:prose-invert max-w-none text-on-surface leading-relaxed text-sm">
+                      <MarkdownRenderer text={activeDetailedFile.aiAnalysis || ""} />
                     </div>
                   </div>
                 ) : (

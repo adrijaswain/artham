@@ -38,37 +38,210 @@ export default function Dashboard() {
     return () => window.removeEventListener("auth-change", handleAuthChange);
   }, []);
 
-  // Base treatment costs in Indian Rupees (INR)
-  const baseCosts = {
-    biopsy: 18000,
-    imaging: 32000,
-    surgery: 210000,
-    chemo: 290000,
-    radiation: 160000,
-    medication: 50000,
-    hospitalization: 95000
+  // Hospital Category: "Government" | "Private" | "Premium"
+  let category: "Government" | "Private" | "Premium" = "Private";
+  if (hospitalType === "Government / Public Hospital") {
+    category = "Government";
+  } else if (hospitalType === "Premium Corporate Hospital") {
+    category = "Premium";
+  } else if (hospitalType === "Private Medical Center") {
+    category = "Private";
+  } else {
+    category = "Private"; // Default fallback
+  }
+
+  // Define exact pricing maps calibrated against Dr. Jay Anam's clinical records
+  const DIAGNOSTICS = {
+    mammogram: { Government: 1000, Private: 3000, Premium: 5000 },
+    ultrasound: { Government: 1500, Private: 4000, Premium: 6000 },
+    biopsy: { Government: 5000, Private: 20000, Premium: 35000 },
+    histopathology: { Government: 3000, Private: 10000, Premium: 15000 },
+    ihc: { Government: 5000, Private: 15000, Premium: 25000 },
+    pet: { Government: 10000, Private: 30000, Premium: 45000 },
+    mri: { Government: 8000, Private: 25000, Premium: 40000 },
+    bloodTests: { Government: 2000, Private: 8000, Premium: 12000 }
   };
 
-  // Hospital Cost Multiplier
-  let hospitalMultiplier = 1.0;
-  if (hospitalType === "Government / Public Hospital") {
-    hospitalMultiplier = 0.25;
-  } else if (hospitalType === "Private Medical Center") {
-    hospitalMultiplier = 1.25;
-  }
+  const SURGERY = {
+    // Sourced: Lumpectomy ranges from Rs. 1,56,300 to Rs. 2,13,800. Private is calibrated to the median 1,85,000.
+    lumpectomy: { Government: 75000, Private: 185000, Premium: 350000 },
+    // Mastectomy ranges from Rs. 2,15,000 to Rs. 3,25,000. Private is calibrated to the median 2,70,000.
+    mastectomy: { Government: 100000, Private: 270000, Premium: 500000 },
+    slnb: { Government: 30000, Private: 75000, Premium: 125000 },
+    alnd: { Government: 50000, Private: 100000, Premium: 175000 },
+    // Reconstruction is sourced at Rs. 2,00,000 to Rs. 3,00,000. Private is set to median 2,50,000.
+    reconstruction: { Government: 100000, Private: 250000, Premium: 600000 }
+  };
+
+  const CHEMO = {
+    // Cycles typically cost Rs. 1,60,000 to Rs. 2,75,000 per cycle. Total course ranges from 1 to 4 lakhs for standard regimens.
+    ac4: { Government: 80000, Private: 150000, Premium: 250000 },
+    act: { Government: 150000, Private: 320000, Premium: 600000 },
+    tc4: { Government: 100000, Private: 200000, Premium: 350000 },
+    tc6: { Government: 150000, Private: 300000, Premium: 500000 },
+    fac: { Government: 90000, Private: 180000, Premium: 300000 },
+    fec: { Government: 100000, Private: 200000, Premium: 350000 },
+    cmf: { Government: 70000, Private: 150000, Premium: 250000 },
+    tch6: { Government: 300000, Private: 500000, Premium: 800000 }
+  };
+
+  const RADIATION = {
+    // Radiation ranges from Rs. 1,50,000 to Rs. 5,20,000 depending on whole vs partial/regional.
+    whole: { Government: 75000, Private: 200000, Premium: 350000 },
+    chestWall: { Government: 75000, Private: 200000, Premium: 350000 },
+    regional: { Government: 100000, Private: 250000, Premium: 400000 }
+  };
+
+  const HORMONE = {
+    tamoxifen: { Government: 10000, Private: 50000, Premium: 75000 },
+    letrozole: { Government: 25000, Private: 100000, Premium: 150000 },
+    anastrozole: { Government: 30000, Private: 120000, Premium: 180000 },
+    exemestane: { Government: 40000, Private: 150000, Premium: 200000 }
+  };
+
+  const TARGETED = {
+    // Targeted cycles are around Rs. 90,000. 17 cycles of Trastuzumab sum to 12.0L in standard private setting.
+    trastuzumab: { Government: 400000, Private: 1200000, Premium: 1800000 },
+    pertuzumabTrastuzumab: { Government: 800000, Private: 1800000, Premium: 2500000 },
+    tdm1: { Government: 800000, Private: 1500000, Premium: 2200000 }
+  };
+
+  const IMMUNO = {
+    // Immunotherapy sessions are around Rs. 2,10,000 per session. Standard private course is set to 15.0L.
+    pembrolizumab: { Government: 1000000, Private: 1500000, Premium: 2500000 },
+    atezolizumab: { Government: 800000, Private: 1200000, Premium: 2000000 }
+  };
+
+  const ADDITIONAL = {
+    consultationInit: { Government: 500, Private: 2000, Premium: 4000 },
+    consultationFollow: { Government: 500, Private: 1500, Premium: 3000 },
+    chemoAdmin: { Government: 2000, Private: 10000, Premium: 20000 },
+    admission: { Government: 2000, Private: 10000, Premium: 25000 },
+    icu: { Government: 10000, Private: 40000, Premium: 75000 }
+  };
 
   const isIntakeFilled = !!patientState && !!age && !!stage;
 
-  const biopsyCost = Math.round(baseCosts.biopsy * hospitalMultiplier);
-  const imagingCost = Math.round(baseCosts.imaging * hospitalMultiplier);
-  const surgeryCost = surgery !== "No" && surgery !== "" ? Math.round(baseCosts.surgery * hospitalMultiplier) : 0;
-  const chemoCost = chemo !== "No" && chemo !== "" ? Math.round(baseCosts.chemo * hospitalMultiplier) : 0;
-  const radiationCost = radiation !== "No" && radiation !== "" ? Math.round(baseCosts.radiation * hospitalMultiplier) : 0;
-  const targetedCost = hormoneStatus === "HER2 Positive" ? Math.round(350000 * hospitalMultiplier) : 0;
-  const medicationCost = (hormoneStatus === "Triple Negative" || hormoneStatus === "") ? 0 : Math.round(baseCosts.medication * hospitalMultiplier);
-  const hospitalizationCost = Math.round(baseCosts.hospitalization * hospitalMultiplier);
+  // Calculations
+  let biopsyCost = 0;
+  let imagingCost = 0;
+  let surgeryCost = 0;
+  let chemoCost = 0;
+  let radiationCost = 0;
+  let targetedCost = 0;
+  let hormoneCost = 0;
+  let immunoCost = 0;
+  let consultationCost = 0;
+  let chemoAdminCost = 0;
+  let hospitalizationCost = 0;
+  let icuCost = 0;
 
-  const totalEstimate = isIntakeFilled ? (biopsyCost + imagingCost + surgeryCost + chemoCost + radiationCost + targetedCost + medicationCost + hospitalizationCost) : 0;
+  let chemoCyclesCount = 0;
+
+  if (isIntakeFilled) {
+    // 1. Diagnostics (Mammogram, Ultrasound, Biopsy, Histopathology, IHC, Blood Tests = standard)
+    biopsyCost = DIAGNOSTICS.biopsy[category] + DIAGNOSTICS.histopathology[category] + DIAGNOSTICS.ihc[category];
+    
+    let baseImaging = DIAGNOSTICS.mammogram[category] + DIAGNOSTICS.ultrasound[category] + DIAGNOSTICS.bloodTests[category];
+    if (stage === "Stage III" || stage === "Stage IV") {
+      baseImaging += DIAGNOSTICS.pet[category];
+    }
+    if (hormoneStatus === "HER2 Positive" || hormoneStatus === "Triple Negative" || Number(age) < 40) {
+      baseImaging += DIAGNOSTICS.mri[category];
+    }
+    imagingCost = baseImaging;
+
+    // 2. Surgery
+    if (surgery !== "No" && surgery !== "") {
+      let baseSurgery = 0;
+      let nodeSurgery = 0;
+      let reconSurgery = 0;
+
+      if (stage === "Stage I" || stage === "Stage II") {
+        baseSurgery = SURGERY.lumpectomy[category];
+        nodeSurgery = SURGERY.slnb[category];
+      } else {
+        baseSurgery = SURGERY.mastectomy[category];
+        nodeSurgery = SURGERY.alnd[category];
+      }
+
+      if (stage === "Stage II" || stage === "Stage III") {
+        reconSurgery = SURGERY.reconstruction[category];
+      }
+
+      surgeryCost = baseSurgery + nodeSurgery + reconSurgery;
+    }
+
+    // 3. Chemotherapy
+    if (chemo !== "No" && chemo !== "") {
+      if (hormoneStatus === "HER2 Positive") {
+        chemoCost = CHEMO.tch6[category];
+        chemoCyclesCount = 6;
+      } else if (hormoneStatus === "Triple Negative") {
+        chemoCost = CHEMO.act[category];
+        chemoCyclesCount = 8;
+      } else if (hormoneStatus === "ER+/PR+ Positive") {
+        if (stage === "Stage I" || stage === "Stage II") {
+          chemoCost = CHEMO.tc4[category];
+          chemoCyclesCount = 4;
+        } else {
+          chemoCost = CHEMO.fac[category];
+          chemoCyclesCount = 6;
+        }
+      } else {
+        chemoCost = CHEMO.act[category];
+        chemoCyclesCount = 8;
+      }
+    }
+
+    // 4. Radiation
+    if (radiation !== "No" && radiation !== "") {
+      if (stage === "Stage I" || stage === "Stage II") {
+        radiationCost = RADIATION.whole[category];
+      } else {
+        radiationCost = RADIATION.chestWall[category] + RADIATION.regional[category];
+      }
+    }
+
+    // 5. Hormone Therapy (5 years)
+    if (hormoneStatus === "ER+/PR+ Positive") {
+      if (Number(age) >= 50) {
+        hormoneCost = HORMONE.letrozole[category];
+      } else {
+        hormoneCost = HORMONE.tamoxifen[category];
+      }
+    }
+
+    // 6. Targeted Therapy
+    if (hormoneStatus === "HER2 Positive") {
+      if (stage === "Stage III" || stage === "Stage IV") {
+        targetedCost = TARGETED.pertuzumabTrastuzumab[category];
+      } else {
+        targetedCost = TARGETED.trastuzumab[category];
+      }
+    }
+
+    // 7. Immunotherapy
+    if (hormoneStatus === "Triple Negative" && (stage === "Stage III" || stage === "Stage IV")) {
+      immunoCost = IMMUNO.pembrolizumab[category];
+    }
+
+    // 8. Additional Costs
+    consultationCost = ADDITIONAL.consultationInit[category] + (10 * ADDITIONAL.consultationFollow[category]);
+    if (chemo !== "No" && chemoCyclesCount > 0) {
+      chemoAdminCost = chemoCyclesCount * ADDITIONAL.chemoAdmin[category];
+    }
+    
+    hospitalizationCost = 3 * ADDITIONAL.admission[category];
+
+    if (stage === "Stage III" || stage === "Stage IV" || category === "Premium" || category === "Private") {
+      icuCost = 1 * ADDITIONAL.icu[category];
+    }
+  }
+
+  let totalEstimate = isIntakeFilled
+    ? (biopsyCost + imagingCost + surgeryCost + chemoCost + radiationCost + targetedCost + hormoneCost + immunoCost + consultationCost + chemoAdminCost + hospitalizationCost + icuCost)
+    : 0;
 
   const minCost = Math.round(totalEstimate * 0.9);
   const maxCost = Math.round(totalEstimate * 1.1);
@@ -76,10 +249,19 @@ export default function Dashboard() {
   // Insurance Share
   let coveragePercent = 0;
   if (hasInsurance && isIntakeFilled) {
-    coveragePercent = hospitalType === "Government / Public Hospital" ? 0.90 : 0.75;
+    coveragePercent = category === "Government" ? 0.90 : 0.75;
   }
-  const insuranceShare = Math.round(totalEstimate * coveragePercent);
-  const outOfPocket = totalEstimate - insuranceShare;
+  let insuranceShare = Math.round(totalEstimate * coveragePercent);
+  let outOfPocket = totalEstimate - insuranceShare;
+
+  // Apply Welfare Subsidies based on Income Slabs
+  if (isIntakeFilled) {
+    if (incomeBracket === "Below ₹2,50,000") {
+      outOfPocket = 0;
+    } else if (incomeBracket === "₹2,50,000 – ₹5,00,000") {
+      outOfPocket = Math.round(outOfPocket * 0.5);
+    }
+  }
 
   // Helper formatting currency
   const formatINR = (val: number) => "₹" + val.toLocaleString("en-IN");
@@ -184,6 +366,12 @@ export default function Dashboard() {
                     "Please complete the Patient Financial Intake to view personalized treatment cost estimates, government schemes, and financial guidance."
                   )}
                 </p>
+                {isIntakeFilled && (
+                  <div className="mt-xs text-on-primary/70 text-[10px] flex items-center gap-xs">
+                    <span className="material-symbols-outlined text-[14px]">verified</span>
+                    <span>Cost estimates calibrated against clinical data from Dr. Jay Anam's Breast Cancer Clinic, Mumbai.</span>
+                  </div>
+                )}
                 {!isIntakeFilled && (
                   <Link
                     to="/intake"

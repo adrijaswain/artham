@@ -102,16 +102,14 @@ export default function AuthModal({ isOpen, onClose }: Props) {
       // Notify TopAppBar and other listeners
       window.dispatchEvent(new CustomEvent("auth-change"));
 
-      setTimeout(() => {
-        onClose();
-        setName("");
-        setEmail("");
-        setPassword("");
-        setSuccess("");
-        if (window.location.pathname === "/") {
-          navigate("/dashboard");
-        }
-      }, 500);
+      onClose();
+      setName("");
+      setEmail("");
+      setPassword("");
+      setSuccess("");
+      if (window.location.pathname === "/") {
+        navigate("/dashboard");
+      }
     } catch (err) {
       console.error("Firebase auth error:", err);
       // Clean up common firebase errors for friendly display
@@ -154,13 +152,11 @@ export default function AuthModal({ isOpen, onClose }: Props) {
       }));
       window.dispatchEvent(new CustomEvent("auth-change"));
 
-      setTimeout(() => {
-        onClose();
-        setSuccess("");
-        if (window.location.pathname === "/") {
-          navigate("/dashboard");
-        }
-      }, 500);
+      onClose();
+      setSuccess("");
+      if (window.location.pathname === "/") {
+        navigate("/dashboard");
+      }
     } catch (err) {
       console.error("Google auth error:", err);
       setError(err instanceof Error ? err.message : String(err));

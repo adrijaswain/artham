@@ -20,7 +20,7 @@ export default function TopAppBar() {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setIsLoggedIn(true);
-        const nameVal = user.displayName || user.email?.split("@")[0] || "User";
+        const nameVal = localStorage.getItem("artham_user_name") || user.displayName || user.email?.split("@")[0] || "User";
         setUserName(nameVal);
         // Maintain local storage alignment
         localStorage.setItem("artham_is_logged_in", "true");
@@ -38,6 +38,28 @@ export default function TopAppBar() {
         localStorage.removeItem("artham_is_logged_in");
         localStorage.removeItem("artham_user_name");
         localStorage.removeItem("artham_user_email");
+
+        // Clear user intake data
+        const INTAKE_KEYS = [
+          "artham_intake_state",
+          "artham_intake_age",
+          "artham_intake_stage",
+          "artham_intake_hormone_status",
+          "artham_intake_surgery",
+          "artham_intake_chemo",
+          "artham_intake_radiation",
+          "artham_intake_hospital_type",
+          "artham_intake_has_insurance",
+          "artham_intake_insurance_provider",
+          "artham_intake_income_bracket",
+          "artham_intake_step"
+        ];
+        INTAKE_KEYS.forEach(key => localStorage.removeItem(key));
+        
+        // Clear vault, chat logs & custom breakdown overrides
+        localStorage.removeItem("artham_vault_files");
+        localStorage.removeItem("artham_chat_messages");
+        localStorage.removeItem("artham_custom_breakdown");
       }
       // Notify other views (banners)
       window.dispatchEvent(new CustomEvent("auth-change"));

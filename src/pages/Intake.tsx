@@ -425,8 +425,9 @@ export default function Intake() {
                           className="w-full px-md py-sm border border-outline-variant rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all font-body-md text-body-md text-xs bg-white"
                         >
                           <option value="Government / Public Hospital">Government / Public Hospital (subsidized)</option>
-                          <option value="Private Medical Center">Private Medical Center (corporate network)</option>
-                          <option value="I'm Unsure">I'm Unsure (uses blended averages)</option>
+                          <option value="Private Medical Center">Private Medical Center (moderate corporate network)</option>
+                          <option value="Premium Corporate Hospital">Premium Corporate Hospital (high-end multi-specialty)</option>
+                          <option value="I'm Unsure">I'm Unsure (uses private averages)</option>
                         </select>
                       </Field>
                       <Field label="Insurance status">

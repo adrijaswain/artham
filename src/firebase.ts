@@ -67,6 +67,13 @@ export async function syncUserFirestoreData(uid: string) {
         localStorage.setItem("artham_chat_messages", JSON.stringify(data.messages));
       }
 
+      // Load custom breakdown personalization
+      if (data.customBreakdown) {
+        localStorage.setItem("artham_custom_breakdown", JSON.stringify(data.customBreakdown));
+      } else {
+        localStorage.removeItem("artham_custom_breakdown");
+      }
+
       // Dispatch event to refresh active page views
       window.dispatchEvent(new CustomEvent("auth-change"));
     } else {
@@ -119,6 +126,17 @@ export async function syncLocalDataToFirestore(uid: string) {
       }
     }
 
+    // Extract custom breakdown configuration
+    let customBreakdown = null;
+    const savedBreakdown = localStorage.getItem("artham_custom_breakdown");
+    if (savedBreakdown) {
+      try {
+        customBreakdown = JSON.parse(savedBreakdown);
+      } catch (e) {
+        console.error("Error parsing custom breakdown on upload sync", e);
+      }
+    }
+
     // Write complete package
     await setDoc(userDocRef, {
       uid,
@@ -127,7 +145,8 @@ export async function syncLocalDataToFirestore(uid: string) {
       updatedAt: new Date().toISOString(),
       intake,
       vaultFiles,
-      messages
+      messages,
+      customBreakdown
     }, { merge: true });
   } catch (error) {
     console.error("Error synchronizing local data to Firestore:", error);
@@ -190,5 +209,20 @@ export async function saveUserMessagesToFirestore(uid: string, messages: Msg[]) 
     }, { merge: true });
   } catch (error) {
     console.error("Error updating chat history in Firestore:", error);
+  }
+}
+
+/**
+ * Save custom breakdown personalized sorting/N/A settings directly to Firestore.
+ */
+export async function saveUserCustomBreakdownToFirestore(uid: string, customBreakdown: Record<string, unknown> | null) {
+  try {
+    const userDocRef = doc(db, "users", uid);
+    await setDoc(userDocRef, {
+      customBreakdown,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+  } catch (error) {
+    console.error("Error updating custom breakdown in Firestore:", error);
   }
 }
