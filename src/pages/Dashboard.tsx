@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import AppShell from "../components/AppShell";
 import { useLanguage } from "../components/LanguageContext";
+import { useAuth } from "../context/AuthContext";
+import { auth, saveUserDashboardContextToFirestore, saveUserIntakeToFirestore } from "../firebase";
 
 type ChatMsg = {
   role: "bot" | "user";
@@ -107,6 +109,7 @@ Read the dialogue and extract any values the user mentions. You MUST respond ONL
 };
 
 export default function Dashboard() {
+  const { syncing } = useAuth();
   const { t } = useLanguage();
   const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem("artham_is_logged_in") === "true");
 
@@ -301,8 +304,40 @@ export default function Dashboard() {
 
   useEffect(() => {
     localStorage.setItem("artham_dashboard_chat_messages", JSON.stringify(chatMessages));
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Scroll only the chat container to its bottom — never the whole page
+    // (using scrollIntoView here would yank the page down on load).
+    const container = chatEndRef.current?.parentElement;
+    if (container) container.scrollTop = container.scrollHeight;
   }, [chatMessages]);
+
+  // Persist the dashboard's derived context (chat history, extracted diagnosis /
+  // next steps) and any intake edits made via the assistant to Firestore, keyed
+  // by uid, so it is restored on the user's next login.
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user || syncing) return;
+    const timer = setTimeout(() => {
+      saveUserDashboardContextToFirestore(user.uid, {
+        dashboardMessages: chatMessages,
+        diagnosisDetails: extractedDiagnosis,
+        nextSteps: extractedNextSteps
+      });
+      saveUserIntakeToFirestore(user.uid, {
+        artham_intake_state: patientState,
+        artham_intake_age: age,
+        artham_intake_stage: stage,
+        artham_intake_hormone_status: hormoneStatus,
+        artham_intake_surgery: surgery,
+        artham_intake_chemo: chemo,
+        artham_intake_radiation: radiation,
+        artham_intake_hospital_type: hospitalType,
+        artham_intake_has_insurance: String(hasInsurance),
+        artham_intake_insurance_provider: insuranceProvider,
+        artham_intake_income_bracket: incomeBracket
+      });
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, [chatMessages, extractedDiagnosis, extractedNextSteps, patientState, age, stage, hormoneStatus, surgery, chemo, radiation, hospitalType, hasInsurance, insuranceProvider, incomeBracket, syncing]);
 
   useEffect(() => {
     const handleAuthChange = () => {
@@ -825,97 +860,66 @@ export default function Dashboard() {
     window.dispatchEvent(new Event("auth-change"));
   };
 
-  // SVGGauge calculation
-  let confidencePercent = 0;
-  if (confidenceScore === "Medium") {
-    confidencePercent = 50;
-  } else if (confidenceScore === "High") {
-    confidencePercent = 100;
-  }
-  const radius = 40;
-  const circumference = Math.PI * radius; // 125.66
-  const dashoffset = circumference - (circumference * confidencePercent) / 100;
-
   return (
-    <AppShell>
-      <div className="p-md md:p-lg max-w-container-max mx-auto space-y-md">
+    <AppShell bg="bg-surface">
+      <div className="dash-mono p-md md:p-lg max-w-container-max mx-auto space-y-md">
         
-        {/* Header Hero card - visual premium redesign */}
-        <section>
-          <div className="bg-gradient-to-br from-primary via-[#004d80] to-secondary text-on-primary p-lg rounded-2xl shadow-xl relative overflow-hidden border border-white/10 transition-transform duration-500">
-            <div className="relative z-10 flex flex-col md:flex-row justify-between items-center md:items-end gap-md">
-              <div className="text-center md:text-left">
-                <span className="font-label-md text-secondary-container bg-primary-container/80 backdrop-blur-md px-sm py-1 rounded-full inline-block mb-sm text-xs font-semibold border border-white/5 uppercase tracking-wider">
-                  {t("db_title")}
-                </span>
-                <h1 className="font-headline-lg text-4xl md:text-5xl font-extrabold mb-xs tracking-tight drop-shadow-sm">
-                  {isIntakeFilled ? `${formatINR(minCost)} – ${formatINR(maxCost)}` : t("it_not_specified")}
-                </h1>
-                <p className="text-[11px] text-secondary-container font-semibold italic mb-sm">
-                  *Estimated range is based on your AI chat entries and intake details; actual hospital costs may vary.
-                </p>
-                <p className="text-on-primary/80 font-body-md text-sm font-medium max-w-xl leading-relaxed">
-                  {isIntakeFilled ? (
-                    `Based on: ${treatmentDesc || "Breast Cancer Screening"} for a ${age}-year old in ${patientState || "India"} (${hospitalType}), Income: ${incomeBracket}.`
-                  ) : (
-                    t("db_intake_pending")
-                  )}
-                </p>
-                {isIntakeFilled && (
-                  <div className="mt-sm text-on-primary/60 text-xs flex items-center justify-center md:justify-start gap-xs">
-                    <span className="material-symbols-outlined text-[16px] text-secondary-container animate-pulse">verified</span>
-                    <span>{t("db_calibration")}</span>
-                  </div>
-                )}
-                {!isIntakeFilled && (
-                  <Link
-                    to="/intake"
-                    className="mt-md inline-flex items-center gap-xs px-md py-sm bg-secondary text-on-secondary hover:brightness-110 font-bold rounded-xl active:scale-95 transition-all shadow-md text-xs hover:shadow-lg hover:-translate-y-0.5 duration-300"
-                  >
-                    <span className="material-symbols-outlined text-[16px]">assignment</span>
-                    {t("db_start")}
-                  </Link>
-                )}
-              </div>
-
-              {/* Redesigned Premium Confidence Dial using SVG */}
-              <div className="flex flex-col items-center bg-white/10 backdrop-blur-md p-md rounded-2xl border border-white/10 shadow-inner w-44 shrink-0 transition-all duration-300 hover:scale-105">
-                <p className="font-label-sm mb-xs text-[10px] text-white/80 uppercase tracking-widest font-bold">{t("db_confidence")}</p>
-                <div className="relative w-36 h-20 flex justify-center items-end">
-                  <svg className="absolute w-32 h-20" viewBox="0 0 100 60">
-                    <defs>
-                      <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="#91f0ec" />
-                        <stop offset="100%" stopColor="#006a68" />
-                      </linearGradient>
-                    </defs>
-                    <path
-                      d="M 10 50 A 40 40 0 0 1 90 50"
-                      fill="none"
-                      stroke="rgba(255,255,255,0.15)"
-                      strokeWidth="8"
-                      strokeLinecap="round"
-                    />
-                    <path
-                      d="M 10 50 A 40 40 0 0 1 90 50"
-                      fill="none"
-                      stroke="url(#gaugeGrad)"
-                      strokeWidth="8"
-                      strokeLinecap="round"
-                      strokeDasharray={circumference}
-                      strokeDashoffset={dashoffset}
-                      className="transition-all duration-1000 ease-out"
-                    />
-                  </svg>
-                  <div className="z-10 text-center pb-1">
-                    <p className="font-headline-sm text-lg font-bold text-white leading-none">{confidenceScore}</p>
-                    <p className="text-[9px] text-white/70 mt-[2px] tracking-wide">{confidenceText}</p>
-                  </div>
-                </div>
-              </div>
+        {/* Clean metadata header (title · status · label-value metadata row) */}
+        <section className="bg-surface rounded-xl border border-outline-variant p-5 md:p-6">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-on-surface-variant mb-1.5">{t("db_title")}</p>
+              <h1 className="text-2xl md:text-[32px] md:leading-tight font-bold text-on-surface tracking-tight">
+                {isIntakeFilled ? `${formatINR(minCost)} – ${formatINR(maxCost)}` : "Your treatment cost estimate"}
+              </h1>
+              <p className="text-xs text-on-surface-variant mt-1.5 max-w-xl leading-relaxed">
+                {isIntakeFilled
+                  ? `${treatmentDesc || "Breast Cancer Screening"} · ${age}-yr · ${patientState || "India"} · ${hospitalType}`
+                  : "Estimates update automatically as you complete your intake and chat with the assistant."}
+              </p>
             </div>
-            <div className="absolute -top-1/2 -right-1/4 w-96 h-96 bg-secondary-container rounded-full blur-[120px] opacity-25 pointer-events-none" />
+
+            <div className="flex items-center gap-3 shrink-0">
+              {isIntakeFilled ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-outline-variant">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                  Estimate ready
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 border border-outline-variant">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                  Incomplete
+                </span>
+              )}
+            </div>
           </div>
+
+          {/* Metadata grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-6 gap-y-4 mt-6 pt-5 border-t border-outline-variant">
+            {[
+              { label: t("it_age"), value: age || "—" },
+              { label: t("it_state"), value: patientState || "—" },
+              { label: t("it_stage"), value: stage || "—" },
+              { label: t("it_hospital"), value: hospitalType ? hospitalType.split(" ")[0] : "—" },
+              { label: t("it_insurance_status"), value: hasInsurance ? (insuranceProvider || t("it_insured")) : t("it_not_insured") },
+              { label: t("db_confidence"), value: `${confidenceScore} · ${confidenceText}` }
+            ].map((m) => (
+              <div key={m.label} className="min-w-0">
+                <p className="text-[10px] uppercase tracking-wider font-semibold text-on-surface-variant mb-1 truncate">{m.label}</p>
+                <p className="text-sm font-semibold text-on-surface truncate" title={String(m.value)}>{m.value}</p>
+              </div>
+            ))}
+          </div>
+
+          {!isIntakeFilled && (
+            <Link
+              to="/intake"
+              className="mt-5 inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-on-primary hover:brightness-110 font-semibold rounded-lg active:scale-[0.99] transition-all text-xs"
+            >
+              <span className="material-symbols-outlined text-[16px]">assignment</span>
+              {t("db_start")}
+            </Link>
+          )}
         </section>
 
         {/* Responsive Grid layout */}
@@ -925,11 +929,11 @@ export default function Dashboard() {
           <div className="lg:col-span-5 space-y-md">
             
             {/* AI Cost Calculator Assistant chatbot widget */}
-            <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-sm border border-outline-variant/60 overflow-hidden flex flex-col h-[450px]">
-              <div className="bg-gradient-to-r from-primary/10 to-primary/5 px-md py-sm border-b border-outline-variant/40 flex justify-between items-center shrink-0">
+            <div className="bg-surface rounded-xl border border-outline-variant overflow-hidden flex flex-col h-[450px]">
+              <div className="px-md py-sm border-b border-outline-variant flex justify-between items-center shrink-0">
                 <div className="flex items-center gap-xs">
-                  <span className="material-symbols-outlined text-primary text-[20px] active-entity-pulse">calculate</span>
-                  <span className="font-label-md text-xs font-bold text-primary uppercase tracking-wider">{t("db_assistant_title")}</span>
+                  <span className="material-symbols-outlined text-primary text-[20px]">calculate</span>
+                  <span className="font-label-md text-xs font-bold text-on-surface uppercase tracking-wider">{t("db_assistant_title")}</span>
                 </div>
                 <button 
                   onClick={clearChatHistory}
@@ -1044,7 +1048,7 @@ export default function Dashboard() {
 
             {/* Extracted Diagnosis & Next Steps card */}
             {(extractedDiagnosis || extractedNextSteps) && (
-              <div className="bg-gradient-to-br from-secondary/5 via-primary/5 to-surface-bright border border-secondary-container/50 rounded-2xl p-md shadow-xs space-y-xs animate-fade-in">
+              <div className="bg-surface border border-outline-variant rounded-xl p-md space-y-xs animate-fade-in">
                 <div className="flex items-center gap-xs">
                   <span className="material-symbols-outlined text-secondary text-[20px] font-bold">clinical_notes</span>
                   <h3 className="font-label-md text-xs font-bold text-secondary uppercase tracking-wider">AI Clinical Cost Context</h3>

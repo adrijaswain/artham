@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
 import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
 import type { Msg, VaultFile } from "./pages/MedicalInput";
 
@@ -21,8 +21,21 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
-// Helper keys for local storage syncing
-const INTAKE_KEYS = [
+// Ensure the auth session survives page reloads / browser restarts.
+// (browserLocalPersistence is the default, but we set it explicitly so a
+// returning user is silently re-authenticated instead of appearing logged out.)
+setPersistence(auth, browserLocalPersistence).catch((err) => {
+  console.warn("Could not set Firebase auth persistence:", err);
+});
+
+// ---------------------------------------------------------------------------
+// Canonical list of per-user data keys stored in LocalStorage.
+// These are the ONLY keys tied to a specific user account; everything else
+// (language, session flags) is device-level and never synced to Firestore.
+// ---------------------------------------------------------------------------
+
+/** Intake / onboarding form fields (12). */
+export const INTAKE_KEYS = [
   "artham_intake_state",
   "artham_intake_age",
   "artham_intake_stage",
@@ -35,194 +48,181 @@ const INTAKE_KEYS = [
   "artham_intake_income_bracket",
   "artham_intake_insurance_provider",
   "artham_intake_step"
+] as const;
+
+/** Every LocalStorage key that belongs to the signed-in user's profile. */
+const USER_SCOPED_KEYS = [
+  ...INTAKE_KEYS,
+  "artham_vault_files",
+  "artham_chat_messages",
+  "artham_dashboard_chat_messages",
+  "artham_chatbot_diagnosis_details",
+  "artham_chatbot_next_steps",
+  "artham_custom_breakdown"
 ];
 
-/**
- * Sync Firestore user data into LocalStorage on login.
- */
-export async function syncUserFirestoreData(uid: string) {
+const nowIso = () => new Date().toISOString();
+
+/** Safely JSON.parse a LocalStorage value, returning `fallback` on error. */
+function readJson<T>(key: string, fallback: T): T {
+  const raw = localStorage.getItem(key);
+  if (!raw) return fallback;
   try {
-    const userDocRef = doc(db, "users", uid);
-    const userSnapshot = await getDoc(userDocRef);
-
-    if (userSnapshot.exists()) {
-      const data = userSnapshot.data();
-      
-      // Load intake data
-      if (data.intake) {
-        Object.entries(data.intake).forEach(([key, value]) => {
-          if (value !== undefined && value !== null) {
-            localStorage.setItem(key, String(value));
-          }
-        });
-      }
-
-      // Load vault files
-      if (data.vaultFiles) {
-        localStorage.setItem("artham_vault_files", JSON.stringify(data.vaultFiles));
-      }
-
-      // Load messages chat history
-      if (data.messages) {
-        localStorage.setItem("artham_chat_messages", JSON.stringify(data.messages));
-      }
-
-      // Load custom breakdown personalization
-      if (data.customBreakdown) {
-        localStorage.setItem("artham_custom_breakdown", JSON.stringify(data.customBreakdown));
-      } else {
-        localStorage.removeItem("artham_custom_breakdown");
-      }
-
-      // Dispatch event to refresh active page views
-      window.dispatchEvent(new CustomEvent("auth-change"));
-    } else {
-      // If user document is new, push current guest progress to Firestore
-      await syncLocalDataToFirestore(uid);
-    }
-  } catch (error) {
-    console.error("Error synchronizing Firestore data to LocalStorage:", error);
+    return JSON.parse(raw) as T;
+  } catch (e) {
+    console.warn(`Could not parse LocalStorage key "${key}":`, e);
+    return fallback;
   }
 }
 
 /**
- * Push current local guest progress (intake, vault, chat) to Firestore.
+ * Remove every user-scoped key from LocalStorage. Called on sign-out and
+ * before hydrating a different account so one user's data never bleeds into
+ * another's session on a shared browser.
  */
-export async function syncLocalDataToFirestore(uid: string) {
-  try {
-    const userDocRef = doc(db, "users", uid);
+export function clearLocalUserData() {
+  USER_SCOPED_KEYS.forEach((key) => localStorage.removeItem(key));
+}
 
-    // Get current authenticated user details
+/**
+ * Read the complete user profile currently held in LocalStorage into the
+ * shape stored under `users/{uid}` in Firestore.
+ */
+function collectLocalUserData() {
+  const intake: Record<string, string> = {};
+  INTAKE_KEYS.forEach((key) => {
+    const val = localStorage.getItem(key);
+    if (val !== null) intake[key] = val;
+  });
+
+  return {
+    intake,
+    vaultFiles: readJson<unknown[]>("artham_vault_files", []),
+    messages: readJson<unknown[]>("artham_chat_messages", []),
+    dashboardMessages: readJson<unknown[]>("artham_dashboard_chat_messages", []),
+    diagnosisDetails: localStorage.getItem("artham_chatbot_diagnosis_details") || "",
+    nextSteps: localStorage.getItem("artham_chatbot_next_steps") || "",
+    customBreakdown: readJson<Record<string, unknown> | null>("artham_custom_breakdown", null)
+  };
+}
+
+/**
+ * Fetch the Firestore profile for `uid` and write it into LocalStorage so the
+ * rest of the app (which reads from LocalStorage) has the user's saved context.
+ *
+ * Returns `true` if a stored profile existed, `false` for a first-time account.
+ * When a profile exists, LocalStorage is cleared first so no stale/guest data
+ * from a previous session survives.
+ */
+export async function hydrateLocalFromFirestore(uid: string): Promise<boolean> {
+  const snapshot = await getDoc(doc(db, "users", uid));
+  if (!snapshot.exists()) return false;
+
+  const data = snapshot.data();
+
+  // Replace any existing local profile with this account's authoritative data.
+  clearLocalUserData();
+
+  if (data.intake && typeof data.intake === "object") {
+    Object.entries(data.intake as Record<string, unknown>).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        localStorage.setItem(key, String(value));
+      }
+    });
+  }
+
+  if (Array.isArray(data.vaultFiles)) {
+    localStorage.setItem("artham_vault_files", JSON.stringify(data.vaultFiles));
+  }
+  if (Array.isArray(data.messages)) {
+    localStorage.setItem("artham_chat_messages", JSON.stringify(data.messages));
+  }
+  if (Array.isArray(data.dashboardMessages)) {
+    localStorage.setItem("artham_dashboard_chat_messages", JSON.stringify(data.dashboardMessages));
+  }
+  if (typeof data.diagnosisDetails === "string" && data.diagnosisDetails) {
+    localStorage.setItem("artham_chatbot_diagnosis_details", data.diagnosisDetails);
+  }
+  if (typeof data.nextSteps === "string" && data.nextSteps) {
+    localStorage.setItem("artham_chatbot_next_steps", data.nextSteps);
+  }
+  if (data.customBreakdown) {
+    localStorage.setItem("artham_custom_breakdown", JSON.stringify(data.customBreakdown));
+  }
+
+  return true;
+}
+
+/**
+ * Push the profile currently in LocalStorage up to `users/{uid}`. Used to seed
+ * a brand-new account with any progress the user made while in guest mode.
+ */
+export async function pushLocalToFirestore(uid: string) {
+  try {
     const user = auth.currentUser;
     const email = user?.email || localStorage.getItem("artham_user_email") || "";
     const name = user?.displayName || localStorage.getItem("artham_user_name") || "Guest User";
 
-    // Extract intake details
-    const intake: Record<string, string> = {};
-    INTAKE_KEYS.forEach(key => {
-      const val = localStorage.getItem(key);
-      if (val !== null) intake[key] = val;
-    });
-
-    // Extract vault files
-    let vaultFiles = [];
-    const savedFiles = localStorage.getItem("artham_vault_files");
-    if (savedFiles) {
-      try {
-        vaultFiles = JSON.parse(savedFiles);
-      } catch (e) {
-        console.error("Error parsing vault files on upload sync", e);
-      }
-    }
-
-    // Extract chat history
-    let messages = [];
-    const savedMessages = localStorage.getItem("artham_chat_messages");
-    if (savedMessages) {
-      try {
-        messages = JSON.parse(savedMessages);
-      } catch (e) {
-        console.error("Error parsing chat logs on upload sync", e);
-      }
-    }
-
-    // Extract custom breakdown configuration
-    let customBreakdown = null;
-    const savedBreakdown = localStorage.getItem("artham_custom_breakdown");
-    if (savedBreakdown) {
-      try {
-        customBreakdown = JSON.parse(savedBreakdown);
-      } catch (e) {
-        console.error("Error parsing custom breakdown on upload sync", e);
-      }
-    }
-
-    // Write complete package
-    await setDoc(userDocRef, {
-      uid,
-      email,
-      name,
-      updatedAt: new Date().toISOString(),
-      intake,
-      vaultFiles,
-      messages,
-      customBreakdown
-    }, { merge: true });
+    await setDoc(
+      doc(db, "users", uid),
+      { uid, email, name, updatedAt: nowIso(), ...collectLocalUserData() },
+      { merge: true }
+    );
   } catch (error) {
-    console.error("Error synchronizing local data to Firestore:", error);
+    console.error("Error pushing local data to Firestore:", error);
   }
 }
 
-/**
- * Save intake settings changes directly to Firestore.
- */
-export async function saveUserIntakeToFirestore(uid: string, intakeData: Record<string, string>) {
+// ---------------------------------------------------------------------------
+// Granular, field-level writers used by individual pages as the user edits.
+// Each merges into the single `users/{uid}` document.
+// ---------------------------------------------------------------------------
+
+async function mergeUserDoc(uid: string, patch: Record<string, unknown>, label: string) {
   try {
-    const userDocRef = doc(db, "users", uid);
-    await setDoc(userDocRef, {
-      intake: intakeData,
-      updatedAt: new Date().toISOString()
-    }, { merge: true });
+    await setDoc(doc(db, "users", uid), { ...patch, updatedAt: nowIso() }, { merge: true });
   } catch (error) {
-    console.error("Error updating intake in Firestore:", error);
+    console.error(`Error updating ${label} in Firestore:`, error);
   }
 }
 
-/**
- * Save Evidence Vault file list directly to Firestore.
- */
-export async function saveUserVaultToFirestore(uid: string, vaultFiles: VaultFile[]) {
-  try {
-    const userDocRef = doc(db, "users", uid);
-    // Sanitize files to ensure base64 strings or undefined values don't break firestore
-    const sanitizedFiles = vaultFiles.map(file => ({
-      id: file.id,
-      name: file.name,
-      category: file.category,
-      date: file.date,
-      size: file.size,
-      amount: file.amount || "",
-      notes: file.notes || "",
-      aiAnalysis: file.aiAnalysis || "",
-      base64Data: file.base64Data || "",
-      mimeType: file.mimeType || ""
-    }));
-
-    await setDoc(userDocRef, {
-      vaultFiles: sanitizedFiles,
-      updatedAt: new Date().toISOString()
-    }, { merge: true });
-  } catch (error) {
-    console.error("Error updating Evidence Vault in Firestore:", error);
-  }
+/** Save intake settings changes directly to Firestore. */
+export function saveUserIntakeToFirestore(uid: string, intakeData: Record<string, string>) {
+  return mergeUserDoc(uid, { intake: intakeData }, "intake");
 }
 
-/**
- * Save chatbot messages history directly to Firestore.
- */
-export async function saveUserMessagesToFirestore(uid: string, messages: Msg[]) {
-  try {
-    const userDocRef = doc(db, "users", uid);
-    await setDoc(userDocRef, {
-      messages,
-      updatedAt: new Date().toISOString()
-    }, { merge: true });
-  } catch (error) {
-    console.error("Error updating chat history in Firestore:", error);
-  }
+/** Save Evidence Vault file list directly to Firestore. */
+export function saveUserVaultToFirestore(uid: string, vaultFiles: VaultFile[]) {
+  // Sanitize files so undefined values don't break Firestore.
+  const sanitizedFiles = vaultFiles.map((file) => ({
+    id: file.id,
+    name: file.name,
+    category: file.category,
+    date: file.date,
+    size: file.size,
+    amount: file.amount || "",
+    notes: file.notes || "",
+    aiAnalysis: file.aiAnalysis || "",
+    base64Data: file.base64Data || "",
+    mimeType: file.mimeType || ""
+  }));
+  return mergeUserDoc(uid, { vaultFiles: sanitizedFiles }, "Evidence Vault");
 }
 
-/**
- * Save custom breakdown personalized sorting/N/A settings directly to Firestore.
- */
-export async function saveUserCustomBreakdownToFirestore(uid: string, customBreakdown: Record<string, unknown> | null) {
-  try {
-    const userDocRef = doc(db, "users", uid);
-    await setDoc(userDocRef, {
-      customBreakdown,
-      updatedAt: new Date().toISOString()
-    }, { merge: true });
-  } catch (error) {
-    console.error("Error updating custom breakdown in Firestore:", error);
-  }
+/** Save the MedicalInput chatbot message history directly to Firestore. */
+export function saveUserMessagesToFirestore(uid: string, messages: Msg[]) {
+  return mergeUserDoc(uid, { messages }, "chat history");
+}
+
+/** Save the Dashboard chatbot message history + extracted context to Firestore. */
+export function saveUserDashboardContextToFirestore(
+  uid: string,
+  context: { dashboardMessages?: unknown[]; diagnosisDetails?: string; nextSteps?: string }
+) {
+  return mergeUserDoc(uid, context, "dashboard context");
+}
+
+/** Save custom breakdown personalization directly to Firestore. */
+export function saveUserCustomBreakdownToFirestore(uid: string, customBreakdown: Record<string, unknown> | null) {
+  return mergeUserDoc(uid, { customBreakdown }, "custom breakdown");
 }

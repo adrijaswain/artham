@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import AppShell from "../components/AppShell";
 import { auth, saveUserIntakeToFirestore } from "../firebase";
 import { useLanguage } from "../components/LanguageContext";
+import { useAuth } from "../context/AuthContext";
 
 export default function Intake() {
   const { t, language } = useLanguage();
+  const { isLoggedIn, syncing } = useAuth();
   const stepLabels = [
     t("it_step_demographics"),
     t("it_step_diagnosis"),
@@ -18,8 +20,6 @@ export default function Intake() {
     return saved ? Number(saved) : 1;
   });
   const nav = useNavigate();
-
-  const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem("artham_is_logged_in") === "true");
 
   // State hooks for 10 form parameters - pre-populate from localStorage
   const [patientState, setPatientState] = useState<string>(() => localStorage.getItem("artham_intake_state") || "");
@@ -46,11 +46,17 @@ export default function Intake() {
   const [isEditingSummary, setIsEditingSummary] = useState<boolean>(false);
 
   useEffect(() => {
+    // Re-read the profile from LocalStorage whenever auth state changes. This
+    // fires after AuthProvider hydrates a returning user's data from Firestore,
+    // so the form (and the completed-profile summary) reflect their saved context.
     const checkAuthAndSync = () => {
-      setIsLoggedIn(localStorage.getItem("artham_is_logged_in") === "true");
-      setPatientState(localStorage.getItem("artham_intake_state") || "");
-      setAge(localStorage.getItem("artham_intake_age") || "");
-      setStage(localStorage.getItem("artham_intake_stage") || "");
+      const savedState = localStorage.getItem("artham_intake_state") || "";
+      const savedAge = localStorage.getItem("artham_intake_age") || "";
+      const savedStage = localStorage.getItem("artham_intake_stage") || "";
+
+      setPatientState(savedState);
+      setAge(savedAge);
+      setStage(savedStage);
       setHormoneStatus(localStorage.getItem("artham_intake_hormone_status") || "");
       setSurgery(localStorage.getItem("artham_intake_surgery") || "Yes");
       setChemo(localStorage.getItem("artham_intake_chemo") || "Yes");
@@ -59,7 +65,7 @@ export default function Intake() {
       setHasInsurance(localStorage.getItem("artham_intake_has_insurance") !== "false");
       setInsuranceProvider(localStorage.getItem("artham_intake_insurance_provider") || "");
       setIncomeBracket(localStorage.getItem("artham_intake_income_bracket") || "");
-      
+
       const savedStep = localStorage.getItem("artham_intake_step");
       if (savedStep) {
         setStep(Number(savedStep));
@@ -69,6 +75,18 @@ export default function Intake() {
     window.addEventListener("auth-change", checkAuthAndSync);
     return () => window.removeEventListener("auth-change", checkAuthAndSync);
   }, []);
+
+  // Once a logged-in user's profile has finished loading from Firestore, show
+  // their saved-profile summary (rather than restarting the wizard) if their
+  // intake is already complete. Runs on initial load and on login-in-place.
+  useEffect(() => {
+    if (!isLoggedIn || syncing || isEditingSummary) return;
+    const complete =
+      !!localStorage.getItem("artham_intake_state") &&
+      !!localStorage.getItem("artham_intake_age") &&
+      !!localStorage.getItem("artham_intake_stage");
+    if (complete) setShowSummaryScreen(true);
+  }, [isLoggedIn, syncing, isEditingSummary]);
 
   // Debounced auto-save to localStorage and Firestore when filling intake data
   useEffect(() => {
@@ -89,7 +107,9 @@ export default function Intake() {
       localStorage.setItem("artham_intake_income_bracket", incomeBracket);
       localStorage.setItem("artham_intake_step", String(step));
 
-      if (auth.currentUser) {
+      // Don't write while the profile is still loading from Firestore, or we
+      // could clobber saved data with a partially-hydrated form.
+      if (auth.currentUser && !syncing) {
         saveUserIntakeToFirestore(auth.currentUser.uid, {
           artham_intake_state: patientState,
           artham_intake_age: age,
@@ -105,12 +125,10 @@ export default function Intake() {
           artham_intake_step: String(step)
         });
       }
-
-      window.dispatchEvent(new CustomEvent("auth-change"));
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [patientState, age, stage, hormoneStatus, surgery, chemo, radiation, hospitalType, hasInsurance, insuranceProvider, incomeBracket, step]);
+  }, [patientState, age, stage, hormoneStatus, surgery, chemo, radiation, hospitalType, hasInsurance, insuranceProvider, incomeBracket, step, syncing]);
 
   const handleResetProfile = () => {
     if (window.confirm(t("it_reset_confirm"))) {

@@ -95,7 +95,7 @@ export default function LandingPage() {
   ];
 
   return (
-    <AppShell bare>
+    <AppShell bare bg="bg-[#f5f3fc]">
       <div className="relative">
         {/* HERO */}
         <section className="relative overflow-hidden">
@@ -106,11 +106,11 @@ export default function LandingPage() {
           <div className="max-w-container-max mx-auto px-margin-mobile md:px-md pt-lg md:pt-xl pb-lg">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-lg items-center">
               <div className="lg:col-span-7">
-                <div className="inline-flex items-center gap-xs px-sm py-xs bg-surface-container-high text-primary rounded-full font-label-sm text-label-sm mb-md">
-                  <span className="material-symbols-outlined text-[16px] fill-icon">verified</span>
+                <div className="inline-flex items-center gap-xs px-sm py-xs bg-surface border border-outline-variant text-on-surface-variant rounded-full font-label-sm text-label-sm mb-md">
+                  <span className="material-symbols-outlined text-[16px] fill-icon text-secondary">verified</span>
                   {t("lp_built_empathy")}
                 </div>
-                <h1 className="font-headline-lg text-headline-lg md:text-[56px] md:leading-[1.05] md:tracking-[-0.02em] text-primary mb-md">
+                <h1 className="font-headline-lg text-headline-lg md:text-[56px] md:leading-[1.05] md:tracking-[-0.02em] text-on-surface font-bold mb-md">
                   {t("lp_hero_title")}
                 </h1>
                 <p className="font-body-lg text-body-lg text-on-surface-variant max-w-[640px] mb-lg">
@@ -145,65 +145,69 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Hero Visual: stylized dashboard preview */}
+              {/* Hero Visual: clean product preview (mirrors the dashboard) */}
               <div className="lg:col-span-5">
                 <div className="relative">
-                  <div className="bg-primary text-on-primary p-md md:p-lg rounded-xl shadow-2xl relative overflow-hidden">
-                    <div className="flex items-center justify-between mb-md">
-                      <span className="font-label-sm text-on-primary-container bg-primary-container px-sm py-xs rounded-full">
-                        {t("lp_est_total")}
-                      </span>
-                      <span className="flex items-center gap-xs font-label-sm">
-                        <span className="material-symbols-outlined fill-icon text-secondary-fixed text-[18px]">
-                          verified
+                  <div className="bg-surface rounded-2xl shadow-2xl border border-outline-variant overflow-hidden">
+                    {/* Faux window bar */}
+                    <div className="flex items-center gap-1.5 px-4 py-3 border-b border-outline-variant bg-surface-container-low">
+                      <span className="w-2.5 h-2.5 rounded-full bg-outline-variant" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-outline-variant" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-outline-variant" />
+                      <span className="ml-3 text-[11px] text-on-surface-variant font-medium">Artham · Cost estimate</span>
+                    </div>
+                    {/* Estimate summary */}
+                    <div className="p-5">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[11px] uppercase tracking-wider font-semibold text-on-surface-variant">{t("lp_est_total")}</span>
+                        <span className="flex items-center gap-1 text-[11px] font-semibold text-on-secondary-container bg-secondary-container px-2 py-0.5 rounded-full">
+                          <span className="material-symbols-outlined text-[13px] fill-icon">verified</span>
+                          92% {t("lp_confidence")}
                         </span>
-                        92% {t("lp_confidence")}
-                      </span>
-                    </div>
-                    <h3 className="font-headline-lg text-headline-lg mb-xs">₹4,50,000 – ₹7,50,000</h3>
-                    <p className="font-body-sm opacity-80 mb-md">
-                      {t("lp_lumpectomy_chemo")}
-                    </p>
-                    <div className="space-y-sm mb-md">
-                      <div className="flex justify-between text-sm">
-                        <span>{t("lp_insurance_covers")}</span>
-                        <span className="font-bold">₹4,35,000</span>
                       </div>
-                      <div className="w-full h-3 bg-white/15 rounded-full overflow-hidden flex">
-                        <div className="bg-secondary-fixed" style={{ width: "75%" }} />
-                        <div className="bg-tertiary-fixed" style={{ width: "25%" }} />
+                      <h3 className="text-2xl font-bold text-on-surface tracking-tight mb-0.5">₹4,50,000 – ₹7,50,000</h3>
+                      <p className="text-xs text-on-surface-variant mb-5">{t("lp_lumpectomy_chemo")}</p>
+
+                      <div className="space-y-1.5 mb-3">
+                        <div className="flex justify-between text-sm text-on-surface">
+                          <span className="text-on-surface-variant">{t("lp_insurance_covers")}</span>
+                          <span className="font-semibold">₹4,35,000</span>
+                        </div>
+                        <div className="w-full h-2.5 bg-surface-container-high rounded-full overflow-hidden flex">
+                          <div className="bg-primary" style={{ width: "75%" }} />
+                          <div className="bg-tertiary" style={{ width: "25%" }} />
+                        </div>
+                        <div className="flex justify-between text-sm text-on-surface">
+                          <span className="text-on-surface-variant">{t("lp_oop")}</span>
+                          <span className="font-semibold">₹1,45,000</span>
+                        </div>
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span>{t("lp_oop")}</span>
-                        <span className="font-bold">₹1,45,000</span>
+
+                      <div className="bg-primary-container/60 border border-primary/15 p-3 rounded-lg flex items-center gap-2.5">
+                        <span className="material-symbols-outlined fill-icon text-primary text-[20px]">lightbulb</span>
+                        <p className="text-xs text-on-surface leading-relaxed">{t("lp_qualify_pmjay")}</p>
                       </div>
-                    </div>
-                    <div className="bg-white/10 backdrop-blur-md p-sm rounded-lg flex items-center gap-sm">
-                      <span className="material-symbols-outlined fill-icon text-tertiary-fixed-dim">
-                        lightbulb
-                      </span>
-                      <p className="text-sm">
-                        {t("lp_qualify_pmjay")}
-                      </p>
                     </div>
                   </div>
-                  {/* Float chip */}
-                  <div className="absolute -top-4 -right-4 md:-right-6 bg-white tonal-card-shadow rounded-xl p-sm flex items-center gap-sm border border-outline-variant">
-                    <div className="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container">
-                      <span className="material-symbols-outlined fill-icon">savings</span>
+
+                  {/* Float chip: savings */}
+                  <div className="absolute -top-4 -right-4 md:-right-6 bg-surface tonal-card-shadow rounded-xl p-3 flex items-center gap-2.5 border border-outline-variant">
+                    <div className="w-9 h-9 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container">
+                      <span className="material-symbols-outlined fill-icon text-[18px]">savings</span>
                     </div>
                     <div>
-                      <p className="font-label-sm text-on-surface-variant">{t("lp_id_savings")}</p>
-                      <p className="font-bold text-secondary">₹2,400</p>
+                      <p className="text-[10px] text-on-surface-variant">{t("lp_id_savings")}</p>
+                      <p className="font-bold text-primary text-sm">₹2,400</p>
                     </div>
                   </div>
-                  <div className="absolute -bottom-4 -left-4 bg-white tonal-card-shadow rounded-xl p-sm flex items-center gap-sm border border-outline-variant">
-                    <div className="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container">
-                      <span className="material-symbols-outlined fill-icon">task_alt</span>
+                  {/* Float chip: action plan */}
+                  <div className="absolute -bottom-4 -left-4 bg-surface tonal-card-shadow rounded-xl p-3 flex items-center gap-2.5 border border-outline-variant">
+                    <div className="w-9 h-9 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container">
+                      <span className="material-symbols-outlined fill-icon text-[18px]">task_alt</span>
                     </div>
                     <div>
-                      <p className="font-label-sm text-on-surface-variant">{t("nav_action")}</p>
-                      <p className="font-bold text-primary">{t("lp_action_plan_ready")}</p>
+                      <p className="text-[10px] text-on-surface-variant">{t("nav_action")}</p>
+                      <p className="font-bold text-on-surface text-sm">{t("lp_action_plan_ready")}</p>
                     </div>
                   </div>
                 </div>
@@ -213,7 +217,7 @@ export default function LandingPage() {
         </section>
 
         {/* STATS STRIP */}
-        <section className="bg-surface-container">
+        <section className="bg-[#ece7fa]">
           <div className="max-w-container-max mx-auto px-margin-mobile md:px-md py-lg">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-md">
               {stats.map((s) => (
@@ -258,7 +262,7 @@ export default function LandingPage() {
         </section>
 
         {/* FEATURE GRID (Bento) */}
-        <section className="bg-surface-container-low">
+        <section className="bg-[#f1edfb]">
           <div className="max-w-container-max mx-auto px-margin-mobile md:px-md py-xl">
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-md mb-lg">
               <div className="max-w-2xl">
@@ -365,7 +369,7 @@ export default function LandingPage() {
 
         {/* FINAL CTA */}
         <section className="max-w-container-max mx-auto px-margin-mobile md:px-md pb-xl">
-          <div className="bg-surface-container-highest rounded-xl p-lg md:p-xl text-center relative overflow-hidden">
+          <div className="bg-[#e8e2f8] rounded-xl p-lg md:p-xl text-center relative overflow-hidden">
             <div className="absolute -top-20 -left-20 w-72 h-72 bg-primary/10 rounded-full blur-3xl" />
             <div className="absolute -bottom-20 -right-20 w-72 h-72 bg-secondary/15 rounded-full blur-3xl" />
             <div className="relative">

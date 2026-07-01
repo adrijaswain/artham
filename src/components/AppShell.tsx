@@ -7,11 +7,13 @@ type Props = {
   children: ReactNode;
   /** Hide the SideNav (used on onboarding / welcome page). */
   bare?: boolean;
+  /** Override the page background (Tailwind class), e.g. white dashboard or lavender landing. */
+  bg?: string;
 };
 
-export default function AppShell({ children, bare = false }: Props) {
+export default function AppShell({ children, bare = false, bg = "bg-background" }: Props) {
   return (
-    <div className="min-h-screen flex flex-col bg-background text-on-background">
+    <div className={`min-h-screen flex flex-col ${bg} text-on-background`}>
       <TopAppBar />
       {!bare && <SideNav />}
       <main className={`flex-1 pt-16 ${bare ? "" : "md:ml-64"}`}>

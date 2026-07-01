@@ -1,0 +1,119 @@
+import { createContext, useContext, useEffect, useState } from "react";
+import type { ReactNode } from "react";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import type { User } from "firebase/auth";
+import { auth, clearLocalUserData, hydrateLocalFromFirestore, pushLocalToFirestore } from "../firebase";
+
+type AuthContextType = {
+  /** The raw Firebase user, or null when signed out. */
+  user: User | null;
+  /** True once the initial auth state has resolved (session restored or not). */
+  authReady: boolean;
+  /** True while the user's Firestore profile is being loaded into the app. */
+  syncing: boolean;
+  isLoggedIn: boolean;
+  displayName: string;
+  logout: () => Promise<void>;
+};
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+/** sessionStorage flag set by the sign-up page when a brand-new account is
+ *  created, telling the auth listener to preserve guest progress instead of clearing it. */
+const NEW_SIGNUP_FLAG = "artham_new_signup";
+
+export function markNewSignup() {
+  sessionStorage.setItem(NEW_SIGNUP_FLAG, "1");
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [displayName, setDisplayName] = useState("");
+
+  useEffect(() => {
+    // Safety net: never trap the user behind the loading gate if Firebase auth
+    // is slow to initialize or unreachable. Reveal the app after a short wait;
+    // onAuthStateChanged still updates state (and hydrates data) when it lands.
+    const readyFallback = setTimeout(() => setAuthReady(true), 2500);
+
+    const unsubscribe = onAuthStateChanged(auth, async (nextUser) => {
+      clearTimeout(readyFallback);
+      if (nextUser) {
+        const name =
+          nextUser.displayName ||
+          localStorage.getItem("artham_user_name") ||
+          nextUser.email?.split("@")[0] ||
+          "User";
+
+        localStorage.setItem("artham_is_logged_in", "true");
+        localStorage.setItem("artham_user_name", name);
+        localStorage.setItem("artham_user_email", nextUser.email || "");
+        setUser(nextUser);
+        setDisplayName(name);
+
+        // Resolve this account's saved profile before revealing the app.
+        setSyncing(true);
+        try {
+          const isNewSignup = sessionStorage.getItem(NEW_SIGNUP_FLAG) === "1";
+          sessionStorage.removeItem(NEW_SIGNUP_FLAG);
+
+          if (isNewSignup) {
+            // Seed the new account with any guest progress from this device.
+            await pushLocalToFirestore(nextUser.uid);
+          } else {
+            const existed = await hydrateLocalFromFirestore(nextUser.uid);
+            if (!existed) {
+              // First login for an account with no stored doc (e.g. first
+              // Google sign-in): persist whatever local context exists.
+              await pushLocalToFirestore(nextUser.uid);
+            }
+          }
+        } catch (err) {
+          console.error("Failed to synchronize user profile:", err);
+        } finally {
+          setSyncing(false);
+          // Let LocalStorage-backed pages re-read their now-current data.
+          window.dispatchEvent(new CustomEvent("auth-change"));
+        }
+      } else {
+        setUser(null);
+        setDisplayName("");
+        localStorage.removeItem("artham_is_logged_in");
+        localStorage.removeItem("artham_user_name");
+        localStorage.removeItem("artham_user_email");
+        clearLocalUserData();
+        window.dispatchEvent(new CustomEvent("auth-change"));
+      }
+
+      setAuthReady(true);
+    });
+
+    return () => {
+      clearTimeout(readyFallback);
+      unsubscribe();
+    };
+  }, []);
+
+  const logout = async () => {
+    await signOut(auth);
+    // onAuthStateChanged handles the LocalStorage cleanup + auth-change event.
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{ user, authReady, syncing, isLoggedIn: !!user, displayName, logout }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+}
