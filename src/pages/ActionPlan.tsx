@@ -149,6 +149,56 @@ export default function ActionPlan() {
     return () => window.removeEventListener("auth-change", syncProfile);
   }, []);
 
+  const getLocalValue = (field: string, value: string) => {
+    if (!value || value === "Not specified" || value === "Pending") return t("it_not_specified");
+    if (field === "state") {
+      const stateTranslations: Record<string, Record<string, string>> = {
+        en: { Karnataka: "Karnataka", Maharashtra: "Maharashtra", Delhi: "Delhi", "Tamil Nadu": "Tamil Nadu", "West Bengal": "West Bengal", Kerala: "Kerala", Gujarat: "Gujarat", Telangana: "Telangana", "Andhra Pradesh": "Andhra Pradesh", "Uttar Pradesh": "Uttar Pradesh", Rajasthan: "Rajasthan", Odisha: "Odisha", Haryana: "Haryana", Punjab: "Punjab", Assam: "Assam", Other: "Other State" },
+        hi: { Karnataka: "कर्नाटक", Maharashtra: "महाराष्ट्र", Delhi: "दिल्ली", "Tamil Nadu": "तमिलनाडु", "West Bengal": "पश्चिम बंगाल", Kerala: "केरल", Gujarat: "गुजरात", Telangana: "तेलंगाना", "Andhra Pradesh": "आंध्र प्रदेश", "Uttar Pradesh": "उत्तर प्रदेश", Rajasthan: "राजस्थान", Odisha: "ओडिशा", Haryana: "हरियाणा", Punjab: "पंजाब", Assam: "असम", Other: "अन्य राज्य" },
+        mr: { Karnataka: "कर्नाटक", Maharashtra: "महाराष्ट्र", Delhi: "दिल्ली", "Tamil Nadu": "तमिळनाडू", "West Bengal": "पश्चिम बंगाल", Kerala: "केरल", Gujarat: "गुजरात", Telangana: "तेलंगणा", "Andhra Pradesh": "आंध्र प्रदेश", "Uttar Pradesh": "उत्तर प्रदेश", Rajasthan: "राजस्थान", Odisha: "ओडिशा", Haryana: "हरियाणा", Punjab: "पंजाब", Assam: "आसाम", Other: "इतर राज्य" },
+        kn: { Karnataka: "ಕರ್ನಾಟಕ", Maharashtra: "ಮಹಾರಾಷ್ಟ್ರ", Delhi: "ದೆಹಲಿ", "Tamil Nadu": "ತಮಿಳುನಾಡು", "West Bengal": "ಪಶ್ಚಿಮ ಬಂಗಾಳ", Kerala: "ಕೇರಳ", Gujarat: "ಗುಜರಾತ್", Telangana: "ತೆಲಂಗಾಣ", "Andhra Pradesh": "ಆಂಧ್ರಪ್ರದೇಶ", "Uttar Pradesh": "ಉತ್ತರ ಪ್ರದೇಶ", Rajasthan: "ರಾಜಸ್ಥಾನ", Odisha: "ಒಡಿಸ್ಸಾ", Haryana: "ಹರಿಯಾಣ", Punjab: "ಪಂಜಾಬ್", Assam: "ಅಸ್ಸಾಂ", Other: "ಇತರ राज्य" },
+        bn: { Karnataka: "কর্ণাটক", Maharashtra: "মহারাষ্ট্র", Delhi: "দিল্লি", "Tamil Nadu": "তামিলনাড়ু", "West Bengal": "পশ্চিমবঙ্গ", Kerala: "কেরালা", Gujarat: "গুজরাট", Telangana: "তেলেঙ্গানা", "Andhra Pradesh": "অন্ধ্রপ্রদেশ", "Uttar Pradesh": "উত্তরপ্রদেশ", Rajasthan: "রাজস্থান", Odisha: "ওড়িশা", Haryana: "হরিয়ানা", Punjab: "পাঞ্জাব", Assam: "আসাম", Other: "অন্যান্য রাজ্য" }
+      };
+      const langDict = stateTranslations[language] || stateTranslations["en"];
+      return langDict[value] || value;
+    }
+    if (field === "stage") {
+      if (value === "Stage I") return t("it_stage_i");
+      if (value === "Stage II") return t("it_stage_ii");
+      if (value === "Stage III") return t("it_stage_iii");
+      if (value === "Stage IV") return t("it_stage_iv");
+      if (value === "Unsure") return t("it_stage_unsure");
+    }
+    if (field === "receptor") {
+      if (value === "HER2 Positive") return t("it_receptor_her2");
+      if (value === "Triple Negative") return t("it_receptor_tn");
+      if (value === "ER+/PR+ Positive") return t("it_receptor_erpr");
+      if (value === "Unsure") return t("it_receptor_unsure");
+    }
+    if (field === "yesno") {
+      if (value === "Yes") return t("it_yes");
+      if (value === "No") return t("it_no");
+      if (value === "Unsure") return t("it_unsure");
+    }
+    if (field === "hospital") {
+      if (value === "Government / Public Hospital") return t("it_hospital_gov");
+      if (value === "Private Medical Center") return t("it_hospital_priv");
+      if (value === "Premium Corporate Hospital") return t("it_hospital_prem");
+      if (value === "I'm Unsure") return t("it_hospital_unsure");
+    }
+    if (field === "insurance") {
+      if (value === "Insured" || value.startsWith("Yes") || value === "Yes (details pending)") return t("it_insured");
+      if (value === "Not Insured" || value === "No Insurance") return t("it_not_insured");
+    }
+    if (field === "income") {
+      if (value === "Below ₹2,50,000") return t("it_income_below_2_5");
+      if (value === "₹2,50,000 – ₹5,00,000") return t("it_income_2_5_to_5");
+      if (value === "₹5,00,000 – ₹10,00,000") return t("it_income_5_to_10");
+      if (value === "Above ₹10,0,000") return t("it_income_above_10");
+    }
+    return value;
+  };
+
   const handleResetProfile = () => {
     const confirmMessage = t("it_reset_confirm") || "Are you sure you want to clear your intake profile data? This will restart onboarding.";
     if (window.confirm(confirmMessage)) {
@@ -1198,24 +1248,45 @@ export default function ActionPlan() {
                   </div>
                 </div>
 
-                <div className="space-y-sm">
+                <div className="grid grid-cols-2 gap-2 mt-xs">
                   {[
-                    [t("it_state"), patientState || "Pending"],
-                    [t("it_age"), age || "Pending"],
-                    [t("it_stage"), stage || "Pending"],
-                    [t("it_receptor"), hormoneStatus || "Pending"],
-                    [t("it_surgery_q") || "Surgery?", surgery || "Pending"],
-                    [t("it_chemo_q") || "Chemo?", chemo || "Pending"],
-                    [t("it_radiation_q") || "Radiation?", radiation || "Pending"],
-                    [t("it_hospital"), hospitalType || "Pending"],
-                    [t("it_insurance_status"), insurance],
-                    [t("it_income"), incomeBracket || "Pending"],
-                  ].map(([key, value]) => (
-                    <div key={key} className="flex justify-between items-center text-xs">
-                      <span className="text-on-surface-variant font-medium">{key}</span>
-                      <span className="font-bold text-on-surface text-right truncate max-w-[160px]" title={value}>{value}</span>
-                    </div>
-                  ))}
+                    { id: "state", icon: "map", label: t("it_state"), value: patientState ? getLocalValue("state", patientState) : null, color: "text-[#0284c7] bg-[#f0f9ff]" },
+                    { id: "age", icon: "calendar_month", label: t("it_age"), value: age || null, color: "text-[#7c3aed] bg-[#f5f3ff]" },
+                    { id: "stage", icon: "biotech", label: t("it_stage"), value: stage ? getLocalValue("stage", stage) : null, color: "text-[#0d9488] bg-[#f0fdfa]" },
+                    { id: "receptor", icon: "science", label: t("it_receptor"), value: hormoneStatus ? getLocalValue("receptor", hormoneStatus) : null, color: "text-[#e11d48] bg-[#fff1f2]" },
+                    { id: "surgery", icon: "medical_services", label: t("it_surgery"), value: surgery ? getLocalValue("yesno", surgery) : null, color: "text-[#d97706] bg-[#fffbeb]" },
+                    { id: "chemo", icon: "medication", label: t("it_chemo"), value: chemo ? getLocalValue("yesno", chemo) : null, color: "text-[#4f46e5] bg-[#eef2ff]" },
+                    { id: "radiation", icon: "bolt", label: t("it_radiation"), value: radiation ? getLocalValue("yesno", radiation) : null, color: "text-[#ea580c] bg-[#fff7ed]" },
+                    { id: "hospital", icon: "home_health", label: t("it_hospital"), value: hospitalType ? getLocalValue("hospital", hospitalType) : null, color: "text-[#0891b2] bg-[#ecfeff]" },
+                    { id: "insurance", icon: "shield", label: t("it_insurance_status"), value: insurance ? getLocalValue("insurance", insurance) : null, color: "text-[#16a34a] bg-[#f0fdf4]" },
+                    { id: "income", icon: "payments", label: t("it_income"), value: incomeBracket ? getLocalValue("income", incomeBracket) : null, color: "text-[#65a30d] bg-[#f7fee7]" }
+                  ].map((item) => {
+                    const isPending = !item.value || item.value === t("it_not_specified") || item.value === "Pending";
+                    const pendingText = language === "en" ? "Pending" : language === "hi" ? "लंबित" : language === "mr" ? "प्रलंबित" : language === "kn" ? "ಬಾಕಿ ಇದೆ" : "বাকি আছে";
+                    
+                    return (
+                      <div 
+                        key={item.id} 
+                        className={`p-2 rounded-xl border flex flex-col justify-between transition-all duration-300 ${
+                          isPending 
+                            ? "bg-surface-container-lowest/20 border-dashed border-outline-variant/30 opacity-60" 
+                            : "bg-surface-container-lowest border-outline-variant/60 hover:shadow-sm hover:border-primary/30 transform hover:-translate-y-[0.5px]"
+                        }`}
+                      >
+                        <div className="flex items-center gap-[4px] mb-1">
+                          <span className={`material-symbols-outlined text-[12px] p-0.5 rounded-md shrink-0 ${isPending ? "text-outline bg-surface-container" : item.color}`}>
+                            {item.icon}
+                          </span>
+                          <span className="text-[8px] uppercase tracking-wider text-on-surface-variant font-bold truncate max-w-[65px]">
+                            {item.label}
+                          </span>
+                        </div>
+                        <div className={`text-[10px] font-bold truncate leading-tight ${isPending ? "text-outline/70 italic font-normal" : "text-on-surface"}`} title={item.value || pendingText}>
+                          {item.value || pendingText}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
 
                 <div className="flex gap-sm pt-xs border-t border-outline-variant/20">

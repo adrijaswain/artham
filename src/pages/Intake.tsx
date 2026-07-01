@@ -889,49 +889,45 @@ export default function Intake() {
                   {t("it_summary")}
                 </h4>
                 
-                <div className="divide-y divide-outline-variant/20">
-                  <div className="py-2 flex justify-between items-center text-[11px]">
-                    <span className="text-on-surface-variant font-medium">{t("it_state")}</span>
-                    <span className="font-bold text-on-surface">{getLocalValue("state", patientState)}</span>
-                  </div>
-                  <div className="py-2 flex justify-between items-center text-[11px]">
-                    <span className="text-on-surface-variant font-medium">{t("it_age")}</span>
-                    <span className="font-bold text-on-surface">{age || t("it_not_specified")}</span>
-                  </div>
-                  <div className="py-2 flex justify-between items-center text-[11px]">
-                    <span className="text-on-surface-variant font-medium">{t("it_stage")}</span>
-                    <span className="font-bold text-on-surface">{getLocalValue("stage", stage)}</span>
-                  </div>
-                  <div className="py-2 flex justify-between items-center text-[11px]">
-                    <span className="text-on-surface-variant font-medium">{t("it_receptor")}</span>
-                    <span className="font-bold text-on-surface truncate max-w-[150px]" title={hormoneStatus}>{getLocalValue("receptor", hormoneStatus)}</span>
-                  </div>
-                  <div className="py-2 flex justify-between items-center text-[11px]">
-                    <span className="text-on-surface-variant font-medium">{t("it_surgery")}</span>
-                    <span className="font-bold text-on-surface">{getLocalValue("yesno", surgery)}</span>
-                  </div>
-                  <div className="py-2 flex justify-between items-center text-[11px]">
-                    <span className="text-on-surface-variant font-medium">{t("it_chemo")}</span>
-                    <span className="font-bold text-on-surface">{getLocalValue("yesno", chemo)}</span>
-                  </div>
-                  <div className="py-2 flex justify-between items-center text-[11px]">
-                    <span className="text-on-surface-variant font-medium">{t("it_radiation")}</span>
-                    <span className="font-bold text-on-surface">{getLocalValue("yesno", radiation)}</span>
-                  </div>
-                  <div className="py-2 flex justify-between items-center text-[11px]">
-                    <span className="text-on-surface-variant font-medium">{t("it_hospital")}</span>
-                    <span className="font-bold text-on-surface truncate max-w-[150px]" title={hospitalType}>{getLocalValue("hospital", hospitalType)}</span>
-                  </div>
-                  <div className="py-2 flex justify-between items-center text-[11px]">
-                    <span className="text-on-surface-variant font-medium">{t("it_insurance_status")}</span>
-                    <span className="font-bold text-on-surface truncate max-w-[150px]">
-                      {hasInsurance ? (insuranceProvider || t("it_insured")) : t("it_not_insured")}
-                    </span>
-                  </div>
-                  <div className="py-2 flex justify-between items-center text-[11px]">
-                    <span className="text-on-surface-variant font-medium">{t("it_income")}</span>
-                    <span className="font-bold text-on-surface">{getLocalValue("income", incomeBracket)}</span>
-                  </div>
+                <div className="grid grid-cols-2 gap-2 mt-xs">
+                  {[
+                    { id: "state", icon: "map", label: t("it_state"), value: patientState ? getLocalValue("state", patientState) : null, color: "text-[#0284c7] bg-[#f0f9ff]" },
+                    { id: "age", icon: "calendar_month", label: t("it_age"), value: age || null, color: "text-[#7c3aed] bg-[#f5f3ff]" },
+                    { id: "stage", icon: "biotech", label: t("it_stage"), value: stage ? getLocalValue("stage", stage) : null, color: "text-[#0d9488] bg-[#f0fdfa]" },
+                    { id: "receptor", icon: "science", label: t("it_receptor"), value: hormoneStatus ? getLocalValue("receptor", hormoneStatus) : null, color: "text-[#e11d48] bg-[#fff1f2]" },
+                    { id: "surgery", icon: "medical_services", label: t("it_surgery"), value: surgery ? getLocalValue("yesno", surgery) : null, color: "text-[#d97706] bg-[#fffbeb]" },
+                    { id: "chemo", icon: "medication", label: t("it_chemo"), value: chemo ? getLocalValue("yesno", chemo) : null, color: "text-[#4f46e5] bg-[#eef2ff]" },
+                    { id: "radiation", icon: "bolt", label: t("it_radiation"), value: radiation ? getLocalValue("yesno", radiation) : null, color: "text-[#ea580c] bg-[#fff7ed]" },
+                    { id: "hospital", icon: "home_health", label: t("it_hospital"), value: hospitalType ? getLocalValue("hospital", hospitalType) : null, color: "text-[#0891b2] bg-[#ecfeff]" },
+                    { id: "insurance", icon: "shield", label: t("it_insurance_status"), value: hasInsurance !== undefined ? (hasInsurance ? (insuranceProvider || t("it_insured")) : t("it_not_insured")) : null, color: "text-[#16a34a] bg-[#f0fdf4]" },
+                    { id: "income", icon: "payments", label: t("it_income"), value: incomeBracket ? getLocalValue("income", incomeBracket) : null, color: "text-[#65a30d] bg-[#f7fee7]" }
+                  ].map((item) => {
+                    const isPending = !item.value;
+                    const pendingText = language === "en" ? "Pending" : language === "hi" ? "लंबित" : language === "mr" ? "प्रलंबित" : language === "kn" ? "ಬಾಕಿ ಇದೆ" : "বাকি আছে";
+                    
+                    return (
+                      <div 
+                        key={item.id} 
+                        className={`p-2 rounded-xl border flex flex-col justify-between transition-all duration-300 ${
+                          isPending 
+                            ? "bg-surface-container-lowest/20 border-dashed border-outline-variant/30 opacity-60" 
+                            : "bg-surface-container-lowest border-outline-variant/60 hover:shadow-sm hover:border-primary/30 transform hover:-translate-y-[0.5px]"
+                        }`}
+                      >
+                        <div className="flex items-center gap-[4px] mb-1">
+                          <span className={`material-symbols-outlined text-[12px] p-0.5 rounded-md shrink-0 ${isPending ? "text-outline bg-surface-container" : item.color}`}>
+                            {item.icon}
+                          </span>
+                          <span className="text-[8px] uppercase tracking-wider text-on-surface-variant font-bold truncate max-w-[65px]">
+                            {item.label}
+                          </span>
+                        </div>
+                        <div className={`text-[10px] font-bold truncate leading-tight ${isPending ? "text-outline/70 italic font-normal" : "text-on-surface"}`} title={item.value || pendingText}>
+                          {item.value || pendingText}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 

@@ -280,7 +280,6 @@ export default function CostBreakdown() {
   const resetToDefault = async () => {
     localStorage.removeItem("artham_custom_breakdown");
     setCustomBreakdown(null);
-    const activeWelcome = chatbotWelcomeMessages[language] || chatbotWelcomeMessages.en;
     setChatHistory([
       {
         role: "bot",

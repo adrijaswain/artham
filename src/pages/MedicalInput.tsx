@@ -4,10 +4,10 @@ import { auth, saveUserVaultToFirestore, saveUserMessagesToFirestore } from "../
 import MarkdownRenderer from "../components/MarkdownRenderer";
 import { useLanguage } from "../components/LanguageContext";
 
-export type Msg = { 
-  role: "bot" | "user"; 
-  text: string; 
-  meta?: string; 
+export type Msg = {
+  role: "bot" | "user";
+  text: string;
+  meta?: string;
   isError?: boolean;
 };
 
@@ -106,7 +106,7 @@ CRITICAL LANGUAGE REQUIREMENT: You MUST speak, explain, and write your entire re
 7. Platform Feature Referrals: When helpful, guide patients to use other parts of Artham (Cost Breakdown, Preventive Plans, Action Plan & Dashboard, Evidence Vault).
 8. Output Style: Always structure your responses with clean Markdown, using bold headers, bullet lists, and crisp summaries. Keep advice practical and navigation-oriented.
 9. Disclaimer: Include a brief single-sentence disclaimer that Artham is for financial navigation support and is not a substitute for oncologists.`;
-  
+
   // Format history for Gemini API
   const contents = history.map(h => ({
     role: h.role === "bot" ? "model" : "user",
@@ -170,7 +170,7 @@ const analyzeDocumentWithGemini = async (file: VaultFile, apiKey: string): Promi
   const incomeBracket = localStorage.getItem("artham_intake_income_bracket") || "Not specified";
 
   const parts: ({ text: string } | { inlineData: { mimeType: string; data: string } })[] = [];
-  
+
   // Inject base64 data if it's an image
   if (file.base64Data && file.mimeType) {
     parts.push({
@@ -180,7 +180,7 @@ const analyzeDocumentWithGemini = async (file: VaultFile, apiKey: string): Promi
       }
     });
   }
-  
+
   const promptText = `You are the Artham clinical audit assistant. 
   Analyze this medical document in the context of the user's clinical profile.
   
@@ -207,7 +207,7 @@ const analyzeDocumentWithGemini = async (file: VaultFile, apiKey: string): Promi
     contents: [{ parts }]
   };
 
-  const modelName = (import.meta.env.VITE_GEMINI_MODEL as string) || "gemini-1.5-flash";
+  const modelName = (import.meta.env.VITE_GEMINI_MODEL as string) || "gemini-2.5-flash";
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
     {
@@ -336,7 +336,7 @@ export default function MedicalInput() {
   const [selectedUploadFile, setSelectedUploadFile] = useState<File | null>(null);
   const [fileBase64, setFileBase64] = useState<string>("");
   const [fileMime, setFileMime] = useState<string>("");
-  
+
   // Vault Form states
   const [valCategory, setValCategory] = useState<VaultFile["category"]>("Medical Report / Scan");
   const [valDate, setValDate] = useState(() => new Date().toISOString().split("T")[0]);
@@ -348,6 +348,147 @@ export default function MedicalInput() {
   const [isAnalyzingFile, setIsAnalyzingFile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Voice integration states & refs
+  const [isListening, setIsListening] = useState(false);
+  const [speakingMsgIndex, setSpeakingMsgIndex] = useState<number | null>(null);
+  const recognitionRef = useRef<any>(null);
+
+  useEffect(() => {
+    return () => {
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {
+          // ignore
+        }
+      }
+    };
+  }, []);
+
+  const toggleVoiceInput = () => {
+    if (isListening) {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      window.dispatchEvent(new CustomEvent("show-toast", {
+        detail: { msg: "Speech recognition is not supported in this browser. Try Chrome or Safari.", type: "error" }
+      }));
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      
+      const activeLang = localStorage.getItem("artham_language") || "en";
+      const localeMap: Record<string, string> = {
+        en: "en-IN",
+        hi: "hi-IN",
+        mr: "mr-IN",
+        kn: "kn-IN",
+        bn: "bn-IN"
+      };
+      recognition.lang = localeMap[activeLang] || "en-IN";
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+
+      recognition.onresult = (event: any) => {
+        const text = event.results[0][0].transcript;
+        if (text) {
+          setDraft(prev => prev ? prev + " " + text : text);
+        }
+      };
+
+      recognition.onerror = (err: any) => {
+        console.error("Speech recognition error:", err);
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (e) {
+      console.error(e);
+      setIsListening(false);
+    }
+  };
+
+  const stripMarkdown = (text: string): string => {
+    return text
+      .replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1")
+      .replace(/###/g, "")
+      .replace(/##/g, "")
+      .replace(/#/g, "")
+      .replace(/\*\*([^*]+)\*\*/g, "$1")
+      .replace(/\*([^*]+)\*/g, "$1")
+      .replace(/`([^`]+)`/g, "$1")
+      .replace(/-\s+/g, "")
+      .replace(/₹/g, "Rupees");
+  };
+
+  const toggleSpeakMessage = (index: number, text: string) => {
+    if (!window.speechSynthesis) {
+      window.dispatchEvent(new CustomEvent("show-toast", {
+        detail: { msg: "Text-to-speech is not supported in this browser.", type: "error" }
+      }));
+      return;
+    }
+
+    if (speakingMsgIndex === index) {
+      window.speechSynthesis.cancel();
+      setSpeakingMsgIndex(null);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const cleanText = stripMarkdown(text);
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+
+    const activeLang = localStorage.getItem("artham_language") || "en";
+    const localeMap: Record<string, string> = {
+      en: "en-IN",
+      hi: "hi-IN",
+      mr: "mr-IN",
+      kn: "kn-IN",
+      bn: "bn-IN"
+    };
+    utterance.lang = localeMap[activeLang] || "en-IN";
+
+    const voices = window.speechSynthesis.getVoices();
+    const targetLocale = localeMap[activeLang] || "en-IN";
+    const matchingVoice = voices.find(voice => voice.lang.toLowerCase().replace("_", "-") === targetLocale.toLowerCase());
+    if (matchingVoice) {
+      utterance.voice = matchingVoice;
+    }
+
+    utterance.onend = () => {
+      setSpeakingMsgIndex(null);
+    };
+
+    utterance.onerror = () => {
+      setSpeakingMsgIndex(null);
+    };
+
+    setSpeakingMsgIndex(index);
+    window.speechSynthesis.speak(utterance);
+  };
 
   // Sync files to localStorage when changed
   const updateVaultFilesState = (files: VaultFile[]) => {
@@ -390,7 +531,7 @@ export default function MedicalInput() {
   // Standard Text Chat Send
   const send = async (overrideText?: string) => {
     const text = (typeof overrideText === "string" ? overrideText : draft).trim();
-    
+
     // If a document attachment is pending, open the modal form to complete metadata before recording and sending
     if (selectedUploadFile && !overrideText) {
       setModalMode("send");
@@ -399,7 +540,7 @@ export default function MedicalInput() {
     }
 
     if (!text) return;
-    
+
     const updatedMessages = [...messages, { role: "user", text } as Msg];
     setMessages(updatedMessages);
     setDraft("");
@@ -408,23 +549,23 @@ export default function MedicalInput() {
     if (apiKey) {
       try {
         const aiResponse = await queryGeminiChat(updatedMessages, apiKey);
-        
+
         // Extract a clinical badge from Gemini response
         let extractedBadge = undefined;
         const surgeryMatch = aiResponse.match(/surgery|procedure|mastectomy|replacement|chemotherapy|radiation/i);
         if (surgeryMatch) {
           extractedBadge = `Extracted: Clinical Pathway Indicated`;
         }
-        
-        setMessages(m => [...m, { 
-          role: "bot", 
+
+        setMessages(m => [...m, {
+          role: "bot",
           text: aiResponse,
           meta: extractedBadge
         }]);
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : String(err);
-        setMessages(m => [...m, { 
-          role: "bot", 
+        setMessages(m => [...m, {
+          role: "bot",
           text: `I encountered an issue connecting to the Gemini API: ${errMsg}. Please verify your API key or try again in a few moments.`,
           isError: true
         }]);
@@ -438,7 +579,7 @@ export default function MedicalInput() {
         const lowerText = text.toLowerCase();
         let reply = "I have updated your profile context. Let me know if you need specific scheme or cost details.";
         let badge = undefined;
-        
+
         if (lowerText.includes("hospital") || lowerText.includes("apollo") || lowerText.includes("max")) {
           reply = "Hospital setting updated. We will match this with empanelled insurers and apply room rent limits.";
           badge = "Extracted: Preference — Private Empanelled";
@@ -460,7 +601,7 @@ export default function MedicalInput() {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setSelectedUploadFile(file);
-      
+
       // Convert to base64 for images
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -469,7 +610,7 @@ export default function MedicalInput() {
         setFileBase64(base64Data);
         setFileMime(file.type);
       };
-      
+
       if (file.type.startsWith("image/")) {
         reader.readAsDataURL(file);
       } else {
@@ -479,13 +620,13 @@ export default function MedicalInput() {
 
       // Pre-fill categories
       setValCategory(
-        file.name.toLowerCase().includes("bill") || file.name.toLowerCase().includes("quote") 
+        file.name.toLowerCase().includes("bill") || file.name.toLowerCase().includes("quote")
           ? "Hospital Quote / Bill"
-          : file.name.toLowerCase().includes("presc") 
-          ? "Doctor Prescription"
-          : file.name.toLowerCase().includes("policy") 
-          ? "Insurance Policy" 
-          : "Medical Report / Scan"
+          : file.name.toLowerCase().includes("presc")
+            ? "Doctor Prescription"
+            : file.name.toLowerCase().includes("policy")
+              ? "Insurance Policy"
+              : "Medical Report / Scan"
       );
       setValDate(new Date().toISOString().split("T")[0]);
       setValAmount("");
@@ -529,7 +670,7 @@ export default function MedicalInput() {
     const comment = draft.trim();
     const fileLabel = `📎 Attached Document: ${newFile.name} (${newFile.category})`;
     const textMessage = comment ? `${fileLabel}\n"${comment}"` : `${fileLabel}\nPlease extract and verify this diagnostic scan.`;
-    
+
     const updatedMessages = [...messages, { role: "user", text: textMessage } as Msg];
     setMessages(updatedMessages);
     setDraft("");
@@ -539,7 +680,7 @@ export default function MedicalInput() {
     if (apiKey) {
       try {
         const responseText = await analyzeDocumentWithGemini(newFile, apiKey);
-        
+
         // Save the extracted results inside the permanent repository entry
         const finalFiles = updatedFiles.map(f => {
           if (f.id === newFile.id) {
@@ -549,8 +690,8 @@ export default function MedicalInput() {
         });
         updateVaultFilesState(finalFiles);
 
-        setMessages(m => [...m, { 
-          role: "bot", 
+        setMessages(m => [...m, {
+          role: "bot",
           text: responseText,
           meta: `Extracted: ${newFile.category} analyzed successfully`
         }]);
@@ -561,7 +702,7 @@ export default function MedicalInput() {
 Failed to analyze document: ${errMsg}. 
 
 *Please check that your Gemini API Key is active, and ensure that the uploaded image size is under 4MB.*`;
-        
+
         const finalFiles = updatedFiles.map(f => {
           if (f.id === newFile.id) {
             return { ...f, aiAnalysis: errorText };
@@ -570,8 +711,8 @@ Failed to analyze document: ${errMsg}.
         });
         updateVaultFilesState(finalFiles);
 
-        setMessages(m => [...m, { 
-          role: "bot", 
+        setMessages(m => [...m, {
+          role: "bot",
           text: `I encountered an issue analyzing ${newFile.name}: ${errMsg}. The file has been recorded in your Evidence Vault, and you can re-trigger analysis from there.`,
           isError: true
         }]);
@@ -610,8 +751,8 @@ Failed to analyze document: ${errMsg}.
         });
         updateVaultFilesState(finalFiles);
 
-        setMessages(m => [...m, { 
-          role: "bot", 
+        setMessages(m => [...m, {
+          role: "bot",
           text: mockResponse,
           meta: `Extracted: ${newFile.category} simulated analysis`
         }]);
@@ -633,7 +774,7 @@ Failed to analyze document: ${errMsg}.
           return f;
         });
         updateVaultFilesState(updatedFiles);
-        
+
         // Update active drawer details
         const found = updatedFiles.find(f => f.id === file.id);
         if (found) setActiveDetailedFile(found);
@@ -703,7 +844,7 @@ Failed to analyze document: ${errMsg}.
   return (
     <AppShell>
       <div className="h-[calc(100vh-64px)] flex flex-col bg-surface-bright relative w-full overflow-hidden">
-        
+
         {/* Chat Header Bar */}
         <header className="px-md py-sm border-b border-outline-variant/40 bg-surface-container-low flex justify-between items-center shrink-0 z-10 shadow-sm">
           <h3 className="font-headline-sm text-headline-sm text-primary flex items-center gap-xs">
@@ -718,7 +859,7 @@ Failed to analyze document: ${errMsg}.
                 Gemini Active
               </span>
             ) : (
-              <button 
+              <button
                 onClick={() => { setShowKeyModal(true); setTempKey(customApiKey); }}
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-700 border border-amber-500/20 text-[11px] font-bold hover:bg-amber-500/20 transition-all cursor-pointer"
                 title="Configure Gemini API Key"
@@ -727,7 +868,7 @@ Failed to analyze document: ${errMsg}.
                 Gemini Demo Mode
               </button>
             )}
-            
+
             <button
               onClick={() => { setShowKeyModal(true); setTempKey(customApiKey); }}
               className="p-1.5 hover:bg-surface-container rounded-full text-outline hover:text-primary transition-all flex items-center justify-center"
@@ -748,7 +889,7 @@ Failed to analyze document: ${errMsg}.
         </header>
 
         {/* Scrollable Conversation Workspace */}
-        <div 
+        <div
           className="flex-grow overflow-y-auto px-4 py-6 md:px-8 space-y-md custom-scrollbar bg-surface-bright/20 flex flex-col relative"
           role="log"
           aria-live="polite"
@@ -756,7 +897,7 @@ Failed to analyze document: ${errMsg}.
           {messages.length === 0 ? (
             /* Centered Welcome Landing State */
             <div className="flex-grow flex flex-col items-center justify-center py-6 max-w-3xl mx-auto w-full animate-fade-in my-auto">
-              
+
               {/* Glossy Logo Orb */}
               <div className="w-20 h-20 rounded-full bg-gradient-to-br from-secondary via-surface-tint to-primary shadow-xl relative overflow-hidden flex items-center justify-center border border-white/20 mb-6 shrink-0">
                 <div className="absolute top-1 left-2 w-12 h-6 bg-white/25 rounded-full blur-[1px] rotate-[-15deg]"></div>
@@ -807,36 +948,51 @@ Failed to analyze document: ${errMsg}.
               {messages.map((m, i) => (
                 <div
                   key={i}
-                  className={`flex gap-sm max-w-[85%] ${
-                    m.role === "user" ? "self-end flex-row-reverse ml-auto" : ""
-                  }`}
+                  className={`flex gap-sm max-w-[85%] ${m.role === "user" ? "self-end flex-row-reverse ml-auto" : ""
+                    }`}
                 >
                   <div
-                    className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
-                      m.role === "user"
+                    className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${m.role === "user"
                         ? "bg-secondary/15 text-secondary border border-secondary/20"
                         : "bg-primary/10 text-primary border border-primary/20"
-                    }`}
+                      }`}
                   >
                     <span className="material-symbols-outlined text-[18px]">
                       {m.role === "user" ? "person" : "neurology"}
                     </span>
                   </div>
                   <div
-                    className={`p-md shadow-sm rounded-2xl ${
-                      m.role === "user"
+                    className={`p-md shadow-sm rounded-2xl ${m.role === "user"
                         ? "bg-primary text-on-primary rounded-tr-none whitespace-pre-line leading-relaxed font-body-md"
-                        : `bg-surface-container-lowest rounded-tl-none border border-outline-variant/40 leading-relaxed font-body-md ${
-                            m.isError ? "border-l-4 border-l-error bg-error-container/10 text-error-container" : ""
-                          } ${
-                            m.meta ? "border-l-4 border-l-secondary bg-surface-container font-medium" : ""
-                          }`
-                    }`}
+                        : `bg-surface-container-lowest rounded-tl-none border border-outline-variant/40 leading-relaxed font-body-md ${m.isError ? "border-l-4 border-l-error bg-error-container/10 text-error-container" : ""
+                        } ${m.meta ? "border-l-4 border-l-secondary bg-surface-container font-medium" : ""
+                        }`
+                      }`}
                   >
                     <div className="leading-relaxed text-sm">
-                      <MarkdownRenderer text={m.text} />
+                      <MarkdownRenderer text={m.text} role={m.role} />
                     </div>
-                    
+
+                    {m.role === "bot" && !m.isError && (
+                      <div className="mt-sm pt-sm border-t border-outline-variant/20 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => toggleSpeakMessage(i, m.text)}
+                          className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                            speakingMsgIndex === i
+                              ? "bg-primary/10 text-primary border border-primary/20"
+                              : "text-outline hover:text-primary hover:bg-primary/5"
+                          }`}
+                          title={speakingMsgIndex === i ? "Stop playback" : "Listen to response"}
+                        >
+                          <span className="material-symbols-outlined text-sm">
+                            {speakingMsgIndex === i ? "volume_off" : "volume_up"}
+                          </span>
+                          <span>{speakingMsgIndex === i ? "Stop" : "Listen"}</span>
+                        </button>
+                      </div>
+                    )}
+
                     {m.meta && (
                       <div className="mt-sm pt-sm border-t border-outline-variant/40 flex items-center gap-xs text-secondary font-bold text-xs">
                         <span className="material-symbols-outlined text-sm active-entity-pulse">auto_awesome</span>
@@ -846,7 +1002,7 @@ Failed to analyze document: ${errMsg}.
                   </div>
                 </div>
               ))}
-              
+
               {/* Typing Loader Indicator */}
               {isChatLoading && (
                 <div className="flex gap-sm max-w-[85%]">
@@ -865,15 +1021,15 @@ Failed to analyze document: ${errMsg}.
             </div>
           )}
         </div>
-        
+
         {/* Floating Textfield Input Area at bottom center */}
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-surface-bright via-surface-bright/95 to-transparent pt-8 pb-4 px-4 z-30">
           <div className="max-w-3xl mx-auto relative">
-            
+
             {/* Embedded Evidence Vault Popover Panel */}
             {isVaultOpen && (
               <div className="absolute bottom-[calc(100%+12px)] left-0 right-0 bg-surface-container-lowest border border-outline-variant/80 rounded-2xl shadow-xl z-40 p-md flex flex-col max-h-[320px] overflow-hidden animate-slide-up">
-                
+
                 {/* Popover Header */}
                 <div className="flex items-center justify-between border-b border-outline-variant/40 pb-sm mb-sm shrink-0">
                   <h4 className="font-headline-sm text-sm text-primary flex items-center gap-xs">
@@ -908,7 +1064,7 @@ Failed to analyze document: ${errMsg}.
                     </button>
                   </div>
                 )}
-                
+
                 {/* Scrollable Document List inside Popover */}
                 <div className="flex-grow overflow-y-auto space-y-sm pr-xs custom-scrollbar">
                   {vaultFiles.length > 0 ? (
@@ -934,13 +1090,13 @@ Failed to analyze document: ${errMsg}.
                         <div className="flex items-center gap-sm min-w-0">
                           <div className="bg-primary/5 p-2 rounded-lg text-primary border border-primary/10 shrink-0">
                             <span className="material-symbols-outlined text-[18px]">
-                              {file.category === "Hospital Quote / Bill" 
-                                ? "receipt" 
-                                : file.category === "Doctor Prescription" 
-                                ? "clinical_notes" 
-                                : file.category === "Insurance Policy" 
-                                ? "shield" 
-                                : "description"}
+                              {file.category === "Hospital Quote / Bill"
+                                ? "receipt"
+                                : file.category === "Doctor Prescription"
+                                  ? "clinical_notes"
+                                  : file.category === "Insurance Policy"
+                                    ? "shield"
+                                    : "description"}
                             </span>
                           </div>
                           <div className="min-w-0">
@@ -1008,7 +1164,7 @@ Failed to analyze document: ${errMsg}.
             />
 
             {/* ChatGPT / Claude style Input Bar Container */}
-            <div 
+            <div
               className="bg-surface-container-lowest border border-outline-variant/80 rounded-3xl p-sm flex flex-col gap-xs focus-within:ring-2 focus-within:ring-primary/40 focus-within:border-primary transition-all shadow-md relative"
               role="form"
             >
@@ -1016,13 +1172,13 @@ Failed to analyze document: ${errMsg}.
               {selectedUploadFile && (
                 <div className="flex items-center gap-xs bg-primary/5 border border-primary/20 rounded-xl px-sm py-2 max-w-sm m-xs animate-fade-in">
                   <span className="material-symbols-outlined text-primary text-[20px]">
-                    {valCategory === "Hospital Quote / Bill" 
-                      ? "receipt" 
-                      : valCategory === "Doctor Prescription" 
-                      ? "clinical_notes" 
-                      : valCategory === "Insurance Policy" 
-                      ? "shield" 
-                      : "description"}
+                    {valCategory === "Hospital Quote / Bill"
+                      ? "receipt"
+                      : valCategory === "Doctor Prescription"
+                        ? "clinical_notes"
+                        : valCategory === "Insurance Policy"
+                          ? "shield"
+                          : "description"}
                   </span>
                   <div className="min-w-0 flex-grow">
                     <p className="font-label-sm text-[11px] text-on-surface font-semibold truncate leading-none">{selectedUploadFile.name}</p>
@@ -1065,7 +1221,7 @@ Failed to analyze document: ${errMsg}.
 
               {/* Lower Toolbar inside input box */}
               <div className="flex justify-between items-center px-xs pt-xs border-t border-outline-variant/20">
-                
+
                 {/* Left: Attachment triggers & Vault toggle */}
                 <div className="flex items-center gap-xs">
                   {/* File Upload Trigger */}
@@ -1084,11 +1240,10 @@ Failed to analyze document: ${errMsg}.
                   <button
                     type="button"
                     onClick={() => setIsVaultOpen(!isVaultOpen)}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-[11px] font-bold transition-all focus-visible:ring-2 focus-visible:ring-primary active:scale-95 ${
-                      isVaultOpen
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-[11px] font-bold transition-all focus-visible:ring-2 focus-visible:ring-primary active:scale-95 ${isVaultOpen
                         ? "border-primary bg-primary/10 text-primary"
                         : "border-outline-variant/80 bg-surface-bright text-on-surface-variant hover:bg-surface-container"
-                    }`}
+                      }`}
                     title="Toggle Clinical Evidence Vault Popover"
                     aria-label="Toggle Clinical Evidence Vault Popover"
                   >
@@ -1112,19 +1267,37 @@ Failed to analyze document: ${errMsg}.
                   )}
                 </div>
 
-                {/* Right: Send button */}
-                <button
-                  onClick={() => send()}
-                  disabled={isChatLoading || (!draft.trim() && !selectedUploadFile)}
-                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-95 focus-visible:ring-2 focus-visible:ring-primary ${
-                    (draft.trim() || selectedUploadFile) && !isChatLoading
-                      ? "bg-primary text-on-primary hover:brightness-110 shadow-md animate-pulse"
-                      : "bg-surface-container text-outline cursor-not-allowed border border-outline-variant/40"
-                  }`}
-                  aria-label="Submit message"
-                >
-                  <span className="material-symbols-outlined text-[18px]">send</span>
-                </button>
+                {/* Right: Send & Voice buttons */}
+                <div className="flex items-center gap-xs">
+                  <button
+                    type="button"
+                    onClick={toggleVoiceInput}
+                    disabled={isChatLoading}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-95 focus-visible:ring-2 focus-visible:ring-primary ${
+                      isListening
+                        ? "bg-error text-on-error hover:brightness-110 shadow-md animate-pulse"
+                        : "text-outline hover:text-primary hover:bg-primary/5 border border-outline-variant/40"
+                    }`}
+                    title={isListening ? "Stop listening" : "Voice input"}
+                    aria-label="Toggle voice input"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">
+                      {isListening ? "mic_off" : "mic"}
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => send()}
+                    disabled={isChatLoading || (!draft.trim() && !selectedUploadFile)}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-95 focus-visible:ring-2 focus-visible:ring-primary ${(draft.trim() || selectedUploadFile) && !isChatLoading
+                        ? "bg-primary text-on-primary hover:brightness-110 shadow-md animate-pulse"
+                        : "bg-surface-container text-outline cursor-not-allowed border border-outline-variant/40"
+                      }`}
+                    aria-label="Submit message"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">send</span>
+                  </button>
+                </div>
               </div>
 
             </div>
@@ -1165,7 +1338,7 @@ Failed to analyze document: ${errMsg}.
                 <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
             </div>
-            
+
             <div className="p-md md:p-lg space-y-md max-h-[460px] overflow-y-auto custom-scrollbar">
               <div className="bg-primary/5 p-sm rounded-xl border border-primary/20">
                 <p className="text-[10px] uppercase font-bold text-outline tracking-wider leading-none">Selected Document File</p>
@@ -1240,7 +1413,7 @@ Failed to analyze document: ${errMsg}.
               >
                 Cancel
               </button>
-              
+
               {modalMode === "configure" ? (
                 <button
                   onClick={() => setShowUploadModal(false)}
@@ -1280,20 +1453,19 @@ Failed to analyze document: ${errMsg}.
                 <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
             </div>
-            
+
             <div className="p-md md:p-lg space-y-md">
               <p className="text-xs text-outline leading-relaxed">
                 By default, Artham loads the Gemini API key from the environment variable <code>VITE_GEMINI_API_KEY</code>. You can also paste your key below to save it in your browser cache.
               </p>
 
               {/* Status Indicator */}
-              <div className={`p-sm rounded-xl border flex items-start gap-sm text-xs ${
-                import.meta.env.VITE_GEMINI_API_KEY
+              <div className={`p-sm rounded-xl border flex items-start gap-sm text-xs ${import.meta.env.VITE_GEMINI_API_KEY
                   ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-800"
                   : customApiKey
-                  ? "bg-blue-500/10 border-blue-500/20 text-blue-800"
-                  : "bg-amber-500/10 border-amber-500/20 text-amber-800"
-              }`}>
+                    ? "bg-blue-500/10 border-blue-500/20 text-blue-800"
+                    : "bg-amber-500/10 border-amber-500/20 text-amber-800"
+                }`}>
                 <span className="material-symbols-outlined mt-0.5 text-[18px]">
                   {import.meta.env.VITE_GEMINI_API_KEY || customApiKey ? "check_circle" : "info"}
                 </span>
@@ -1302,15 +1474,15 @@ Failed to analyze document: ${errMsg}.
                     {import.meta.env.VITE_GEMINI_API_KEY
                       ? "Using Key from Environment (.env)"
                       : customApiKey
-                      ? "Using Key from Browser Storage"
-                      : "Currently in Demo Mock Mode"}
+                        ? "Using Key from Browser Storage"
+                        : "Currently in Demo Mock Mode"}
                   </p>
                   <p className="text-[11px] opacity-80 mt-0.5">
                     {import.meta.env.VITE_GEMINI_API_KEY
                       ? "VITE_GEMINI_API_KEY is configured in the project environment variables."
                       : customApiKey
-                      ? "A custom key is stored locally in this browser."
-                      : "No key found. AI features will use pre-recorded simulated responses."}
+                        ? "A custom key is stored locally in this browser."
+                        : "No key found. AI features will use pre-recorded simulated responses."}
                   </p>
                 </div>
               </div>
@@ -1378,7 +1550,7 @@ Failed to analyze document: ${errMsg}.
       {/* 2. Slide-over Detailed Evidence Drawer / Modal */}
       {activeDetailedFile && (
         <div className="fixed inset-0 z-50 flex justify-end transition-all duration-300">
-          
+
           {/* Backdrop glassmorphic */}
           <div
             onClick={() => setActiveDetailedFile(null)}
@@ -1387,7 +1559,7 @@ Failed to analyze document: ${errMsg}.
 
           {/* Panel Container */}
           <div className="relative w-full max-w-2xl bg-surface-bright h-full shadow-2xl flex flex-col justify-between border-l border-outline-variant/40 animate-slide-in overflow-hidden">
-            
+
             {/* Header */}
             <div className="p-md md:p-lg border-b border-outline-variant/40 flex justify-between items-start bg-surface-container-low">
               <div className="flex-grow pr-sm">
@@ -1419,7 +1591,7 @@ Failed to analyze document: ${errMsg}.
 
             {/* Scrollable details container */}
             <div className="p-md md:p-lg overflow-y-auto flex-grow space-y-md custom-scrollbar">
-              
+
               {/* Document Image Preview (if image base64 data exists) */}
               {activeDetailedFile.base64Data && (
                 <div className="border border-outline-variant/50 rounded-2xl overflow-hidden bg-surface-container-lowest max-h-[220px] flex items-center justify-center p-sm shadow-sm relative group">
@@ -1483,7 +1655,7 @@ Failed to analyze document: ${errMsg}.
                       <span className="material-symbols-outlined text-[10px] active-entity-pulse">auto_awesome</span>
                       AI AUDITED
                     </div>
-                    
+
                     <div className="prose prose-sm dark:prose-invert max-w-none text-on-surface leading-relaxed text-sm">
                       <MarkdownRenderer text={activeDetailedFile.aiAnalysis || ""} />
                     </div>
@@ -1500,7 +1672,7 @@ Failed to analyze document: ${errMsg}.
                         Trigger real Google Gemini AI to analyze the document. Artham will parse diagnostic findings, verify claims compatibility, and extract billing cost values.
                       </p>
                     </div>
-                    
+
                     <button
                       onClick={() => runFileAnalysis(activeDetailedFile)}
                       className="px-lg py-2.5 bg-primary text-on-primary hover:brightness-110 rounded-xl font-label-md text-label-md shadow-md active:scale-95 transition-all flex items-center gap-xs focus-visible:ring-2 focus-visible:ring-primary"
@@ -1522,7 +1694,7 @@ Failed to analyze document: ${errMsg}.
                 <span className="material-symbols-outlined text-[18px]">delete</span>
                 Delete Document
               </button>
-              
+
               <button
                 onClick={() => setActiveDetailedFile(null)}
                 className="flex-grow flex items-center justify-center gap-xs px-md py-3 rounded-xl font-label-md text-label-md transition-all active:scale-[0.98] shadow-sm bg-primary text-on-primary hover:bg-primary/95 focus-visible:ring-2 focus-visible:ring-primary"

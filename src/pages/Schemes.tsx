@@ -3208,6 +3208,18 @@ export default function Schemes() {
                 <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">expand_more</span>
               </div>
             </div>
+          )}
+
+          {/* Advanced Collapsible Filter Panel (only under Schemes tab) */}
+          {activeTab === "schemes" && showAdvancedFilters && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-sm mt-sm pt-sm border-t border-outline-variant/40 animate-slide-down">
+              {/* Age Group Filter */}
+              <div className="flex flex-col gap-xs">
+                <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider pl-1 select-none font-bold">
+                  {language === "en" ? "Age Group" : language === "hi" ? "आयु वर्ग" : language === "mr" ? "वयोगट" : language === "kn" ? "ವಯೋಮಾನ" : "বয়स ग्रुप"}
+                </label>
+                <div className="relative flex items-center">
+                  <span className="material-symbols-outlined absolute left-3 text-outline text-[16px] pointer-events-none">
                     face
                   </span>
                   <select
@@ -3416,93 +3428,6 @@ export default function Schemes() {
               {selectedGender !== "Any Gender" && (
                 <span className="inline-flex items-center gap-xs px-2.5 py-1 bg-secondary/10 text-secondary rounded-lg text-[12px] font-semibold">
                   <span>{language === "en" ? "Gender" : language === "hi" ? "लिंग" : language === "mr" ? "लिंग" : language === "kn" ? "ಲಿಂಗ" : "লিঙ্গ"}: {selectedGender}</span>
-                  <button onClick={() => setSelectedGender("Any Gender")} className="hover:bg-secondary/20 rounded-full p-0.5 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-[12px] font-bold">close</span>
-                  </button>
-                </span>
-              )}
-            </div>
-          )}p-xs">
-                <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider pl-1 select-none">
-                  Gender Focus
-                </label>
-                <div className="relative flex items-center">
-                  <span className="material-symbols-outlined absolute left-3 text-outline text-[16px] pointer-events-none">
-                    wc
-                  </span>
-                  <select
-                    className="w-full pl-8 pr-7 py-2 rounded-xl border border-outline-variant bg-surface-container-lowest font-body-sm text-[12px] text-on-surface outline-none appearance-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20"
-                    value={selectedGender}
-                    onChange={(e) => setSelectedGender(e.target.value)}
-                  >
-                    <option value="Any Gender">Any Gender</option>
-                    <option value="Female Only">Female Only</option>
-                    <option value="General / All Genders">General / All Genders</option>
-                  </select>
-                  <span className="material-symbols-outlined absolute right-2 text-outline pointer-events-none text-[16px]">
-                    expand_more
-                  </span>
-                </div>
-              </div>
-
-            </div>
-          )}
-
-          {/* Active Filter Tags (only under schemes tab) */}
-          {activeTab === "schemes" && (selectedAgeGroup !== "Any Age" || selectedProfession !== "Any Profession" || selectedBenefitType !== "Any Benefit" || selectedIncomeLimit !== "Any Income Limit" || selectedCoverageAmount !== "Any Coverage" || selectedGender !== "Any Gender") && (
-            <div className="flex flex-wrap gap-xs mt-sm pt-xs border-t border-outline-variant/40 animate-fade-in">
-              <span className="text-[11px] font-bold text-outline uppercase tracking-wider flex items-center pr-xs select-none">
-                Active Criteria:
-              </span>
-              
-              {selectedAgeGroup !== "Any Age" && (
-                <span className="inline-flex items-center gap-xs px-2.5 py-1 bg-secondary/10 text-secondary rounded-lg text-[12px] font-semibold">
-                  <span>Age: {selectedAgeGroup}</span>
-                  <button onClick={() => setSelectedAgeGroup("Any Age")} className="hover:bg-secondary/20 rounded-full p-0.5 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-[12px] font-bold">close</span>
-                  </button>
-                </span>
-              )}
-
-              {selectedProfession !== "Any Profession" && (
-                <span className="inline-flex items-center gap-xs px-2.5 py-1 bg-secondary/10 text-secondary rounded-lg text-[12px] font-semibold">
-                  <span>Occupation: {selectedProfession}</span>
-                  <button onClick={() => setSelectedProfession("Any Profession")} className="hover:bg-secondary/20 rounded-full p-0.5 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-[12px] font-bold">close</span>
-                  </button>
-                </span>
-              )}
-
-              {selectedBenefitType !== "Any Benefit" && (
-                <span className="inline-flex items-center gap-xs px-2.5 py-1 bg-secondary/10 text-secondary rounded-lg text-[12px] font-semibold">
-                  <span>Benefit: {selectedBenefitType}</span>
-                  <button onClick={() => setSelectedBenefitType("Any Benefit")} className="hover:bg-secondary/20 rounded-full p-0.5 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-[12px] font-bold">close</span>
-                  </button>
-                </span>
-              )}
-
-              {selectedIncomeLimit !== "Any Income Limit" && (
-                <span className="inline-flex items-center gap-xs px-2.5 py-1 bg-secondary/10 text-secondary rounded-lg text-[12px] font-semibold">
-                  <span>Income: {selectedIncomeLimit}</span>
-                  <button onClick={() => setSelectedIncomeLimit("Any Income Limit")} className="hover:bg-secondary/20 rounded-full p-0.5 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-[12px] font-bold">close</span>
-                  </button>
-                </span>
-              )}
-
-              {selectedCoverageAmount !== "Any Coverage" && (
-                <span className="inline-flex items-center gap-xs px-2.5 py-1 bg-secondary/10 text-secondary rounded-lg text-[12px] font-semibold">
-                  <span>Coverage: {selectedCoverageAmount}</span>
-                  <button onClick={() => setSelectedCoverageAmount("Any Coverage")} className="hover:bg-secondary/20 rounded-full p-0.5 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-[12px] font-bold">close</span>
-                  </button>
-                </span>
-              )}
-
-              {selectedGender !== "Any Gender" && (
-                <span className="inline-flex items-center gap-xs px-2.5 py-1 bg-secondary/10 text-secondary rounded-lg text-[12px] font-semibold">
-                  <span>Gender: {selectedGender}</span>
                   <button onClick={() => setSelectedGender("Any Gender")} className="hover:bg-secondary/20 rounded-full p-0.5 flex items-center justify-center">
                     <span className="material-symbols-outlined text-[12px] font-bold">close</span>
                   </button>

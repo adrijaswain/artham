@@ -155,6 +155,147 @@ export default function Dashboard() {
   const [isChatLoading, setIsChatLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  // Voice capability integration for Dashboard chat
+  const [isListening, setIsListening] = useState(false);
+  const [speakingMsgIndex, setSpeakingMsgIndex] = useState<number | null>(null);
+  const recognitionRef = useRef<any>(null);
+
+  useEffect(() => {
+    return () => {
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {
+          // ignore
+        }
+      }
+    };
+  }, []);
+
+  const toggleVoiceInput = () => {
+    if (isListening) {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      window.dispatchEvent(new CustomEvent("show-toast", {
+        detail: { msg: "Speech recognition is not supported in this browser. Try Chrome or Safari.", type: "error" }
+      }));
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      
+      const activeLang = localStorage.getItem("artham_language") || "en";
+      const localeMap: Record<string, string> = {
+        en: "en-IN",
+        hi: "hi-IN",
+        mr: "mr-IN",
+        kn: "kn-IN",
+        bn: "bn-IN"
+      };
+      recognition.lang = localeMap[activeLang] || "en-IN";
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+
+      recognition.onresult = (event: any) => {
+        const text = event.results[0][0].transcript;
+        if (text) {
+          setDraftChat(prev => prev ? prev + " " + text : text);
+        }
+      };
+
+      recognition.onerror = (err: any) => {
+        console.error("Speech recognition error:", err);
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (e) {
+      console.error(e);
+      setIsListening(false);
+    }
+  };
+
+  const stripMarkdown = (text: string): string => {
+    return text
+      .replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1")
+      .replace(/###/g, "")
+      .replace(/##/g, "")
+      .replace(/#/g, "")
+      .replace(/\*\*([^*]+)\*\*/g, "$1")
+      .replace(/\*([^*]+)\*/g, "$1")
+      .replace(/`([^`]+)`/g, "$1")
+      .replace(/-\s+/g, "")
+      .replace(/₹/g, "Rupees");
+  };
+
+  const toggleSpeakMessage = (index: number, text: string) => {
+    if (!window.speechSynthesis) {
+      window.dispatchEvent(new CustomEvent("show-toast", {
+        detail: { msg: "Text-to-speech is not supported in this browser.", type: "error" }
+      }));
+      return;
+    }
+
+    if (speakingMsgIndex === index) {
+      window.speechSynthesis.cancel();
+      setSpeakingMsgIndex(null);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const cleanText = stripMarkdown(text);
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+
+    const activeLang = localStorage.getItem("artham_language") || "en";
+    const localeMap: Record<string, string> = {
+      en: "en-IN",
+      hi: "hi-IN",
+      mr: "mr-IN",
+      kn: "kn-IN",
+      bn: "bn-IN"
+    };
+    utterance.lang = localeMap[activeLang] || "en-IN";
+
+    const voices = window.speechSynthesis.getVoices();
+    const targetLocale = localeMap[activeLang] || "en-IN";
+    const matchingVoice = voices.find(voice => voice.lang.toLowerCase().replace("_", "-") === targetLocale.toLowerCase());
+    if (matchingVoice) {
+      utterance.voice = matchingVoice;
+    }
+
+    utterance.onend = () => {
+      setSpeakingMsgIndex(null);
+    };
+
+    utterance.onerror = () => {
+      setSpeakingMsgIndex(null);
+    };
+
+    setSpeakingMsgIndex(index);
+    window.speechSynthesis.speak(utterance);
+  };
+
   // API Key management
   const apiKey = localStorage.getItem("gemini_api_key") || (import.meta.env.VITE_GEMINI_API_KEY as string) || "";
 
@@ -707,9 +848,12 @@ export default function Dashboard() {
                 <span className="font-label-md text-secondary-container bg-primary-container/80 backdrop-blur-md px-sm py-1 rounded-full inline-block mb-sm text-xs font-semibold border border-white/5 uppercase tracking-wider">
                   {t("db_title")}
                 </span>
-                <h1 className="font-headline-lg text-4xl md:text-5xl font-extrabold mb-sm tracking-tight drop-shadow-sm">
+                <h1 className="font-headline-lg text-4xl md:text-5xl font-extrabold mb-xs tracking-tight drop-shadow-sm">
                   {isIntakeFilled ? `${formatINR(minCost)} – ${formatINR(maxCost)}` : t("it_not_specified")}
                 </h1>
+                <p className="text-[11px] text-secondary-container font-semibold italic mb-sm">
+                  *Estimated range is based on your AI chat entries and intake details; actual hospital costs may vary.
+                </p>
                 <p className="text-on-primary/80 font-body-md text-sm font-medium max-w-xl leading-relaxed">
                   {isIntakeFilled ? (
                     `Based on: ${treatmentDesc || "Breast Cancer Screening"} for a ${age}-year old in ${patientState || "India"} (${hospitalType}), Income: ${incomeBracket}.`
@@ -777,7 +921,214 @@ export default function Dashboard() {
         {/* Responsive Grid layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-gutter items-start">
           
-          {/* Main Visuals Column */}
+          {/* Left Column: Chatbot, AI context summary & Tips */}
+          <div className="lg:col-span-5 space-y-md">
+            
+            {/* AI Cost Calculator Assistant chatbot widget */}
+            <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-sm border border-outline-variant/60 overflow-hidden flex flex-col h-[450px]">
+              <div className="bg-gradient-to-r from-primary/10 to-primary/5 px-md py-sm border-b border-outline-variant/40 flex justify-between items-center shrink-0">
+                <div className="flex items-center gap-xs">
+                  <span className="material-symbols-outlined text-primary text-[20px] active-entity-pulse">calculate</span>
+                  <span className="font-label-md text-xs font-bold text-primary uppercase tracking-wider">{t("db_assistant_title")}</span>
+                </div>
+                <button 
+                  onClick={clearChatHistory}
+                  className="p-1 hover:bg-surface-container rounded-full text-outline hover:text-error transition-all"
+                  title="Clear Cost Chat History"
+                >
+                  <span className="material-symbols-outlined text-[16px]">delete_sweep</span>
+                </button>
+              </div>
+
+              {/* Chat Thread */}
+              <div className="flex-1 overflow-y-auto p-sm space-y-sm custom-scrollbar bg-surface-bright/10">
+                {chatMessages.map((msg, idx) => (
+                  <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                    <div 
+                      className={`max-w-[85%] p-sm text-xs rounded-xl shadow-xs leading-relaxed ${
+                        msg.role === "user" 
+                          ? "bg-primary text-on-primary rounded-tr-none" 
+                          : "bg-surface-container text-on-surface rounded-tl-none border border-outline-variant/30"
+                      }`}
+                    >
+                      <div>{msg.text}</div>
+                      {msg.role === "bot" && (
+                        <div className="pt-1 mt-1 border-t border-outline-variant/20 flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => toggleSpeakMessage(idx, msg.text)}
+                            className={`flex items-center gap-[2px] text-[9px] font-semibold transition-all ${
+                              speakingMsgIndex === idx
+                                ? "text-primary bg-primary/10 px-1 rounded"
+                                : "text-outline hover:text-primary"
+                            }`}
+                            title={speakingMsgIndex === idx ? "Stop playback" : "Listen to response"}
+                          >
+                            <span className="material-symbols-outlined text-[12px]">
+                              {speakingMsgIndex === idx ? "volume_off" : "volume_up"}
+                            </span>
+                            <span>{speakingMsgIndex === idx ? "Stop" : "Listen"}</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                
+                {isChatLoading && (
+                  <div className="flex justify-start">
+                    <div className="p-sm text-xs rounded-xl rounded-tl-none bg-surface-container border border-outline-variant/30 flex items-center gap-xs">
+                      <span className="w-1.5 h-1.5 bg-outline rounded-full animate-bounce" />
+                      <span className="w-1.5 h-1.5 bg-outline rounded-full animate-bounce delay-100" />
+                      <span className="w-1.5 h-1.5 bg-outline rounded-full animate-bounce delay-200" />
+                    </div>
+                  </div>
+                )}
+                <div ref={chatEndRef} />
+              </div>
+
+              {/* Quick suggestions */}
+              {chatMessages.length <= 1 && (
+                <div className="px-sm py-1 border-t border-outline-variant/30 bg-surface-bright/20 flex flex-wrap gap-xs shrink-0">
+                  <button 
+                    onClick={() => sendChatMessage("Estimate Stage 2 private care in Karnataka")}
+                    className="text-[9px] px-2 py-1 rounded bg-white hover:bg-surface-container-low border border-outline-variant/30 font-medium transition-colors"
+                  >
+                    Stage II in Karnataka
+                  </button>
+                  <button 
+                    onClick={() => sendChatMessage("Costs for government hospital stage 3, no insurance")}
+                    className="text-[9px] px-2 py-1 rounded bg-white hover:bg-surface-container-low border border-outline-variant/30 font-medium transition-colors"
+                  >
+                    Govt Hospital Stage III
+                  </button>
+                </div>
+              )}
+
+              {/* Message Entry box */}
+              <div className="p-xs bg-surface border-t border-outline-variant/40 flex items-center gap-xs shrink-0">
+                <button
+                  type="button"
+                  onClick={toggleVoiceInput}
+                  disabled={isChatLoading}
+                  className={`p-1.5 rounded-xl active:scale-95 transition-all focus:outline-none ${
+                    isListening
+                      ? "bg-error text-on-error animate-pulse shadow-sm"
+                      : "bg-surface-container-high text-outline hover:text-primary"
+                  }`}
+                  title={isListening ? "Stop listening" : "Voice input"}
+                  aria-label="Toggle voice input"
+                >
+                  <span className="material-symbols-outlined text-[16px]">
+                    {isListening ? "mic_off" : "mic"}
+                  </span>
+                </button>
+                <input
+                  type="text"
+                  placeholder="Ask and save details (e.g. state, age, stage)..."
+                  value={draftChat}
+                  onChange={e => setDraftChat(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") sendChatMessage(); }}
+                  disabled={isChatLoading}
+                  className="flex-1 bg-surface-container-low rounded-xl border border-outline-variant/50 px-sm py-1.5 text-xs focus:outline-none focus:border-primary disabled:opacity-50"
+                />
+                <button
+                  onClick={() => sendChatMessage()}
+                  disabled={!draftChat.trim() || isChatLoading}
+                  className="p-1.5 bg-primary text-on-primary rounded-xl hover:opacity-90 active:scale-95 transition-all disabled:opacity-40"
+                >
+                  <span className="material-symbols-outlined text-[16px]">send</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Extracted Diagnosis & Next Steps card */}
+            {(extractedDiagnosis || extractedNextSteps) && (
+              <div className="bg-gradient-to-br from-secondary/5 via-primary/5 to-surface-bright border border-secondary-container/50 rounded-2xl p-md shadow-xs space-y-xs animate-fade-in">
+                <div className="flex items-center gap-xs">
+                  <span className="material-symbols-outlined text-secondary text-[20px] font-bold">clinical_notes</span>
+                  <h3 className="font-label-md text-xs font-bold text-secondary uppercase tracking-wider">AI Clinical Cost Context</h3>
+                </div>
+                {extractedDiagnosis && (
+                  <p className="text-xs text-on-surface font-medium leading-relaxed bg-white/60 p-2 rounded-xl border border-outline-variant/30">
+                    <strong>Diagnosis details:</strong> {extractedDiagnosis}
+                  </p>
+                )}
+                {extractedNextSteps && (
+                  <div className="text-xs text-on-surface space-y-1">
+                    <span className="font-bold text-on-surface-variant">Recommended Next Steps:</span>
+                    <div className="text-xs text-on-surface-variant bg-white/60 p-2 rounded-xl border border-outline-variant/30 whitespace-pre-wrap leading-relaxed">
+                      {extractedNextSteps}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Redesigned Savings Checklist card */}
+            <div className="bg-white/90 backdrop-blur-md p-md rounded-2xl shadow-sm border border-outline-variant/60">
+              <div className="flex items-center gap-xs mb-md">
+                <span className="material-symbols-outlined text-tertiary" style={{ fontSize: 24 }}>lightbulb</span>
+                <h3 className="font-headline-sm text-sm text-on-surface uppercase tracking-wider font-bold">{t("db_savings")}</h3>
+              </div>
+              <div className="space-y-sm">
+                <Tip 
+                  icon="medical_information" 
+                  title="Switch to Semi-Private Room" 
+                  amount="₹25,000" 
+                  body="on room rent and associated nursing charges during stay." 
+                  checked={savingsChecked.room}
+                  onToggle={() => setSavingsChecked(prev => ({ ...prev, room: !prev.room }))}
+                />
+                <Tip 
+                  icon="medication" 
+                  title="Generic Oncology Meds" 
+                  amount="₹50,000"
+                  body="Ask your oncologist for PM Bhartiya Janaushadhi generic cancer drug alternatives." 
+                  checked={savingsChecked.meds}
+                  onToggle={() => setSavingsChecked(prev => ({ ...prev, meds: !prev.meds }))}
+                />
+                <Tip 
+                  icon="calendar_month" 
+                  title="Pre-Surgical Lab Work" 
+                  amount="₹12,000" 
+                  body="at a partner diagnostic radiology center." 
+                  checked={savingsChecked.labs}
+                  onToggle={() => setSavingsChecked(prev => ({ ...prev, labs: !prev.labs }))}
+                />
+              </div>
+              <Link
+                to={isIntakeFilled ? "/action-plan" : "/intake"}
+                className="mt-md w-full bg-secondary text-on-secondary py-2 rounded-xl font-label-md flex items-center justify-center gap-xs hover:brightness-110 transition-all shadow-xs hover:shadow text-xs"
+              >
+                {isIntakeFilled ? t("db_action") : t("db_fill")}
+                <span className="material-symbols-outlined text-sm">arrow_forward</span>
+              </Link>
+            </div>
+
+            {/* Guest save status card */}
+            {!isLoggedIn && (
+              <div className="bg-gradient-to-br from-primary/5 via-secondary/5 to-surface-bright border border-outline-variant/50 rounded-2xl p-md shadow-xs flex flex-col gap-sm">
+                <div className="flex items-center gap-xs">
+                  <span className="material-symbols-outlined text-primary text-[20px]">verified_user</span>
+                  <h3 className="font-label-md text-xs font-bold text-primary uppercase tracking-wider">{t("db_save")}</h3>
+                </div>
+                <p className="text-xs text-on-surface-variant leading-relaxed">
+                  {t("db_save_desc")}
+                </p>
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent("open-auth"))}
+                  className="w-full py-2 bg-primary text-on-primary hover:brightness-110 text-xs font-bold rounded-xl transition-all shadow-xs active:scale-95 flex items-center justify-center gap-xs"
+                >
+                  <span className="material-symbols-outlined text-[16px]">lock_open</span>
+                  <span>{t("db_secure")}</span>
+                </button>
+              </div>
+            )}
+
+          </div>
+
+          {/* Right Column: Scenario Comparison & Financial Details */}
           <div className="lg:col-span-7 space-y-md">
             
             {/* Scenario Comparison Card */}
@@ -799,7 +1150,6 @@ export default function Dashboard() {
                   value={isIntakeFilled ? formatINR(totalEstimate) : "—"} 
                   icon="stars" 
                   tone="primary" 
-                  highlighted 
                   body={isIntakeFilled ? t("db_expected_desc") : t("db_fill")} 
                 />
                 <ScenarioCard 
@@ -907,177 +1257,6 @@ export default function Dashboard() {
             </Link>
           </div>
 
-          {/* Right Column: Chatbot, AI context summary & Tips */}
-          <aside className="lg:col-span-5 space-y-md">
-            
-            {/* AI Cost Calculator Assistant chatbot widget */}
-            <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-sm border border-outline-variant/60 overflow-hidden flex flex-col h-[400px]">
-              <div className="bg-primary-fixed-dim/20 px-md py-sm border-b border-outline-variant/40 flex justify-between items-center shrink-0">
-                <div className="flex items-center gap-xs">
-                  <span className="material-symbols-outlined text-primary text-[20px] active-entity-pulse">calculate</span>
-                  <span className="font-label-md text-xs font-bold text-primary uppercase tracking-wider">{t("db_assistant_title")}</span>
-                </div>
-                <button 
-                  onClick={clearChatHistory}
-                  className="p-1 hover:bg-surface-container rounded-full text-outline hover:text-error transition-all"
-                  title="Clear Cost Chat History"
-                >
-                  <span className="material-symbols-outlined text-[16px]">delete_sweep</span>
-                </button>
-              </div>
-
-              {/* Chat Thread */}
-              <div className="flex-1 overflow-y-auto p-sm space-y-sm custom-scrollbar bg-surface-bright/10">
-                {chatMessages.map((msg, idx) => (
-                  <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                    <div 
-                      className={`max-w-[85%] p-sm text-xs rounded-xl shadow-xs leading-relaxed ${
-                        msg.role === "user" 
-                          ? "bg-primary text-on-primary rounded-tr-none" 
-                          : "bg-surface-container text-on-surface rounded-tl-none border border-outline-variant/30"
-                      }`}
-                    >
-                      {msg.text}
-                    </div>
-                  </div>
-                ))}
-                
-                {isChatLoading && (
-                  <div className="flex justify-start">
-                    <div className="p-sm text-xs rounded-xl rounded-tl-none bg-surface-container border border-outline-variant/30 flex items-center gap-xs">
-                      <span className="w-1.5 h-1.5 bg-outline rounded-full animate-bounce" />
-                      <span className="w-1.5 h-1.5 bg-outline rounded-full animate-bounce delay-100" />
-                      <span className="w-1.5 h-1.5 bg-outline rounded-full animate-bounce delay-200" />
-                    </div>
-                  </div>
-                )}
-                <div ref={chatEndRef} />
-              </div>
-
-              {/* Quick suggestions */}
-              {chatMessages.length <= 1 && (
-                <div className="px-sm py-1 border-t border-outline-variant/30 bg-surface-bright/20 flex flex-wrap gap-xs shrink-0">
-                  <button 
-                    onClick={() => sendChatMessage("Estimate Stage 2 private care in Karnataka")}
-                    className="text-[9px] px-2 py-1 rounded bg-white hover:bg-surface-container-low border border-outline-variant/30 font-medium transition-colors"
-                  >
-                    Stage II in Karnataka
-                  </button>
-                  <button 
-                    onClick={() => sendChatMessage("Costs for government hospital stage 3, no insurance")}
-                    className="text-[9px] px-2 py-1 rounded bg-white hover:bg-surface-container-low border border-outline-variant/30 font-medium transition-colors"
-                  >
-                    Govt Hospital Stage III
-                  </button>
-                </div>
-              )}
-
-              {/* Message Entry box */}
-              <div className="p-xs bg-surface border-t border-outline-variant/40 flex items-center gap-xs shrink-0">
-                <input
-                  type="text"
-                  placeholder="Ask and save details (e.g. state, age, stage)..."
-                  value={draftChat}
-                  onChange={e => setDraftChat(e.target.value)}
-                  onKeyDown={e => { if (e.key === "Enter") sendChatMessage(); }}
-                  disabled={isChatLoading}
-                  className="flex-1 bg-surface-container-low rounded-xl border border-outline-variant/50 px-sm py-1.5 text-xs focus:outline-none focus:border-primary disabled:opacity-50"
-                />
-                <button
-                  onClick={() => sendChatMessage()}
-                  disabled={!draftChat.trim() || isChatLoading}
-                  className="p-1.5 bg-primary text-on-primary rounded-xl hover:opacity-90 active:scale-95 transition-all disabled:opacity-40"
-                >
-                  <span className="material-symbols-outlined text-[16px]">send</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Extracted Diagnosis & Next Steps card */}
-            {(extractedDiagnosis || extractedNextSteps) && (
-              <div className="bg-gradient-to-br from-secondary/5 via-primary/5 to-surface-bright border border-secondary-container/50 rounded-2xl p-md shadow-xs space-y-xs animate-fade-in">
-                <div className="flex items-center gap-xs">
-                  <span className="material-symbols-outlined text-secondary text-[20px] font-bold">clinical_notes</span>
-                  <h3 className="font-label-md text-xs font-bold text-secondary uppercase tracking-wider">AI Clinical Cost Context</h3>
-                </div>
-                {extractedDiagnosis && (
-                  <p className="text-xs text-on-surface font-medium leading-relaxed bg-white/60 p-2 rounded-xl border border-outline-variant/30">
-                    <strong>Diagnosis details:</strong> {extractedDiagnosis}
-                  </p>
-                )}
-                {extractedNextSteps && (
-                  <div className="text-xs text-on-surface space-y-1">
-                    <span className="font-bold text-on-surface-variant">Recommended Next Steps:</span>
-                    <div className="text-xs text-on-surface-variant bg-white/60 p-2 rounded-xl border border-outline-variant/30 whitespace-pre-wrap leading-relaxed">
-                      {extractedNextSteps}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Redesigned Savings Checklist card */}
-            <div className="bg-white/90 backdrop-blur-md p-md rounded-2xl shadow-sm border border-outline-variant/60">
-              <div className="flex items-center gap-xs mb-md">
-                <span className="material-symbols-outlined text-tertiary" style={{ fontSize: 24 }}>lightbulb</span>
-                <h3 className="font-headline-sm text-sm text-on-surface uppercase tracking-wider font-bold">{t("db_savings")}</h3>
-              </div>
-              <div className="space-y-sm">
-                <Tip 
-                  icon="medical_information" 
-                  title="Switch to Semi-Private Room" 
-                  amount="₹25,000" 
-                  body="on room rent and associated nursing charges during stay." 
-                  checked={savingsChecked.room}
-                  onToggle={() => setSavingsChecked(prev => ({ ...prev, room: !prev.room }))}
-                />
-                <Tip 
-                  icon="medication" 
-                  title="Generic Oncology Meds" 
-                  amount="₹50,000"
-                  body="Ask your oncologist for PM Bhartiya Janaushadhi generic cancer drug alternatives." 
-                  checked={savingsChecked.meds}
-                  onToggle={() => setSavingsChecked(prev => ({ ...prev, meds: !prev.meds }))}
-                />
-                <Tip 
-                  icon="calendar_month" 
-                  title="Pre-Surgical Lab Work" 
-                  amount="₹12,000" 
-                  body="at a partner diagnostic radiology center." 
-                  checked={savingsChecked.labs}
-                  onToggle={() => setSavingsChecked(prev => ({ ...prev, labs: !prev.labs }))}
-                />
-              </div>
-              <Link
-                to={isIntakeFilled ? "/action-plan" : "/intake"}
-                className="mt-md w-full bg-secondary text-on-secondary py-2 rounded-xl font-label-md flex items-center justify-center gap-xs hover:brightness-110 transition-all shadow-xs hover:shadow text-xs"
-              >
-                {isIntakeFilled ? t("db_action") : t("db_fill")}
-                <span className="material-symbols-outlined text-sm">arrow_forward</span>
-              </Link>
-            </div>
-
-            {/* Guest save status card */}
-            {!isLoggedIn && (
-              <div className="bg-gradient-to-br from-primary/5 via-secondary/5 to-surface-bright border border-outline-variant/50 rounded-2xl p-md shadow-xs flex flex-col gap-sm">
-                <div className="flex items-center gap-xs">
-                  <span className="material-symbols-outlined text-primary text-[20px]">verified_user</span>
-                  <h3 className="font-label-md text-xs font-bold text-primary uppercase tracking-wider">{t("db_save")}</h3>
-                </div>
-                <p className="text-xs text-on-surface-variant leading-relaxed">
-                  {t("db_save_desc")}
-                </p>
-                <button
-                  onClick={() => window.dispatchEvent(new CustomEvent("open-auth"))}
-                  className="w-full py-2 bg-primary text-on-primary hover:brightness-110 text-xs font-bold rounded-xl transition-all shadow-xs active:scale-95 flex items-center justify-center gap-xs"
-                >
-                  <span className="material-symbols-outlined text-[16px]">lock_open</span>
-                  <span>{t("db_secure")}</span>
-                </button>
-              </div>
-            )}
-
-          </aside>
         </div>
       </div>
     </AppShell>
@@ -1090,18 +1269,19 @@ function ScenarioCard({
   icon,
   tone,
   body,
-  highlighted,
 }: {
   label: string;
   value: string;
   icon: string;
   tone: "secondary" | "primary" | "tertiary";
   body: string;
-  highlighted?: boolean;
 }) {
-  const cls = highlighted
-    ? "bg-primary-container/20 border-2 border-primary shadow-md hover:-translate-y-0.5 transition-all duration-300"
-    : "bg-white/80 border border-outline-variant/60 hover:-translate-y-0.5 hover:shadow-md hover:border-outline-variant transition-all duration-300";
+  const gradientCls = {
+    secondary: "from-white/95 to-secondary/5 border-l-4 border-l-secondary",
+    primary: "from-white/95 to-primary/5 border-l-4 border-l-primary ring-2 ring-primary/10 shadow-md",
+    tertiary: "from-white/95 to-tertiary/5 border-l-4 border-l-tertiary",
+  }[tone];
+  
   const toneCls = {
     secondary: "text-secondary",
     primary: "text-primary",
@@ -1109,7 +1289,7 @@ function ScenarioCard({
   }[tone];
   
   return (
-    <div className={`p-sm rounded-2xl flex flex-col h-full ${cls}`}>
+    <div className={`p-sm rounded-2xl flex flex-col h-full bg-gradient-to-br border border-outline-variant/40 hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 ${gradientCls}`}>
       <div className="flex justify-between items-start mb-xs">
         <span className={`font-label-sm uppercase tracking-wider font-bold text-[10px] ${toneCls}`}>{label}</span>
         <span className={`material-symbols-outlined fill-icon ${toneCls}`}>{icon}</span>
@@ -1119,6 +1299,7 @@ function ScenarioCard({
     </div>
   );
 }
+
 
 function Tip({
   icon,

@@ -2,6 +2,7 @@ import { useState } from "react";
 import AppShell from "../components/AppShell";
 import { generalInsurers } from "./Schemes";
 import { useLanguage } from "../components/LanguageContext";
+import type { Language } from "../utils/translations";
 import {
   localizedTests,
   localizedAgeGuidelines,
@@ -9,207 +10,8 @@ import {
   localizedMatchedSchemes
 } from "../utils/preventiveTranslations";
 
-type ScreeningTest = {
-  id: string;
-  name: string;
-  code: string;
-  purpose: string;
-  targetArea: string;
-  bseInstruction?: string;
-  clinicalSignificance: string;
-};
 
-const screeningTests: ScreeningTest[] = [
-  {
-    id: "mammogram",
-    name: "Digital Mammography",
-    code: "MAMM",
-    purpose: "Primary X-ray imaging of breast tissues to detect calcifications, lesions, or hidden lumps.",
-    targetArea: "High-accuracy soft-tissue diagnostic scans",
-    clinicalSignificance: "Golden standard for breast screening. Detects early stage micro-calcifications up to 2 years before a palpable lump forms."
-  },
-  {
-    id: "cbe",
-    name: "Clinical Breast Exam (CBE)",
-    code: "CBE",
-    purpose: "Physical breast examination conducted by a trained healthcare professional (gynecologist/oncologist).",
-    targetArea: "In-office manual palpation & visual audit",
-    clinicalSignificance: "Recommended to identify physical alterations or structural anomalies missed on scans."
-  },
-  {
-    id: "bse",
-    name: "Breast Self-Exam (BSE)",
-    code: "BSE",
-    purpose: "Monthly self-palpation technique performed by individuals to maintain proactive body awareness.",
-    targetArea: "At-home routine physical evaluation",
-    bseInstruction: "Perform 3-5 days after your period ends. Look in the mirror for symmetry changes, raise arms, and palpate in circular patterns from nipple to outer borders.",
-    clinicalSignificance: "Enables personal baseline awareness to instantly identify new textures, thickening, or skin dimpling."
-  },
-  {
-    id: "ultrasound",
-    name: "Targeted Breast Ultrasound",
-    code: "USG",
-    purpose: "High-frequency sound wave mapping used to differentiate between fluid-filled cysts and solid masses.",
-    targetArea: "Supplementary ultrasonic soft-tissue imaging",
-    clinicalSignificance: "Essential secondary diagnostic for dense breast tissue where standard mammograms have reduced sensitivity."
-  },
-  {
-    id: "mri",
-    name: "Contrast-Enhanced Breast MRI",
-    code: "MRI",
-    purpose: "High-resolution magnetic field imaging with intravenous contrast to screen dense or high-risk tissues.",
-    targetArea: "Tertiary vascularized soft-tissue scans",
-    clinicalSignificance: "Highly sensitive scan. Indicated for women with extreme high risk (>20% lifetime risk) or verified genetic mutations."
-  },
-  {
-    id: "brca",
-    name: "BRCA1 & BRCA2 Genetic Screening",
-    code: "BRCA",
-    purpose: "Gene sequencing analysis (blood or saliva) to detect inherited high-risk oncological mutations.",
-    targetArea: "Oncogenetic DNA sequencing panels",
-    clinicalSignificance: "One-time test. Identifies elevated hereditary risk (up to 70-80% lifetime risk of developing breast cancer), guiding surgical/preventive roadmaps."
-  }
-];
 
-type AgeGuideline = {
-  ageGroup: string;
-  recommendations: {
-    testId: string;
-    frequency: string;
-    description: string;
-    badgeTone: "primary" | "secondary" | "tertiary" | "outline";
-  }[];
-  generalAdvice: string;
-};
-
-const ageGuidelines: AgeGuideline[] = [
-  {
-    ageGroup: "Ages 20 - 29",
-    generalAdvice: "Focus primarily on baseline awareness, self-examination, and maintaining lifestyle health. Clinical screens are indicated only for symptomatic triggers or inherited family histories.",
-    recommendations: [
-      {
-        testId: "bse",
-        frequency: "Monthly",
-        description: "Routine at-home self-examination to identify personal baseline and anomalies.",
-        badgeTone: "primary"
-      },
-      {
-        testId: "cbe",
-        frequency: "Every 1 - 3 Years",
-        description: "Recommended in-office physical check-up by a gynecologist during general wellness audits.",
-        badgeTone: "outline"
-      },
-      {
-        testId: "brca",
-        frequency: "If High Risk (One-time)",
-        description: "Indicated only if multiple direct relatives (mother/sister) have early-onset cancer history.",
-        badgeTone: "tertiary"
-      }
-    ]
-  },
-  {
-    ageGroup: "Ages 30 - 39",
-    generalAdvice: "Increased physiological changes. Clinical palpations should be done more consistently. Genetic counseling is highly recommended for strong familial lineages.",
-    recommendations: [
-      {
-        testId: "bse",
-        frequency: "Monthly",
-        description: "Consistent self-palpation done monthly at the same cycle timeline.",
-        badgeTone: "primary"
-      },
-      {
-        testId: "cbe",
-        frequency: "Every 1 - 3 Years",
-        description: "Physical clinical exams should be integrated during regular health checks.",
-        badgeTone: "outline"
-      },
-      {
-        testId: "ultrasound",
-        frequency: "Symptomatic / As Directed",
-        description: "Recommended if solid nodules are detected or if dense breast profiles require supplemental audits.",
-        badgeTone: "secondary"
-      },
-      {
-        testId: "mri",
-        frequency: "Annually (High-Risk Only)",
-        description: "Indicated annually for verified BRCA mutation carriers or women with extreme hereditary risk.",
-        badgeTone: "tertiary"
-      }
-    ]
-  },
-  {
-    ageGroup: "Ages 40 - 49",
-    generalAdvice: "The critical window where clinical screening should begin. Engage in shared decision-making with your doctor regarding annual digital mammography benefits.",
-    recommendations: [
-      {
-        testId: "mammogram",
-        frequency: "Every 1 - 2 Years",
-        description: "Begin screening mammograms based on individual risk profile and medical consultation.",
-        badgeTone: "secondary"
-      },
-      {
-        testId: "cbe",
-        frequency: "Annually",
-        description: "Required annual clinical screening exam by an oncologist or senior physician.",
-        badgeTone: "primary"
-      },
-      {
-        testId: "bse",
-        frequency: "Monthly",
-        description: "Continue monthly self-examination checks regularly.",
-        badgeTone: "outline"
-      }
-    ]
-  },
-  {
-    ageGroup: "Ages 50 - 74",
-    generalAdvice: "Peak screening years. Mammograms should be conducted regularly to achieve maximum preventative benefit and prompt tumor identification.",
-    recommendations: [
-      {
-        testId: "mammogram",
-        frequency: "Annually / Every 2 Years",
-        description: "Core preventive mammography is strongly indicated to reduce long-term oncological mortality.",
-        badgeTone: "primary"
-      },
-      {
-        testId: "cbe",
-        frequency: "Annually",
-        description: "Compulsory annual in-office physical check by your clinical specialist.",
-        badgeTone: "secondary"
-      },
-      {
-        testId: "bse",
-        frequency: "Monthly",
-        description: "Maintain monthly body awareness and self-palpations.",
-        badgeTone: "outline"
-      }
-    ]
-  },
-  {
-    ageGroup: "Ages 75+ / High Risk",
-    generalAdvice: "Focused care management. Continue mammograms as long as overall health is robust and life expectancy remains high. Focus on prompt evaluation of physical changes.",
-    recommendations: [
-      {
-        testId: "mammogram",
-        frequency: "As Advised by Specialist",
-        description: "Custom screening intervals determined by medical specialists based on global wellness indexes.",
-        badgeTone: "outline"
-      },
-      {
-        testId: "mri",
-        frequency: "Annually / Symtomatic",
-        description: "Indicated for active surveillance and high-resolution tissue checking.",
-        badgeTone: "secondary"
-      },
-      {
-        testId: "bse",
-        frequency: "Monthly",
-        description: "Maintain close personal checks and self-examinations.",
-        badgeTone: "primary"
-      }
-    ]
-  }
-];
 
 type AreaTier = "tier1" | "tier2" | "tier3";
 
@@ -372,29 +174,7 @@ const areaCostMultiplier: Record<AreaTier, CostDetails> = {
   }
 };
 
-const matchedSchemes = [
-  {
-    title: "Ayushman Bharat PM-JAY (Breast Cancer Screening Pack)",
-    coverage: "Up to ₹5,00,000 per family per year",
-    details: "Covers deep diagnostic procedures, specialized surgical mastectomy packages, tissue biopsy, chemotherapy protocols, and medical follow-up check-ups in empanelled hospitals.",
-    eligibility: "SECC database listings, low-income families, and specific rural category wellness card holders.",
-    icon: "account_balance"
-  },
-  {
-    title: "Rashtriya Arogya Nidhi (RAN) Cancer Treatment Fund",
-    coverage: "One-time financial grant up to ₹15,00,000",
-    details: "Provides urgent financial assistance for critical cancer screenings, biopsies, scans, and tertiary treatments in super-specialty central government hospitals.",
-    eligibility: "Patients living below the poverty line (BPL) receiving treatment in premier public healthcare institutes.",
-    icon: "health_and_safety"
-  },
-  {
-    title: "National Programme for Prevention of Cancer, Diabetes, Cardiovascular Diseases and Stroke (NPCDCS)",
-    coverage: "Free diagnostics & screenings in primary centers",
-    details: "Powers decentralized clinical screening camps. Offers free CBE and mammography guidance checks across rural community health centers and district-level wellness clinics.",
-    eligibility: "Universal Indian citizens, prioritizing women aged 30-65 years.",
-    icon: "volunteer_activism"
-  }
-];
+
 
 export default function PreventivePlans() {
   const { t, language } = useLanguage();

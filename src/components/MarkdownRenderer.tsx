@@ -2,10 +2,15 @@ import React from "react";
 
 interface MarkdownRendererProps {
   text: string;
+  role?: "user" | "bot";
 }
 
-export default function MarkdownRenderer({ text }: MarkdownRendererProps) {
+export default function MarkdownRenderer({ text, role }: MarkdownRendererProps) {
   if (!text) return null;
+
+  const isUser = role === "user";
+  const textColorClass = isUser ? "text-on-primary" : "text-on-surface";
+  const primaryColorClass = isUser ? "text-on-primary font-bold" : "text-primary font-bold";
 
   const lines = text.split("\n");
   const elements: React.ReactNode[] = [];
@@ -28,7 +33,7 @@ export default function MarkdownRenderer({ text }: MarkdownRendererProps) {
           node = <em key={`it-${bIdx}-${iIdx}`} className="italic">{node}</em>;
         }
         if (isBold) {
-          node = <strong key={`bd-${bIdx}-${iIdx}`} className="font-bold text-primary">{node}</strong>;
+          node = <strong key={`bd-${bIdx}-${iIdx}`} className={`font-bold ${primaryColorClass}`}>{node}</strong>;
         }
         parts.push(node);
       });
@@ -51,7 +56,7 @@ export default function MarkdownRenderer({ text }: MarkdownRendererProps) {
         inList = false;
       }
       elements.push(
-        <h4 key={`h3-${index}`} className="font-headline-sm text-sm font-bold text-primary mt-4 mb-2">
+        <h4 key={`h3-${index}`} className={`font-headline-sm text-sm font-bold ${primaryColorClass} mt-4 mb-2`}>
           {parseInlineStyles(trimmed.slice(4))}
         </h4>
       );
@@ -66,7 +71,7 @@ export default function MarkdownRenderer({ text }: MarkdownRendererProps) {
         inList = false;
       }
       elements.push(
-        <h3 key={`h2-${index}`} className="font-headline-md text-base font-bold text-primary mt-5 mb-2">
+        <h3 key={`h2-${index}`} className={`font-headline-md text-base font-bold ${primaryColorClass} mt-5 mb-2`}>
           {parseInlineStyles(trimmed.slice(3))}
         </h3>
       );
@@ -81,14 +86,14 @@ export default function MarkdownRenderer({ text }: MarkdownRendererProps) {
         inList = false;
       }
       elements.push(
-        <h2 key={`h1-${index}`} className="font-headline-lg text-lg font-bold text-primary mt-6 mb-3">
+        <h2 key={`h1-${index}`} className={`font-headline-lg text-lg font-bold ${primaryColorClass} mt-6 mb-3`}>
           {parseInlineStyles(trimmed.slice(2))}
         </h2>
       );
     } else if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
       inList = true;
       currentList.push(
-        <li key={`li-${index}`} className="text-sm text-on-surface leading-relaxed">
+        <li key={`li-${index}`} className={`text-sm ${textColorClass} leading-relaxed`}>
           {parseInlineStyles(trimmed.slice(2))}
         </li>
       );
@@ -114,7 +119,7 @@ export default function MarkdownRenderer({ text }: MarkdownRendererProps) {
         inList = false;
       }
       elements.push(
-        <p key={`p-${index}`} className="text-sm text-on-surface leading-relaxed mb-2 whitespace-pre-line">
+        <p key={`p-${index}`} className={`text-sm ${textColorClass} leading-relaxed mb-2 whitespace-pre-line`}>
           {parseInlineStyles(line)}
         </p>
       );
