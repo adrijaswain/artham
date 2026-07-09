@@ -619,7 +619,7 @@ export default function Intake() {
                       className="flex flex-col items-center group focus:outline-none"
                     >
                       <div
-                        className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs shadow-sm transition-all duration-300 ${
+                        className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[11px] transition-all duration-300 ${
                           done
                             ? "bg-secondary text-on-secondary"
                             : active
@@ -627,7 +627,7 @@ export default function Intake() {
                             : "bg-surface-container-highest text-outline"
                         }`}
                       >
-                        {done ? <span className="material-symbols-outlined text-sm">check</span> : n}
+                        {done ? <span className="material-symbols-outlined text-[13px]">check</span> : n}
                       </div>
                       <span
                         className={`font-label-sm text-[10px] font-bold mt-2 ${
@@ -839,66 +839,6 @@ export default function Intake() {
           {/* Right Panel: Live summary profile & dynamic reliability meter */}
           <div className="lg:col-span-4 space-y-md flex flex-col">
             
-            {/* Live Reliability Meter */}
-            <div className="bg-surface-container-low border border-outline-variant/60 rounded-3xl p-md shadow-sm text-center space-y-sm">
-              <h4 className="font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider">
-                {t("it_accuracy")}
-              </h4>
-              
-              {(() => {
-                let stepAccuracy = 0;
-                if (patientState) stepAccuracy += 10;
-                if (age) stepAccuracy += 10;
-                if (stage) stepAccuracy += 15;
-                if (hormoneStatus) stepAccuracy += 15;
-                
-                if (step >= 3) {
-                  if (surgery) stepAccuracy += 10;
-                  if (chemo) stepAccuracy += 10;
-                  if (radiation) stepAccuracy += 10;
-                }
-                
-                if (step >= 4) {
-                  if (hospitalType) stepAccuracy += 10;
-                  if (incomeBracket) stepAccuracy += 10;
-                }
-                
-                stepAccuracy = Math.min(100, stepAccuracy);
-
-                return (
-                  <div className="relative w-40 h-20 mx-auto">
-                    <svg viewBox="0 0 100 50" className="w-full h-full">
-                      <path
-                        d="M 10 45 A 40 40 0 0 1 90 45"
-                        fill="none"
-                        stroke="#e6e0f1"
-                        strokeWidth="10"
-                        strokeLinecap="round"
-                      />
-                      <path
-                        d="M 10 45 A 40 40 0 0 1 90 45"
-                        fill="none"
-                        stroke="#4c3a69"
-                        strokeWidth="10"
-                        strokeLinecap="round"
-                        strokeDasharray="125.66"
-                        strokeDashoffset={125.66 - (125.66 * stepAccuracy) / 100}
-                        className="transition-all duration-700 ease-out"
-                      />
-                    </svg>
-                    <div className="absolute bottom-0 left-0 right-0 text-center flex flex-col items-center justify-end">
-                      <span className="font-headline-md text-md text-primary font-bold leading-none">{stepAccuracy}%</span>
-                      <p className="text-[9px] text-outline font-semibold uppercase tracking-wider mt-1">{t("it_reliability")}</p>
-                    </div>
-                  </div>
-                );
-              })()}
-              
-              <p className="font-body-sm text-[10px] text-on-surface-variant leading-relaxed px-sm pt-xs">
-                {t("it_accuracy_desc")}
-              </p>
-            </div>
-
             {/* Live Profile Summary */}
             <div className="bg-surface-container-low border border-outline-variant/60 rounded-3xl p-md shadow-sm flex-1 space-y-sm flex flex-col justify-between min-h-[300px]">
               <div className="space-y-sm">
@@ -909,31 +849,31 @@ export default function Intake() {
                 
                 <div className="grid grid-cols-2 gap-2 mt-xs">
                   {[
-                    { id: "state", icon: "map", label: t("it_state"), value: patientState ? getLocalValue("state", patientState) : null, color: "text-[#4c3a69] bg-[#e7def3]" },
-                    { id: "age", icon: "calendar_month", label: t("it_age"), value: age || null, color: "text-[#7458a6] bg-[#ece3f6]" },
-                    { id: "stage", icon: "biotech", label: t("it_stage"), value: stage ? getLocalValue("stage", stage) : null, color: "text-secondary bg-secondary-container/40" },
-                    { id: "receptor", icon: "science", label: t("it_receptor"), value: hormoneStatus ? getLocalValue("receptor", hormoneStatus) : null, color: "text-[#9478c4] bg-[#efe8f8]" },
-                    { id: "surgery", icon: "medical_services", label: t("it_surgery"), value: surgery ? getLocalValue("yesno", surgery) : null, color: "text-[#4c3a69] bg-[#e7def3]" },
-                    { id: "chemo", icon: "medication", label: t("it_chemo"), value: chemo ? getLocalValue("yesno", chemo) : null, color: "text-[#7458a6] bg-[#ece3f6]" },
-                    { id: "radiation", icon: "bolt", label: t("it_radiation"), value: radiation ? getLocalValue("yesno", radiation) : null, color: "text-[#9478c4] bg-[#efe8f8]" },
-                    { id: "hospital", icon: "home_health", label: t("it_hospital"), value: hospitalType ? getLocalValue("hospital", hospitalType) : null, color: "text-[#4c3a69] bg-[#e7def3]" },
-                    { id: "insurance", icon: "shield", label: t("it_insurance_status"), value: hasInsurance !== undefined ? (hasInsurance ? (insuranceProvider || t("it_insured")) : t("it_not_insured")) : null, color: "text-[#7458a6] bg-[#ece3f6]" },
-                    { id: "income", icon: "payments", label: t("it_income"), value: incomeBracket ? getLocalValue("income", incomeBracket) : null, color: "text-[#9478c4] bg-[#efe8f8]" }
+                    { id: "state", icon: "map", label: t("it_state"), value: patientState ? getLocalValue("state", patientState) : null },
+                    { id: "age", icon: "calendar_month", label: t("it_age"), value: age || null },
+                    { id: "stage", icon: "biotech", label: t("it_stage"), value: stage ? getLocalValue("stage", stage) : null },
+                    { id: "receptor", icon: "science", label: t("it_receptor"), value: hormoneStatus ? getLocalValue("receptor", hormoneStatus) : null },
+                    { id: "surgery", icon: "medical_services", label: t("it_surgery"), value: surgery ? getLocalValue("yesno", surgery) : null },
+                    { id: "chemo", icon: "medication", label: t("it_chemo"), value: chemo ? getLocalValue("yesno", chemo) : null },
+                    { id: "radiation", icon: "bolt", label: t("it_radiation"), value: radiation ? getLocalValue("yesno", radiation) : null },
+                    { id: "hospital", icon: "home_health", label: t("it_hospital"), value: hospitalType ? getLocalValue("hospital", hospitalType) : null },
+                    { id: "insurance", icon: "shield", label: t("it_insurance_status"), value: hasInsurance !== undefined ? (hasInsurance ? (insuranceProvider || t("it_insured")) : t("it_not_insured")) : null },
+                    { id: "income", icon: "payments", label: t("it_income"), value: incomeBracket ? getLocalValue("income", incomeBracket) : null }
                   ].map((item) => {
                     const isPending = !item.value;
                     const pendingText = language === "en" ? "Pending" : language === "hi" ? "लंबित" : language === "mr" ? "प्रलंबित" : language === "kn" ? "ಬಾಕಿ ಇದೆ" : "বাকি আছে";
-                    
+
                     return (
-                      <div 
-                        key={item.id} 
-                        className={`p-2 rounded-xl border flex flex-col justify-between transition-all duration-300 ${
-                          isPending 
-                            ? "bg-surface-container-lowest/20 border-dashed border-outline-variant/30 opacity-60" 
-                            : "bg-surface-container-lowest border-outline-variant/60 hover:shadow-sm hover:border-primary/30 transform hover:-translate-y-[0.5px]"
+                      <div
+                        key={item.id}
+                        className={`p-2 rounded-xl border flex flex-col justify-between ${
+                          isPending
+                            ? "border-outline-variant/30 opacity-50"
+                            : "bg-surface-container-lowest border-outline-variant/60"
                         }`}
                       >
                         <div className="flex items-center gap-[4px] mb-1">
-                          <span className={`material-symbols-outlined text-[12px] p-0.5 rounded-md shrink-0 ${isPending ? "text-outline bg-surface-container" : item.color}`}>
+                          <span className={`material-symbols-outlined text-[12px] shrink-0 ${isPending ? "text-outline" : "text-secondary"}`}>
                             {item.icon}
                           </span>
                           <span className="text-[8px] uppercase tracking-wider text-on-surface-variant font-bold truncate max-w-[65px]">

@@ -5,11 +5,12 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider,
+  getAdditionalUserInfo,
   updateProfile,
   sendPasswordResetEmail
 } from "firebase/auth";
 import { auth } from "../firebase";
-import { markNewSignup } from "../context/AuthContext";
+import { markNewSignup, markNeedsTour, markShowChatPopup } from "../context/AuthContext";
 import { useAuth } from "../context/AuthContext";
 
 type Mode = "login" | "signup" | "forgot";
@@ -69,6 +70,7 @@ export default function AuthPage({ mode }: { mode: Mode }) {
     try {
       if (mode === "signup") {
         markNewSignup();
+        markNeedsTour();
         const cred = await createUserWithEmailAndPassword(auth, email, password);
         try {
           await updateProfile(cred.user, { displayName: name });
@@ -77,10 +79,12 @@ export default function AuthPage({ mode }: { mode: Mode }) {
         }
         localStorage.setItem("artham_user_name", name);
         window.dispatchEvent(new CustomEvent("show-toast", { detail: { msg: "Account created successfully!", type: "success" } }));
+        markShowChatPopup();
         navigate("/dashboard");
       } else if (mode === "login") {
         await signInWithEmailAndPassword(auth, email, password);
         window.dispatchEvent(new CustomEvent("show-toast", { detail: { msg: "Logged in successfully!", type: "success" } }));
+        markShowChatPopup();
         navigate("/dashboard");
       } else {
         await sendPasswordResetEmail(auth, email);
@@ -99,8 +103,12 @@ export default function AuthPage({ mode }: { mode: Mode }) {
     setSuccess("");
     setBusy(true);
     try {
-      await signInWithPopup(auth, new GoogleAuthProvider());
+      const result = await signInWithPopup(auth, new GoogleAuthProvider());
+      if (getAdditionalUserInfo(result)?.isNewUser) {
+        markNeedsTour();
+      }
       window.dispatchEvent(new CustomEvent("show-toast", { detail: { msg: "Logged in successfully!", type: "success" } }));
+      markShowChatPopup();
       navigate("/dashboard");
     } catch (err) {
       console.error("Google auth error:", err);

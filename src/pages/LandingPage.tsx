@@ -100,8 +100,8 @@ export default function LandingPage() {
         {/* HERO */}
         <section className="relative overflow-hidden">
           <div className="absolute inset-0 -z-10">
-            <div className="absolute top-[-200px] right-[-150px] w-[600px] h-[600px] bg-primary-fixed-dim rounded-full blur-[120px] opacity-30" />
-            <div className="absolute top-[100px] left-[-200px] w-[500px] h-[500px] bg-secondary-fixed rounded-full blur-[120px] opacity-30" />
+            <div className="absolute top-[-200px] right-[-150px] w-[600px] h-[600px] bg-primary-fixed-dim rounded-full blur-[120px] opacity-20" />
+            <div className="absolute top-[100px] left-[-200px] w-[500px] h-[500px] bg-secondary-fixed rounded-full blur-[120px] opacity-15" />
           </div>
           <div className="max-w-container-max mx-auto px-margin-mobile md:px-md pt-lg md:pt-xl pb-lg">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-lg items-center">
@@ -148,7 +148,7 @@ export default function LandingPage() {
               {/* Hero Visual: clean product preview (mirrors the dashboard) */}
               <div className="lg:col-span-5">
                 <div className="relative">
-                  <div className="bg-surface rounded-2xl shadow-2xl border border-outline-variant overflow-hidden">
+                  <div className="bg-surface rounded-2xl shadow-lg border border-outline-variant overflow-hidden">
                     {/* Faux window bar */}
                     <div className="flex items-center gap-1.5 px-4 py-3 border-b border-outline-variant bg-surface-container-low">
                       <span className="w-2.5 h-2.5 rounded-full bg-outline-variant" />
@@ -191,7 +191,7 @@ export default function LandingPage() {
                   </div>
 
                   {/* Float chip: savings */}
-                  <div className="absolute -top-4 -right-4 md:-right-6 bg-surface tonal-card-shadow rounded-xl p-3 flex items-center gap-2.5 border border-outline-variant">
+                  <div className="absolute -top-4 -right-4 md:-right-6 bg-surface tonal-card-shadow rounded-xl p-3 flex items-center gap-2.5">
                     <div className="w-9 h-9 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container">
                       <span className="material-symbols-outlined fill-icon text-[18px]">savings</span>
                     </div>
@@ -201,7 +201,7 @@ export default function LandingPage() {
                     </div>
                   </div>
                   {/* Float chip: action plan */}
-                  <div className="absolute -bottom-4 -left-4 bg-surface tonal-card-shadow rounded-xl p-3 flex items-center gap-2.5 border border-outline-variant">
+                  <div className="absolute -bottom-4 -left-4 bg-surface tonal-card-shadow rounded-xl p-3 flex items-center gap-2.5">
                     <div className="w-9 h-9 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container">
                       <span className="material-symbols-outlined fill-icon text-[18px]">task_alt</span>
                     </div>
@@ -339,7 +339,7 @@ export default function LandingPage() {
             </div>
             {/* Testimonial-like card */}
             <div className="relative">
-              <div className="bg-gradient-to-br from-primary to-primary-container rounded-xl p-lg text-on-primary shadow-2xl">
+              <div className="bg-gradient-to-br from-primary to-primary-container rounded-xl p-lg text-on-primary shadow-lg">
                 <span className="material-symbols-outlined text-[48px] opacity-30 mb-sm">format_quote</span>
                 <p className="font-body-lg text-body-lg mb-md leading-relaxed">
                   {t("lp_quote_priya")}
@@ -411,10 +411,10 @@ function FeatureCard({ icon, title, body, tone, to, openText }: Feature & { open
   return (
     <Link
       to={to}
-      className="group bg-surface-container-lowest rounded-xl p-md border border-outline-variant tonal-card-shadow hover:border-primary hover:-translate-y-1 transition-all flex flex-col"
+      className="group bg-surface-container-lowest rounded-xl p-md border border-outline-variant tonal-card-shadow hover:border-primary transition-colors flex flex-col"
     >
       <div
-        className={`w-12 h-12 rounded-xl ${tones.iconBg} ${tones.iconText} flex items-center justify-center mb-md group-hover:scale-110 transition-transform`}
+        className={`w-12 h-12 rounded-xl ${tones.iconBg} ${tones.iconText} flex items-center justify-center mb-md`}
       >
         <span className="material-symbols-outlined">{icon}</span>
       </div>

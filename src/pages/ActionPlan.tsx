@@ -832,7 +832,7 @@ export default function ActionPlan() {
     : 100;
 
   // Overall consolidated readiness calculation (averaging active components)
-  const totalReadiness = isIntakeFilled ? Math.round((docsProgress + timelineProgress + avgSchemeProgress) / 3) : 0;
+  const totalReadiness = Math.round((docsProgress + timelineProgress + avgSchemeProgress) / 3);
 
   return (
     <AppShell>
@@ -865,35 +865,33 @@ export default function ActionPlan() {
                 {language === "en" ? "Security Checked" : language === "hi" ? "सुरक्षा जांची गई" : language === "mr" ? "सुरक्षा तपासली" : language === "kn" ? "ಭದ್ರತೆ ಪರಿಶೀಲಿಸಲಾಗಿದೆ" : "সুরক্ষা যাচাই করা হয়েছে"}
               </p>
               <p className="font-bold text-secondary text-xs">
-                {isIntakeFilled ? (
-                  language === "en" ? "85% Match Accuracy" :
-                  language === "hi" ? "85% मिलान सटीकता" :
-                  language === "mr" ? "85% अचूकता" :
-                  language === "kn" ? "85% ನಿಖರತೆ" :
-                  "85% ম্যাচ সঠিকতা"
-                ) : t("cb_reliability_none")}
+                {language === "en" ? "85% Match Accuracy" :
+                 language === "hi" ? "85% मिलान सटीकता" :
+                 language === "mr" ? "85% अचूकता" :
+                 language === "kn" ? "85% ನಿಖರತೆ" :
+                 "85% ম্যাচ সঠিকতা"}
               </p>
             </div>
           </div>
         </header>
 
         {/* Dashboard Grid */}
-        {!isIntakeFilled ? (
-          <div className="bg-surface-container-lowest border border-outline-variant/40 rounded-3xl p-xl text-center space-y-md shadow-sm max-w-2xl mx-auto my-lg animate-fade-in">
-            <span className="material-symbols-outlined text-[#4c3a69] text-[64px] animate-pulse">route</span>
-            <h3 className="font-headline-md text-headline-md text-primary font-bold">{t("ap_pending_title")}</h3>
-            <p className="font-body-md text-on-surface-variant text-xs leading-relaxed max-w-md mx-auto">
+        {!isIntakeFilled && (
+          <div className="bg-primary/5 border border-primary/20 rounded-2xl p-md flex items-center justify-between gap-md shadow-sm">
+            <div className="flex items-center gap-sm text-xs text-on-surface-variant">
+              <span className="material-symbols-outlined text-primary text-[20px]">info</span>
               {t("ap_pending_desc")}
-            </p>
+            </div>
             <Link
               to="/intake"
-              className="inline-flex items-center gap-xs bg-primary text-on-primary hover:brightness-110 px-lg py-md rounded-2xl font-bold text-xs shadow-md active:scale-95 transition-all"
+              className="inline-flex items-center gap-xs bg-primary text-on-primary hover:brightness-110 px-md py-sm rounded-xl font-bold text-xs shadow-sm active:scale-95 transition-all shrink-0"
             >
-              <span className="material-symbols-outlined text-sm">assignment</span>
+              <span className="material-symbols-outlined text-[16px]">assignment</span>
               {t("db_start")}
             </Link>
           </div>
-        ) : (
+        )}
+
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-lg items-start">
             
             {/* LEFT PANEL: Interactive Checklists & Matched Schemes */}
@@ -1423,7 +1421,6 @@ export default function ActionPlan() {
             </div>
 
           </div>
-        )}
 
       </div>
     </AppShell>

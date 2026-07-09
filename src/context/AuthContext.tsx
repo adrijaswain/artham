@@ -26,6 +26,37 @@ export function markNewSignup() {
   sessionStorage.setItem(NEW_SIGNUP_FLAG, "1");
 }
 
+/** localStorage flag set on first-time sign up, telling AppShell to run the
+ *  one-time onboarding tour. Cleared once the tour is finished or skipped. */
+const NEEDS_TOUR_FLAG = "artham_needs_tour";
+
+export function markNeedsTour() {
+  localStorage.setItem(NEEDS_TOUR_FLAG, "1");
+}
+
+export function needsTour() {
+  return localStorage.getItem(NEEDS_TOUR_FLAG) === "1";
+}
+
+export function clearNeedsTour() {
+  localStorage.removeItem(NEEDS_TOUR_FLAG);
+}
+
+/** sessionStorage flag set on successful sign up / sign in, telling the
+ *  Dashboard to auto-open the AI chat assistant the moment the user lands. */
+const CHAT_POPUP_FLAG = "artham_show_chat_popup";
+
+export function markShowChatPopup() {
+  sessionStorage.setItem(CHAT_POPUP_FLAG, "1");
+}
+
+/** Reads and clears the flag in one step so the popup only fires once per auth event. */
+export function consumeShowChatPopup(): boolean {
+  const shouldShow = sessionStorage.getItem(CHAT_POPUP_FLAG) === "1";
+  sessionStorage.removeItem(CHAT_POPUP_FLAG);
+  return shouldShow;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);

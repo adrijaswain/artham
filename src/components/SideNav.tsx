@@ -7,13 +7,13 @@ export default function SideNav() {
   const activeClass = "text-on-primary bg-primary font-semibold shadow-sm";
 
   const items = [
-    { to: "/intake", label: t("nav_intake"), icon: "assignment" },
-    { to: "/medical-input", label: t("nav_medical"), icon: "medical_services" },
-    { to: "/dashboard", label: t("nav_dashboard"), icon: "dashboard" },
-    { to: "/cost-breakdown", label: t("nav_breakdown"), icon: "payments" },
-    { to: "/action-plan", label: t("nav_action"), icon: "lightbulb" },
-    { to: "/schemes", label: t("nav_schemes"), icon: "account_balance" },
-    { to: "/insurances", label: t("nav_insurances"), icon: "security" },
+    { to: "/intake", label: t("nav_intake"), icon: "assignment", tourId: "intake" },
+    { to: "/medical-input", label: t("nav_medical"), icon: "medical_services", tourId: "medical-input" },
+    { to: "/dashboard", label: t("nav_dashboard"), icon: "dashboard", tourId: "dashboard" },
+    { to: "/cost-breakdown", label: t("nav_breakdown"), icon: "payments", tourId: "cost-breakdown" },
+    { to: "/action-plan", label: t("nav_action"), icon: "lightbulb", tourId: "action-plan" },
+    { to: "/schemes", label: t("nav_schemes"), icon: "account_balance", tourId: "schemes" },
+    { to: "/insurances", label: t("nav_insurances"), icon: "security", tourId: "insurances" },
   ];
 
   return (
@@ -27,6 +27,7 @@ export default function SideNav() {
           <NavLink
             key={item.to}
             to={item.to}
+            data-tour={item.tourId}
             className={({ isActive }) =>
               `flex items-center gap-sm px-3 py-2.5 rounded-full font-label-md text-label-md transition-all duration-150 ${
                 isActive

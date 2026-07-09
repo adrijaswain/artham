@@ -1,7 +1,10 @@
 import type { ReactNode } from "react";
+import { useState } from "react";
 import TopAppBar from "./TopAppBar";
 import SideNav from "./SideNav";
 import Footer from "./Footer";
+import OnboardingTour from "./OnboardingTour";
+import { needsTour } from "../context/AuthContext";
 
 type Props = {
   children: ReactNode;
@@ -12,6 +15,10 @@ type Props = {
 };
 
 export default function AppShell({ children, bare = false, bg = "bg-background" }: Props) {
+  // One-time guided tour for brand-new sign-ups, highlighting the SideNav.
+  // Only relevant when the SideNav is actually on screen.
+  const [showTour, setShowTour] = useState(() => !bare && needsTour());
+
   return (
     <div className={`min-h-screen flex flex-col ${bg} text-on-background`}>
       <TopAppBar />
@@ -22,6 +29,7 @@ export default function AppShell({ children, bare = false, bg = "bg-background" 
       <div className={bare ? "" : "md:ml-64"}>
         <Footer />
       </div>
+      {showTour && <OnboardingTour onFinish={() => setShowTour(false)} />}
     </div>
   );
 }

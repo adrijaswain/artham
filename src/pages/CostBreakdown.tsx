@@ -217,6 +217,13 @@ export default function CostBreakdown() {
   });
   const [draftMessage, setDraftMessage] = useState("");
   const [isChatLoading, setIsChatLoading] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
+  // Flow-chart accordion state: which sections/items are expanded
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+  const [openItems, setOpenItems] = useState<Record<string, boolean>>({});
+  const toggleSection = (title: string) => setOpenSections(prev => ({ ...prev, [title]: !(prev[title] ?? false) }));
+  const toggleItem = (key: string) => setOpenItems(prev => ({ ...prev, [key]: !prev[key] }));
 
   // Sync initial bot message language reactively
   useEffect(() => {
@@ -381,10 +388,20 @@ export default function CostBreakdown() {
 
   const isIntakeFilled = !!patientState && !!age && !!stage;
 
+  // Illustrative defaults so the breakdown always has content to show,
+  // even before the patient completes their intake profile.
+  const effAge = age || "45";
+  const effStage = stage || "Stage II";
+  const effHormoneStatus = hormoneStatus || "ER+/PR+ Positive";
+  const effSurgery = surgery || "Yes";
+  const effChemo = chemo || "Yes";
+  const effRadiation = radiation || "Yes";
+  const effHospitalType = hospitalType || "Private Medical Center";
+
   // Hospital Category: "Government" | "Private" | "Premium"
   const category: "Government" | "Private" | "Premium" =
-    hospitalType === "Government / Public Hospital" ? "Government" :
-    hospitalType === "Premium Corporate Hospital" ? "Premium" : "Private";
+    effHospitalType === "Government / Public Hospital" ? "Government" :
+    effHospitalType === "Premium Corporate Hospital" ? "Premium" : "Private";
 
   // Define exact pricing maps calibrated against Dr. Jay Anam's clinical records
   const DIAGNOSTICS = {
@@ -454,7 +471,7 @@ export default function CostBreakdown() {
   };
 
   let coveragePercent = 0;
-  if (hasInsurance && isIntakeFilled) {
+  if (hasInsurance) {
     coveragePercent = category === "Government" ? 0.90 : 0.75;
   }
 
@@ -530,7 +547,7 @@ export default function CostBreakdown() {
   const medicationItems: Item[] = [];
   const hospitalizationItems: Item[] = [];
 
-  if (isIntakeFilled) {
+  {
     let chemoCyclesCount = 0;
 
     diagnosticsItems.push(createItem("Mammogram", "Baseline bilateral screening mammography.", DIAGNOSTICS.mammogram[category], "mammogram"));
@@ -540,18 +557,18 @@ export default function CostBreakdown() {
     diagnosticsItems.push(createItem("IHC Panel (ER/PR/HER2)", "Immunohistochemistry profiling to determine receptor status.", DIAGNOSTICS.ihc[category], "ihc"));
     diagnosticsItems.push(createItem("Blood Tests Package", "Complete blood count, liver/kidney function tests, and viral markers.", DIAGNOSTICS.bloodTests[category], "bloodTests"));
 
-    if (stage === "Stage III" || stage === "Stage IV") {
+    if (effStage === "Stage III" || effStage === "Stage IV") {
       diagnosticsItems.push(createItem("PET-CT Scan", "Whole-body PET-CT scan for staging and metastasis screening.", DIAGNOSTICS.pet[category], "pet"));
     }
-    if (hormoneStatus === "HER2 Positive" || hormoneStatus === "Triple Negative" || Number(age) < 40) {
+    if (effHormoneStatus === "HER2 Positive" || effHormoneStatus === "Triple Negative" || Number(effAge) < 40) {
       diagnosticsItems.push(createItem("Breast MRI", "Contrast-enhanced breast MRI for detailed anatomical planning.", DIAGNOSTICS.mri[category], "mri"));
     }
 
-    if (surgery !== "No" && surgery !== "") {
-      if (stage === "Stage I" || stage === "Stage II") {
+    if (effSurgery !== "No") {
+      if (effStage === "Stage I" || effStage === "Stage II") {
         const baseSurgery = SURGERY.lumpectomy[category];
         primaryItems.push(createItem("Lumpectomy Surgery", "Surgical removal of the breast tumor with margins.", baseSurgery, "lumpectomy"));
-        
+
         const nodeSurgery = SURGERY.slnb[category];
         primaryItems.push(createItem("Sentinel Lymph Node Biopsy (SLNB)", "Biopsy of sentinel lymph nodes to check for early spread.", nodeSurgery, "slnb"));
       } else {
@@ -562,25 +579,25 @@ export default function CostBreakdown() {
         primaryItems.push(createItem("Axillary Lymph Node Dissection (ALND)", "Removal of axillary lymph nodes due to advanced stage spread.", nodeSurgery, "alnd"));
       }
 
-      if (stage === "Stage II" || stage === "Stage III") {
+      if (effStage === "Stage II" || effStage === "Stage III") {
         const reconSurgery = SURGERY.reconstruction[category];
         primaryItems.push(createItem("Breast Reconstruction Surgery", "Post-mastectomy reconstructive breast surgery.", reconSurgery, "reconstruction"));
       }
     }
 
-    if (chemo !== "No" && chemo !== "") {
+    if (effChemo !== "No") {
       let chemoVal = 0;
       let chosenChemoName = "";
-      if (hormoneStatus === "HER2 Positive") {
+      if (effHormoneStatus === "HER2 Positive") {
         chemoVal = CHEMO.tch6[category];
         chosenChemoName = "TCH × 6";
         chemoCyclesCount = 6;
-      } else if (hormoneStatus === "Triple Negative") {
+      } else if (effHormoneStatus === "Triple Negative") {
         chemoVal = CHEMO.act[category];
         chosenChemoName = "AC-T";
         chemoCyclesCount = 8;
-      } else if (hormoneStatus === "ER+/PR+ Positive") {
-        if (stage === "Stage I" || stage === "Stage II") {
+      } else if (effHormoneStatus === "ER+/PR+ Positive") {
+        if (effStage === "Stage I" || effStage === "Stage II") {
           chemoVal = CHEMO.tc4[category];
           chosenChemoName = "TC × 4";
           chemoCyclesCount = 4;
@@ -597,9 +614,9 @@ export default function CostBreakdown() {
       primaryItems.push(createItem(`Chemotherapy: ${chosenChemoName}`, `Systemic chemotherapy protocol (${chemoCyclesCount} cycles total).`, chemoVal, "chemotherapy"));
     }
 
-    if (radiation !== "No" && radiation !== "") {
+    if (effRadiation !== "No") {
       let radVal = 0;
-      if (stage === "Stage I" || stage === "Stage II") {
+      if (effStage === "Stage I" || effStage === "Stage II") {
         radVal = RADIATION.whole[category];
         primaryItems.push(createItem("Whole Breast Radiation", "Adjuvant radiation therapy for the remaining breast tissue.", radVal, "radiation"));
       } else {
@@ -608,10 +625,10 @@ export default function CostBreakdown() {
       }
     }
 
-    if (hormoneStatus === "ER+/PR+ Positive") {
+    if (effHormoneStatus === "ER+/PR+ Positive") {
       let hormoneVal = 0;
       let chosenHormoneName = "";
-      if (Number(age) >= 50) {
+      if (Number(effAge) >= 50) {
         hormoneVal = HORMONE.letrozole[category];
         chosenHormoneName = "Letrozole (5 years)";
       } else {
@@ -621,10 +638,10 @@ export default function CostBreakdown() {
       medicationItems.push(createItem(`Hormone Therapy: ${chosenHormoneName}`, "Long-term daily oral maintenance therapy (5-year course).", hormoneVal, "hormonal"));
     }
 
-    if (hormoneStatus === "HER2 Positive") {
+    if (effHormoneStatus === "HER2 Positive") {
       let targetedVal = 0;
       let chosenTargetedName = "";
-      if (stage === "Stage III" || stage === "Stage IV") {
+      if (effStage === "Stage III" || effStage === "Stage IV") {
         targetedVal = TARGETED.pertuzumabTrastuzumab[category];
         chosenTargetedName = "Pertuzumab + Trastuzumab";
       } else {
@@ -634,7 +651,7 @@ export default function CostBreakdown() {
       medicationItems.push(createItem(`Targeted Therapy: ${chosenTargetedName}`, "Monoclonal antibody regimen specifically targeting HER2 receptors.", targetedVal, "targeted"));
     }
 
-    if (hormoneStatus === "Triple Negative" && (stage === "Stage III" || stage === "Stage IV")) {
+    if (effHormoneStatus === "Triple Negative" && (effStage === "Stage III" || effStage === "Stage IV")) {
       const immunoVal = IMMUNO.pembrolizumab[category];
       const chosenImmunoName = "Pembrolizumab";
       medicationItems.push(createItem(`Immunotherapy: ${chosenImmunoName}`, "Checkpoint inhibitor therapy recommended for advanced Triple Negative breast cancer.", immunoVal, "immunotherapy"));
@@ -643,15 +660,15 @@ export default function CostBreakdown() {
     const consultationCost = ADDITIONAL.consultationInit[category] + (10 * ADDITIONAL.consultationFollow[category]);
     hospitalizationItems.push(createItem("Oncology Consultations", "Initial oncology consultation and 10 follow-up visits.", consultationCost, "consultations"));
 
-    if (chemo !== "No" && chemoCyclesCount > 0) {
+    if (effChemo !== "No" && chemoCyclesCount > 0) {
       const chemoAdminCost = chemoCyclesCount * ADDITIONAL.chemoAdmin[category];
       hospitalizationItems.push(createItem("Chemo Administration Day-Care", `Day-care clinical ward and nursing fees for ${chemoCyclesCount} chemo infusions.`, chemoAdminCost, "chemoAdmin"));
     }
-    
+
     const hospitalizationCost = 3 * ADDITIONAL.admission[category];
     hospitalizationItems.push(createItem("Inpatient Ward Admission", "3 days standard room stay for surgical recovery and monitoring.", hospitalizationCost, "admission"));
 
-    if (stage === "Stage III" || stage === "Stage IV" || category === "Premium" || category === "Private") {
+    if (effStage === "Stage III" || effStage === "Stage IV" || category === "Premium" || category === "Private") {
       const icuCost = 1 * ADDITIONAL.icu[category];
       hospitalizationItems.push(createItem("ICU Admission", "1 day ICU monitoring following complex surgery.", icuCost, "icu"));
     }
@@ -679,15 +696,15 @@ export default function CostBreakdown() {
 
   const allItems = [...diagnosticsItems, ...primaryItems, ...medicationItems, ...hospitalizationItems];
   
-  const totalEstimate = isIntakeFilled ? getSumOfNonExcludedItems(allItems) : 0;
-  let outOfPocket = isIntakeFilled ? getOopSumOfNonExcludedItems(allItems) : 0;
+  const totalEstimate = getSumOfNonExcludedItems(allItems);
+  let outOfPocket = getOopSumOfNonExcludedItems(allItems);
   const insuranceShare = totalEstimate - outOfPocket;
 
   let subsidyApplied = false;
   let subsidyAmount = 0;
   let subsidyName = "";
 
-  if (isIntakeFilled) {
+  {
     if (incomeBracket === "Below ₹2,50,000") {
       subsidyApplied = true;
       subsidyAmount = outOfPocket;
@@ -773,7 +790,7 @@ export default function CostBreakdown() {
             </div>
             <div>
               <p className="font-label-sm text-[9px] uppercase font-bold text-outline tracking-wider">{t("cb_reliability")}</p>
-              <p className="font-bold text-secondary text-xs">{isIntakeFilled ? (customBreakdown ? t("cb_reliability_ai") : t("cb_reliability_high")) : t("cb_reliability_none")}</p>
+              <p className="font-bold text-secondary text-xs">{customBreakdown ? t("cb_reliability_ai") : t("cb_reliability_high")}</p>
             </div>
           </div>
         </div>
@@ -812,26 +829,26 @@ export default function CostBreakdown() {
           </div>
         </div>
 
-        {!isIntakeFilled ? (
-          <div className="bg-surface-container-lowest border border-outline-variant/40 rounded-3xl p-xl text-center space-y-md shadow-sm max-w-2xl mx-auto my-lg animate-fade-in">
-            <span className="material-symbols-outlined text-[#4c3a69] text-[64px] animate-pulse">payments</span>
-            <h3 className="font-headline-md text-headline-md text-primary font-bold">{t("cb_pending_title")}</h3>
-            <p className="font-body-md text-on-surface-variant text-xs leading-relaxed max-w-md mx-auto">
+        {!isIntakeFilled && (
+          <div className="bg-primary/5 border border-primary/20 rounded-2xl p-md flex items-center justify-between gap-md shadow-sm">
+            <div className="flex items-center gap-sm text-xs text-on-surface-variant">
+              <span className="material-symbols-outlined text-primary text-[20px]">info</span>
               {t("cb_pending_desc")}
-            </p>
+            </div>
             <Link
               to="/intake"
-              className="inline-flex items-center gap-xs bg-primary text-on-primary hover:brightness-110 px-lg py-md rounded-2xl font-bold text-xs shadow-md active:scale-95 transition-all"
+              className="inline-flex items-center gap-xs bg-primary text-on-primary hover:brightness-110 px-md py-sm rounded-xl font-bold text-xs shadow-sm active:scale-95 transition-all shrink-0"
             >
-              <span className="material-symbols-outlined text-sm">assignment</span>
+              <span className="material-symbols-outlined text-[16px]">assignment</span>
               {t("cb_pending_btn")}
             </Link>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-lg items-start">
-            
-            {/* Left Column: Breakdown Sheet */}
-            <div className="lg:col-span-2 space-y-md">
+        )}
+
+          <div className="grid grid-cols-1 gap-lg items-start">
+
+            {/* Breakdown Sheet */}
+            <div className="space-y-md">
               {/* Summary Cards Panel */}
               <div className={`grid grid-cols-1 md:grid-cols-${subsidyApplied ? '4' : '3'} gap-md`}>
                 <SummaryCard label={t("cb_total_est")} value={formatINR(totalEstimate)} tone="primary" />
@@ -881,25 +898,53 @@ export default function CostBreakdown() {
                 </div>
               )}
 
-              {/* Timeline Breakdown List */}
-              <div className="space-y-lg relative pt-sm">
-                <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-outline-variant/60 hidden md:block" />
-                {sections.map((s) => (
-                  <section className="relative" key={s.title}>
-                    <div className="flex items-center gap-md mb-md">
-                      <div className="z-10 w-16 h-16 rounded-full bg-primary flex items-center justify-center text-on-primary shadow-md shrink-0 border border-outline-variant/40">
-                        <span className="material-symbols-outlined text-[30px]">{s.icon}</span>
-                      </div>
-                      <h3 className="font-headline-sm text-headline-sm text-primary font-bold">{t(sectionTitleKeys[s.title]) || s.title}</h3>
-                    </div>
-                    <div className="md:ml-20 space-y-sm">
-                      {sortAndFilterItems(s.items).map((it) => {
-                        const { key, ...rest } = it;
-                        return <LineItem key={key} {...rest} />;
-                      })}
-                    </div>
-                  </section>
-                ))}
+              {/* Flow-chart Breakdown: heading -> topics -> sub-topics, click to expand */}
+              <div className="space-y-sm">
+                {sections.map((s, idx) => {
+                  const isSectionOpen = openSections[s.title] ?? (idx === 0);
+                  const sectionTotal = getSumOfNonExcludedItems(s.items);
+                  return (
+                    <section
+                      key={s.title}
+                      className="bg-surface-container-lowest rounded-2xl border border-outline-variant/40 shadow-sm overflow-hidden"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleSection(s.title)}
+                        className="w-full flex items-center justify-between gap-md p-md hover:bg-surface-container-low/60 transition-colors text-left"
+                      >
+                        <div className="flex items-center gap-md min-w-0">
+                          <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-on-primary shadow-sm shrink-0">
+                            <span className="material-symbols-outlined text-[22px]">{s.icon}</span>
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="font-headline-sm text-headline-sm text-primary font-bold truncate">{t(sectionTitleKeys[s.title]) || s.title}</h3>
+                            <p className="text-[10px] text-on-surface-variant">{s.items.length} {s.items.length === 1 ? "item" : "items"}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-sm shrink-0">
+                          <span className="font-bold text-primary text-sm">{formatINR(sectionTotal)}</span>
+                          <span className="material-symbols-outlined text-outline">
+                            {isSectionOpen ? "expand_less" : "expand_more"}
+                          </span>
+                        </div>
+                      </button>
+
+                      {isSectionOpen && (
+                        <div className="px-md pb-md space-y-xs">
+                          {sortAndFilterItems(s.items).map((it) => (
+                            <FlowLineItem
+                              key={it.key}
+                              item={it}
+                              isOpen={!!openItems[it.key]}
+                              onToggle={() => toggleItem(it.key)}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </section>
+                  );
+                })}
               </div>
 
               {/* Financial Resilience Insight */}
@@ -936,81 +981,104 @@ export default function CostBreakdown() {
               </div>
             </div>
 
-            {/* Right Column: AI Pricing Personalizer Mini Chatbot */}
-            <div className="lg:col-span-1 bg-surface-container-low border border-outline-variant/40 rounded-3xl p-md shadow-sm sticky top-20 flex flex-col h-[520px] overflow-hidden">
-              {/* Chatbot Header */}
-              <div className="flex justify-between items-center pb-sm border-b border-outline-variant/30 shrink-0">
-                <div className="flex items-center gap-xs">
-                  <span className="material-symbols-outlined text-primary text-[20px] active-entity-pulse">auto_awesome</span>
-                  <div>
-                    <h3 className="font-headline-sm text-xs font-bold text-primary">{t("cb_ai_personalizer_title")}</h3>
-                    <p className="text-[9px] text-outline font-medium">
-                      {language === "en" ? "Dynamically customize cost sheet" :
-                       language === "hi" ? "लागत पत्रक को गतिशील रूप से अनुकूलित करें" :
-                       language === "mr" ? "खर्च पत्रक वैयक्तिकृत करा" :
-                       language === "kn" ? "ವೆಚ್ಚದ ವಿವರಗಳನ್ನು ನವೀಕರಿಸಿ" :
-                       "খরচের বিবরণ তালিকাটি কাস্টমাইজ করুন"}
-                    </p>
-                  </div>
-                </div>
-                {customBreakdown && (
-                  <button
-                    onClick={resetToDefault}
-                    className="px-2 py-1 text-[10px] font-bold text-error border border-error-container/30 hover:bg-error-container/10 rounded-lg transition-all"
-                  >
-                    {language === "en" ? "Reset Standard" : language === "hi" ? "मानक रीसेट करें" : language === "mr" ? "मानक रीसेट करा" : language === "kn" ? "ಮರುಹೊಂದಿಸಿ" : "রিসেট করুন"}
-                  </button>
-                )}
-              </div>
-
-              {/* Chat history list */}
-              <div className="flex-grow overflow-y-auto py-sm space-y-sm pr-xs custom-scrollbar">
-                {chatHistory.map((msg, idx) => (
-                  <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                    <div className={`p-sm max-w-[85%] rounded-2xl text-[11px] leading-relaxed shadow-sm ${
-                      msg.role === "user"
-                        ? "bg-primary text-on-primary rounded-tr-none"
-                        : "bg-surface-bright border border-outline-variant/40 text-on-surface rounded-tl-none"
-                    }`}>
-                      {msg.role === "bot" ? <MarkdownRenderer text={msg.text} /> : msg.text}
-                    </div>
-                  </div>
-                ))}
-                {isChatLoading && (
-                  <div className="flex justify-start">
-                    <div className="p-sm bg-surface-bright border border-outline-variant/40 text-on-surface rounded-2xl rounded-tl-none flex items-center gap-xs">
-                      <span className="w-1.5 h-1.5 bg-outline rounded-full animate-bounce delay-100" />
-                      <span className="w-1.5 h-1.5 bg-outline rounded-full animate-bounce delay-200" />
-                      <span className="w-1.5 h-1.5 bg-outline rounded-full animate-bounce delay-300" />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Input textfield form */}
-              <form onSubmit={handleSendMessage} className="pt-sm border-t border-outline-variant/30 flex gap-xs items-center shrink-0">
-                <input
-                  type="text"
-                  placeholder={t("cb_ai_placeholder")}
-                  value={draftMessage}
-                  onChange={(e) => setDraftMessage(e.target.value)}
-                  disabled={isChatLoading}
-                  className="flex-grow px-3 py-2 border border-outline-variant rounded-xl text-xs bg-surface-bright text-on-surface outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all disabled:opacity-50"
-                />
-                <button
-                  type="submit"
-                  disabled={isChatLoading || !draftMessage.trim()}
-                  className="p-2 bg-primary text-on-primary hover:brightness-110 rounded-xl flex items-center justify-center shadow-md disabled:opacity-40 transition-all shrink-0"
-                >
-                  <span className="material-symbols-outlined text-[16px]">send</span>
-                </button>
-              </form>
-            </div>
-            
           </div>
-        )}
 
       </div>
+
+      {/* Floating AI Pricing Personalizer: popup button + panel */}
+      {isChatOpen && (
+        <div className="fixed bottom-24 right-6 z-50 w-[92vw] max-w-sm bg-surface-container-low border border-outline-variant/40 rounded-3xl shadow-2xl flex flex-col h-[520px] overflow-hidden animate-fade-in">
+          {/* Chatbot Header */}
+          <div className="flex justify-between items-center p-md pb-sm border-b border-outline-variant/30 shrink-0">
+            <div className="flex items-center gap-xs">
+              <span className="material-symbols-outlined text-primary text-[20px] active-entity-pulse">auto_awesome</span>
+              <div>
+                <h3 className="font-headline-sm text-xs font-bold text-primary">{t("cb_ai_personalizer_title")}</h3>
+                <p className="text-[9px] text-outline font-medium">
+                  {language === "en" ? "Dynamically customize cost sheet" :
+                   language === "hi" ? "लागत पत्रक को गतिशील रूप से अनुकूलित करें" :
+                   language === "mr" ? "खर्च पत्रक वैयक्तिकृत करा" :
+                   language === "kn" ? "ವೆಚ್ಚದ ವಿವರಗಳನ್ನು ನವೀಕರಿಸಿ" :
+                   "খরচের বিবরণ তালিকাটি কাস্টমাইজ করুন"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-xs shrink-0">
+              {customBreakdown && (
+                <button
+                  onClick={resetToDefault}
+                  className="px-2 py-1 text-[10px] font-bold text-error border border-error-container/30 hover:bg-error-container/10 rounded-lg transition-all"
+                >
+                  {language === "en" ? "Reset Standard" : language === "hi" ? "मानक रीसेट करें" : language === "mr" ? "मानक रीसेट करा" : language === "kn" ? "ಮರುಹೊಂದಿಸಿ" : "রিসেট করুন"}
+                </button>
+              )}
+              <button
+                onClick={() => setIsChatOpen(false)}
+                className="p-1 hover:bg-surface-container rounded-full text-outline hover:text-on-surface transition-all"
+                title="Close"
+                aria-label="Close assistant"
+              >
+                <span className="material-symbols-outlined text-[16px]">close</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Chat history list */}
+          <div className="flex-grow overflow-y-auto p-md py-sm space-y-sm pr-xs custom-scrollbar">
+            {chatHistory.map((msg, idx) => (
+              <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div className={`p-sm max-w-[85%] rounded-2xl text-[11px] leading-relaxed shadow-sm ${
+                  msg.role === "user"
+                    ? "bg-primary text-on-primary rounded-tr-none"
+                    : "bg-surface-bright border border-outline-variant/40 text-on-surface rounded-tl-none"
+                }`}>
+                  {msg.role === "bot" ? <MarkdownRenderer text={msg.text} /> : msg.text}
+                </div>
+              </div>
+            ))}
+            {isChatLoading && (
+              <div className="flex justify-start">
+                <div className="p-sm bg-surface-bright border border-outline-variant/40 text-on-surface rounded-2xl rounded-tl-none flex items-center gap-xs">
+                  <span className="w-1.5 h-1.5 bg-outline rounded-full animate-bounce delay-100" />
+                  <span className="w-1.5 h-1.5 bg-outline rounded-full animate-bounce delay-200" />
+                  <span className="w-1.5 h-1.5 bg-outline rounded-full animate-bounce delay-300" />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Input textfield form */}
+          <form onSubmit={handleSendMessage} className="p-md pt-sm border-t border-outline-variant/30 flex gap-xs items-center shrink-0">
+            <input
+              type="text"
+              placeholder={t("cb_ai_placeholder")}
+              value={draftMessage}
+              onChange={(e) => setDraftMessage(e.target.value)}
+              disabled={isChatLoading}
+              className="flex-grow px-3 py-2 border border-outline-variant rounded-xl text-xs bg-surface-bright text-on-surface outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all disabled:opacity-50"
+            />
+            <button
+              type="submit"
+              disabled={isChatLoading || !draftMessage.trim()}
+              className="p-2 bg-primary text-on-primary hover:brightness-110 rounded-xl flex items-center justify-center shadow-md disabled:opacity-40 transition-all shrink-0"
+            >
+              <span className="material-symbols-outlined text-[16px]">send</span>
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* Floating action button */}
+      <button
+        onClick={() => setIsChatOpen(prev => !prev)}
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary text-on-primary shadow-lg hover:brightness-110 active:scale-95 transition-all flex items-center justify-center"
+        title={isChatOpen ? "Close assistant" : "Open AI Pricing Personalizer"}
+        aria-label={isChatOpen ? "Close assistant" : "Open AI Pricing Personalizer"}
+      >
+        <span className="material-symbols-outlined text-[26px]">
+          {isChatOpen ? "close" : "auto_awesome"}
+        </span>
+      </button>
     </AppShell>
   );
 }
@@ -1044,51 +1112,68 @@ function SummaryCard({
   );
 }
 
-function LineItem({ title, body, estimate, insurance, oop, isExcluded, isHighlighted, customNote }: Item) {
+function FlowLineItem({ item, isOpen, onToggle }: { item: Item; isOpen: boolean; onToggle: () => void }) {
   const { t } = useLanguage();
+  const { title, body, estimate, insurance, oop, isExcluded, isHighlighted, customNote } = item;
   return (
-    <div className={`p-md rounded-2xl border transition-all ${
+    <div className={`rounded-xl border transition-all overflow-hidden ${
       isExcluded
-        ? "bg-surface-container-lowest border-outline-variant/20 opacity-55 hover:opacity-75"
+        ? "bg-surface-container-lowest border-outline-variant/20 opacity-60"
         : isHighlighted
-        ? "bg-primary/5 border-primary/30 shadow-sm hover:border-primary/60"
-        : "bg-surface-container-low border-outline-variant/50 hover:border-[#e7def3]/60 hover:shadow-sm"
+        ? "bg-primary/5 border-primary/30"
+        : "bg-surface-container-low border-outline-variant/50"
     }`}>
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-sm">
-        <div className="flex-1 min-w-0 pr-md">
-          <div className="flex items-center gap-xs flex-wrap">
-            <h4 className={`font-label-md text-xs font-bold ${isExcluded ? "text-outline line-through" : "text-primary"}`}>
-              {title}
-            </h4>
-            {isHighlighted && (
-              <span className="px-2 py-0.5 rounded-full bg-secondary/10 text-secondary border border-secondary/20 text-[9px] font-bold uppercase tracking-wider flex items-center gap-[2px]">
-                <span className="material-symbols-outlined text-[10px]">check_circle</span>
-                {t("cb_confirmed_relevant")}
-              </span>
-            )}
-            {isExcluded && (
-              <span className="px-2 py-0.5 rounded-full bg-outline-variant/40 text-outline border border-outline-variant/40 text-[9px] font-bold uppercase tracking-wider">
-                {t("cb_excluded_badge")}
-              </span>
-            )}
-          </div>
-          <p className={`font-body-sm text-[10px] leading-normal mt-1 ${isExcluded ? "text-outline/70" : "text-on-surface-variant"}`}>
+      {/* Topic row: click to reveal sub-topic detail */}
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full flex items-center justify-between gap-sm p-sm text-left hover:bg-surface-container/30 transition-colors"
+      >
+        <div className="flex items-center gap-xs min-w-0">
+          <span className="material-symbols-outlined text-outline text-[16px] shrink-0">
+            {isOpen ? "expand_less" : "chevron_right"}
+          </span>
+          <h4 className={`font-label-md text-xs font-bold truncate ${isExcluded ? "text-outline line-through" : "text-primary"}`}>
+            {title}
+          </h4>
+          {isHighlighted && (
+            <span className="px-2 py-0.5 rounded-full bg-secondary/10 text-secondary border border-secondary/20 text-[9px] font-bold uppercase tracking-wider flex items-center gap-[2px] shrink-0">
+              <span className="material-symbols-outlined text-[10px]">check_circle</span>
+              {t("cb_confirmed_relevant")}
+            </span>
+          )}
+          {isExcluded && (
+            <span className="px-2 py-0.5 rounded-full bg-outline-variant/40 text-outline border border-outline-variant/40 text-[9px] font-bold uppercase tracking-wider shrink-0">
+              {t("cb_excluded_badge")}
+            </span>
+          )}
+        </div>
+        <span className={`font-bold text-xs shrink-0 ${isExcluded ? "text-outline" : "text-on-surface"}`}>
+          {isExcluded ? "N/A" : estimate}
+        </span>
+      </button>
+
+      {/* Sub-topics: description + insurance / OOP split, revealed on click */}
+      {isOpen && (
+        <div className="px-sm pb-sm pt-1 border-t border-outline-variant/20">
+          <p className={`font-body-sm text-[10px] leading-normal mt-2 ${isExcluded ? "text-outline/70" : "text-on-surface-variant"}`}>
             {body}
           </p>
-          
+
           {customNote && (
             <div className="mt-2 p-1.5 rounded-lg bg-surface-container/60 border border-outline-variant/30 text-[10px] text-on-surface-variant flex items-start gap-xs max-w-lg">
               <span className="material-symbols-outlined text-[12px] text-[#4c3a69] mt-0.5 shrink-0">auto_awesome</span>
               <span><strong>{t("cb_ai_personalizer_title")}:</strong> {customNote}</span>
             </div>
           )}
+
+          <div className="grid grid-cols-3 gap-md mt-sm pt-sm border-t border-outline-variant/20">
+            <Cell label={t("cb_cell_estimate")} value={isExcluded ? "N/A" : estimate} bold />
+            <Cell label={t("cb_cell_insurance")} value={isExcluded ? "N/A" : insurance} tone="text-secondary" />
+            <Cell label={t("cb_cell_oop")} value={isExcluded ? "N/A" : oop} tone="text-tertiary" bold />
+          </div>
         </div>
-        <div className="grid grid-cols-3 gap-md w-full md:w-auto shrink-0 pt-sm md:pt-0 border-t md:border-t-0 border-outline-variant/20">
-          <Cell label={t("cb_cell_estimate")} value={isExcluded ? "N/A" : estimate} bold />
-          <Cell label={t("cb_cell_insurance")} value={isExcluded ? "N/A" : insurance} tone="text-secondary" />
-          <Cell label={t("cb_cell_oop")} value={isExcluded ? "N/A" : oop} tone="text-tertiary" bold />
-        </div>
-      </div>
+      )}
     </div>
   );
 }

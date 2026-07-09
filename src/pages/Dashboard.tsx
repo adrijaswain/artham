@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import AppShell from "../components/AppShell";
 import { useLanguage } from "../components/LanguageContext";
-import { useAuth } from "../context/AuthContext";
+import { useAuth, consumeShowChatPopup } from "../context/AuthContext";
 import { auth, saveUserDashboardContextToFirestore, saveUserIntakeToFirestore } from "../firebase";
 
 type ChatMsg = {
@@ -156,7 +156,16 @@ export default function Dashboard() {
   });
   const [draftChat, setDraftChat] = useState("");
   const [isChatLoading, setIsChatLoading] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-open the AI chat assistant the moment a user arrives here right after
+  // signing up or signing in, so it's the first thing they notice.
+  useEffect(() => {
+    if (!consumeShowChatPopup()) return;
+    const timer = setTimeout(() => setIsChatOpen(true), 700);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Voice capability integration for Dashboard chat
   const [isListening, setIsListening] = useState(false);
@@ -575,72 +584,6 @@ export default function Dashboard() {
 
   const formatINR = (val: number) => "₹" + val.toLocaleString("en-IN");
 
-  const getStateScheme = (stateName: string) => {
-    switch (stateName) {
-      case "Maharashtra":
-        return {
-          name: "Mahatma Jyotiba Phule Jan Arogya Yojana (MJPJAY)",
-          description: "Offers cashless health coverage up to ₹5 Lakhs per family per year in empanelled oncology centers in Maharashtra."
-        };
-      case "Karnataka":
-        return {
-          name: "Arogya Karnataka (AB-ArK)",
-          description: "Covers up to ₹5 Lakhs annually for tertiary oncology chemotherapy, radiation, and surgeries in Karnataka."
-        };
-      case "West Bengal":
-        return {
-          name: "Swasthya Sathi Scheme",
-          description: "Provides smart card-based health insurance offering up to ₹5 Lakhs annually for cancer treatments in West Bengal."
-        };
-      case "Tamil Nadu":
-        return {
-          name: "Chief Minister's Comprehensive Health Insurance Scheme (CMCHIS)",
-          description: "Cashless welfare cover up to ₹5 Lakhs per family per year for advanced oncology packages in Tamil Nadu."
-        };
-      case "Kerala":
-        return {
-          name: "Karunya Arogya Suraksha Padhathi (KASP)",
-          description: "Offers family health protection up to ₹5 Lakhs per year for specified cancer diagnostic scans and chemo cycles."
-        };
-      case "Delhi":
-        return {
-          name: "Delhi Arogya Kosh (DAK)",
-          description: "Delhi government aid covering costs of diagnostic imaging scans and cancer surgeries at approved partner labs."
-        };
-      case "Gujarat":
-        return {
-          name: "Mukhyamantri Amrutam (MA) Yojana",
-          description: "Provides cashless medical assistance up to ₹5 Lakhs for cancer packages to lower-income families in Gujarat."
-        };
-      case "Telangana":
-      case "Andhra Pradesh":
-        return {
-          name: "Dr. YSR Aarogyasri Health Scheme",
-          description: "State-sponsored cashless healthcare covering critical cancer operations and chemotherapy cycles."
-        };
-      case "Rajasthan":
-        return {
-          name: "Mukhyamantri Chiranjeevi Swasthya Bima Yojana",
-          description: "Offers cashless health coverage up to ₹25 Lakhs per family per year for major oncology treatments."
-        };
-      case "Odisha":
-        return {
-          name: "Biju Swasthya Kalyan Yojana (BSKY)",
-          description: "Welfare scheme covering up to ₹10 Lakhs for female oncology care in Odisha."
-        };
-      default:
-        return {
-          name: "Ayushman Bharat (PM-JAY)",
-          description: "National public health cover up to ₹5 Lakhs per year for advanced cancer chemotherapy and operations."
-        };
-    }
-  };
-
-  const stateScheme = isIntakeFilled ? getStateScheme(patientState) : {
-    name: "No Scheme Matched",
-    description: "Please complete the onboarding intake or type in the Cost Assistant to check eligibility."
-  };
-
   // Confidence Score mapping
   const confidenceScore = !isIntakeFilled ? "None" : stage === "Unsure" ? "Medium" : "High";
   const confidenceText = !isIntakeFilled ? "Intake pending" : stage === "Unsure" ? "Diagnostics pending" : "Verified diagnostics";
@@ -924,127 +867,40 @@ export default function Dashboard() {
 
         {/* Responsive Grid layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-gutter items-start">
-          
-          {/* Left Column: Chatbot, AI context summary & Tips */}
-          <div className="lg:col-span-5 space-y-md">
-            
-            {/* AI Cost Calculator Assistant chatbot widget */}
-            <div className="bg-surface rounded-3xl border border-outline-variant/70 tonal-card-shadow overflow-hidden flex flex-col h-[450px]">
-              <div className="px-md py-sm border-b border-outline-variant flex justify-between items-center shrink-0">
-                <div className="flex items-center gap-xs">
-                  <span className="material-symbols-outlined text-primary text-[20px]">calculate</span>
-                  <span className="font-label-md text-xs font-bold text-on-surface uppercase tracking-wider">{t("db_assistant_title")}</span>
-                </div>
-                <button 
-                  onClick={clearChatHistory}
-                  className="p-1 hover:bg-surface-container rounded-full text-outline hover:text-error transition-all"
-                  title="Clear Cost Chat History"
-                >
-                  <span className="material-symbols-outlined text-[16px]">delete_sweep</span>
-                </button>
-              </div>
 
-              {/* Chat Thread */}
-              <div className="flex-1 overflow-y-auto p-sm space-y-sm custom-scrollbar bg-surface-bright/10">
-                {chatMessages.map((msg, idx) => (
-                  <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                    <div 
-                      className={`max-w-[85%] p-sm text-xs rounded-xl shadow-xs leading-relaxed ${
-                        msg.role === "user" 
-                          ? "bg-primary text-on-primary rounded-tr-none" 
-                          : "bg-surface-container text-on-surface rounded-tl-none border border-outline-variant/30"
-                      }`}
-                    >
-                      <div>{msg.text}</div>
-                      {msg.role === "bot" && (
-                        <div className="pt-1 mt-1 border-t border-outline-variant/20 flex justify-end">
-                          <button
-                            type="button"
-                            onClick={() => toggleSpeakMessage(idx, msg.text)}
-                            className={`flex items-center gap-[2px] text-[9px] font-semibold transition-all ${
-                              speakingMsgIndex === idx
-                                ? "text-primary bg-primary/10 px-1 rounded"
-                                : "text-outline hover:text-primary"
-                            }`}
-                            title={speakingMsgIndex === idx ? "Stop playback" : "Listen to response"}
-                          >
-                            <span className="material-symbols-outlined text-[12px]">
-                              {speakingMsgIndex === idx ? "volume_off" : "volume_up"}
-                            </span>
-                            <span>{speakingMsgIndex === idx ? "Stop" : "Listen"}</span>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                
-                {isChatLoading && (
-                  <div className="flex justify-start">
-                    <div className="p-sm text-xs rounded-xl rounded-tl-none bg-surface-container border border-outline-variant/30 flex items-center gap-xs">
-                      <span className="w-1.5 h-1.5 bg-outline rounded-full animate-bounce" />
-                      <span className="w-1.5 h-1.5 bg-outline rounded-full animate-bounce delay-100" />
-                      <span className="w-1.5 h-1.5 bg-outline rounded-full animate-bounce delay-200" />
-                    </div>
-                  </div>
-                )}
-                <div ref={chatEndRef} />
-              </div>
-
-              {/* Quick suggestions */}
-              {chatMessages.length <= 1 && (
-                <div className="px-sm py-1 border-t border-outline-variant/30 bg-surface-bright/20 flex flex-wrap gap-xs shrink-0">
-                  <button 
-                    onClick={() => sendChatMessage("Estimate Stage 2 private care in Karnataka")}
-                    className="text-[9px] px-2 py-1 rounded bg-white hover:bg-surface-container-low border border-outline-variant/30 font-medium transition-colors"
-                  >
-                    Stage II in Karnataka
-                  </button>
-                  <button 
-                    onClick={() => sendChatMessage("Costs for government hospital stage 3, no insurance")}
-                    className="text-[9px] px-2 py-1 rounded bg-white hover:bg-surface-container-low border border-outline-variant/30 font-medium transition-colors"
-                  >
-                    Govt Hospital Stage III
-                  </button>
-                </div>
-              )}
-
-              {/* Message Entry box */}
-              <div className="p-xs bg-surface border-t border-outline-variant/40 flex items-center gap-xs shrink-0">
-                <button
-                  type="button"
-                  onClick={toggleVoiceInput}
-                  disabled={isChatLoading}
-                  className={`p-1.5 rounded-xl active:scale-95 transition-all focus:outline-none ${
-                    isListening
-                      ? "bg-error text-on-error animate-pulse shadow-sm"
-                      : "bg-surface-container-high text-outline hover:text-primary"
-                  }`}
-                  title={isListening ? "Stop listening" : "Voice input"}
-                  aria-label="Toggle voice input"
-                >
-                  <span className="material-symbols-outlined text-[16px]">
-                    {isListening ? "mic_off" : "mic"}
-                  </span>
-                </button>
-                <input
-                  type="text"
-                  placeholder="Ask and save details (e.g. state, age, stage)..."
-                  value={draftChat}
-                  onChange={e => setDraftChat(e.target.value)}
-                  onKeyDown={e => { if (e.key === "Enter") sendChatMessage(); }}
-                  disabled={isChatLoading}
-                  className="flex-1 bg-surface-container-low rounded-xl border border-outline-variant/50 px-sm py-1.5 text-xs focus:outline-none focus:border-primary disabled:opacity-50"
-                />
-                <button
-                  onClick={() => sendChatMessage()}
-                  disabled={!draftChat.trim() || isChatLoading}
-                  className="p-1.5 bg-primary text-on-primary rounded-xl hover:opacity-90 active:scale-95 transition-all disabled:opacity-40"
-                >
-                  <span className="material-symbols-outlined text-[16px]">send</span>
-                </button>
-              </div>
+          {/* Scenario Comparison: horizontal row spanning the full width */}
+          <div className="lg:col-span-12">
+            <div className="flex justify-between items-center px-xs mb-sm">
+              <h3 className="font-headline-sm text-sm text-primary uppercase tracking-wider font-bold">{t("db_scenarios")}</h3>
+              <span className="material-symbols-outlined text-outline cursor-pointer hover:text-primary transition-colors">info</span>
             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-sm">
+              <ScenarioCard
+                label={t("db_best")}
+                value={isIntakeFilled ? formatINR(Math.round(totalEstimate * 0.45)) : "—"}
+                icon="trending_down"
+                tone="secondary"
+                body={isIntakeFilled ? t("db_best_desc") : t("db_fill")}
+              />
+              <ScenarioCard
+                label={t("db_expected")}
+                value={isIntakeFilled ? formatINR(totalEstimate) : "—"}
+                icon="stars"
+                tone="primary"
+                body={isIntakeFilled ? t("db_expected_desc") : t("db_fill")}
+              />
+              <ScenarioCard
+                label={t("db_complex")}
+                value={isIntakeFilled ? formatINR(Math.round(totalEstimate * 2.1)) : "—"}
+                icon="warning"
+                tone="tertiary"
+                body={isIntakeFilled ? t("db_complex_desc") : t("db_fill")}
+              />
+            </div>
+          </div>
+
+          {/* Left Column: AI context summary & Tips */}
+          <div className="lg:col-span-4 space-y-md">
 
             {/* Extracted Diagnosis & Next Steps card */}
             {(extractedDiagnosis || extractedNextSteps) && (
@@ -1076,36 +932,36 @@ export default function Dashboard() {
                 <h3 className="font-headline-sm text-sm text-on-surface uppercase tracking-wider font-bold">{t("db_savings")}</h3>
               </div>
               <div className="space-y-sm">
-                <Tip 
-                  icon="medical_information" 
-                  title="Switch to Semi-Private Room" 
-                  amount="₹25,000" 
-                  body="on room rent and associated nursing charges during stay." 
+                <Tip
+                  icon="medical_information"
+                  title="Switch to Semi-Private Room"
+                  amount="₹25,000"
+                  body="on room rent and associated nursing charges during stay."
                   checked={savingsChecked.room}
                   onToggle={() => setSavingsChecked(prev => ({ ...prev, room: !prev.room }))}
                 />
-                <Tip 
-                  icon="medication" 
-                  title="Generic Oncology Meds" 
+                <Tip
+                  icon="medication"
+                  title="Generic Oncology Meds"
                   amount="₹50,000"
-                  body="Ask your oncologist for PM Bhartiya Janaushadhi generic cancer drug alternatives." 
+                  body="Ask your oncologist for PM Bhartiya Janaushadhi generic cancer drug alternatives."
                   checked={savingsChecked.meds}
                   onToggle={() => setSavingsChecked(prev => ({ ...prev, meds: !prev.meds }))}
                 />
-                <Tip 
-                  icon="calendar_month" 
-                  title="Pre-Surgical Lab Work" 
-                  amount="₹12,000" 
-                  body="at a partner diagnostic radiology center." 
+                <Tip
+                  icon="calendar_month"
+                  title="Pre-Surgical Lab Work"
+                  amount="₹12,000"
+                  body="at a partner diagnostic radiology center."
                   checked={savingsChecked.labs}
                   onToggle={() => setSavingsChecked(prev => ({ ...prev, labs: !prev.labs }))}
                 />
               </div>
               <Link
-                to={isIntakeFilled ? "/action-plan" : "/intake"}
+                to="/action-plan"
                 className="mt-md w-full bg-secondary text-on-secondary py-2 rounded-xl font-label-md flex items-center justify-center gap-xs hover:brightness-110 transition-all shadow-xs hover:shadow text-xs"
               >
-                {isIntakeFilled ? t("db_action") : t("db_fill")}
+                {t("db_action")}
                 <span className="material-symbols-outlined text-sm">arrow_forward</span>
               </Link>
             </div>
@@ -1132,137 +988,217 @@ export default function Dashboard() {
 
           </div>
 
-          {/* Right Column: Scenario Comparison & Financial Details */}
-          <div className="lg:col-span-7 space-y-md">
-            
-            {/* Scenario Comparison Card */}
-            <div className="space-y-sm">
-              <div className="flex justify-between items-center px-xs">
-                <h3 className="font-headline-sm text-sm text-primary uppercase tracking-wider font-bold">{t("db_scenarios")}</h3>
-                <span className="material-symbols-outlined text-outline cursor-pointer hover:text-primary transition-colors">info</span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-sm">
-                <ScenarioCard 
-                  label={t("db_best")} 
-                  value={isIntakeFilled ? formatINR(Math.round(totalEstimate * 0.45)) : "—"} 
-                  icon="trending_down" 
-                  tone="secondary" 
-                  body={isIntakeFilled ? t("db_best_desc") : t("db_fill")} 
-                />
-                <ScenarioCard 
-                  label={t("db_expected")} 
-                  value={isIntakeFilled ? formatINR(totalEstimate) : "—"} 
-                  icon="stars" 
-                  tone="primary" 
-                  body={isIntakeFilled ? t("db_expected_desc") : t("db_fill")} 
-                />
-                <ScenarioCard 
-                  label={t("db_complex")} 
-                  value={isIntakeFilled ? formatINR(Math.round(totalEstimate * 2.1)) : "—"} 
-                  icon="warning" 
-                  tone="tertiary" 
-                  body={isIntakeFilled ? t("db_complex_desc") : t("db_fill")} 
-                />
-              </div>
-            </div>
+          {/* Right Column: Insurance details, now filling the full column width */}
+          <div className="lg:col-span-8 space-y-md">
 
-            {/* Insurance & Govt Schemes Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-sm">
-              
-              {/* Insurance Card */}
-              <div className="bg-white/90 backdrop-blur-md p-md rounded-2xl shadow-sm border border-outline-variant/60 hover:-translate-y-0.5 hover:shadow-md transition-all duration-300">
-                <h3 className="font-headline-sm text-sm text-primary mb-sm uppercase tracking-wider font-bold">{t("db_insurance")}</h3>
-                <div className="space-y-sm">
-                  <div className="flex justify-between items-center text-xs text-on-surface">
-                    <span className="font-medium text-on-surface-variant">Covered by {isIntakeFilled ? (hasInsurance ? insuranceProvider : "Ayushman Bharat / State Plan") : "Pending Profile"}</span>
-                    <span className="font-bold text-secondary">{isIntakeFilled ? formatINR(insuranceShare) : "—"}</span>
-                  </div>
-                  <div className="w-full h-3 bg-surface-container rounded-full overflow-hidden flex border border-outline-variant/20">
-                    <div className="h-full bg-secondary transition-all duration-500" style={{ width: `${totalEstimate > 0 ? Math.round((insuranceShare / totalEstimate) * 100) : 0}%` }} />
-                    <div className="h-full bg-tertiary-container transition-all duration-500" style={{ width: `${totalEstimate > 0 ? Math.round((outOfPocket / totalEstimate) * 100) : 0}%` }} />
-                  </div>
-                  <div className="flex justify-between items-center text-xs text-on-surface">
-                    <span className="font-medium text-on-surface-variant">{t("db_out_of_pocket")}</span>
-                    <span className="font-bold text-tertiary">{isIntakeFilled ? formatINR(outOfPocket) : "—"}</span>
-                  </div>
-                  
-                  {/* Deductions display if any savings tips checked */}
-                  {totalSavings > 0 && (
-                    <div className="flex justify-between items-center text-xs p-xs bg-secondary/10 text-secondary rounded font-bold border border-secondary/20 animate-fade-in">
-                      <span>Interactive Tips Savings Applied</span>
-                      <span>-{formatINR(totalSavings)}</span>
-                    </div>
-                  )}
-                  
-                  <div className="flex justify-between items-center text-xs pt-xs border-t border-outline-variant/40 font-bold text-on-surface">
-                    <span>{t("db_adjusted")}</span>
-                    <span className="text-primary text-sm">{isIntakeFilled ? formatINR(outOfPocketAdjusted) : "—"}</span>
-                  </div>
-
-                  <div className="p-xs bg-surface-container-low rounded-lg flex items-start gap-xs mt-xs border border-outline-variant/20">
-                    <span className="material-symbols-outlined text-primary text-xs mt-0.5">info</span>
-                    <p className="font-body-sm text-on-surface-variant text-[10px] leading-relaxed">
-                      {isIntakeFilled ? (
-                        hasInsurance 
-                          ? `Estimated policy cover based on standard critical illness room rent limits.` 
-                          : "No private insurance detected. Cash pay and national scheme pricing limits applied."
-                      ) : (
-                        "No profile data loaded. Onboard via chat or intake to calculate limits."
-                      )}
-                    </p>
-                  </div>
+            {/* Insurance Card */}
+            <div className="bg-white/90 backdrop-blur-md p-lg rounded-2xl shadow-sm border border-outline-variant/60 hover:-translate-y-0.5 hover:shadow-md transition-all duration-300">
+              <h3 className="font-headline-sm text-base text-primary mb-md uppercase tracking-wider font-bold">{t("db_insurance")}</h3>
+              <div className="space-y-md">
+                <div className="flex justify-between items-center text-sm text-on-surface">
+                  <span className="font-medium text-on-surface-variant">Covered by {isIntakeFilled ? (hasInsurance ? insuranceProvider : "Ayushman Bharat / State Plan") : "Pending Profile"}</span>
+                  <span className="font-bold text-secondary">{isIntakeFilled ? formatINR(insuranceShare) : "—"}</span>
                 </div>
-              </div>
-
-              {/* Govt Schemes Card */}
-              <div className="bg-surface-container-low/80 backdrop-blur-md p-md rounded-2xl border-l-8 border-secondary-container border border-outline-variant/40 shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all duration-300">
-                <div className="flex items-center gap-xs mb-sm">
-                  <span className="material-symbols-outlined text-secondary" style={{ fontSize: 24 }}>account_balance</span>
-                  <h3 className="font-headline-sm text-sm text-on-surface uppercase tracking-wider font-bold">{t("db_schemes")}</h3>
+                <div className="w-full h-3.5 bg-surface-container rounded-full overflow-hidden flex border border-outline-variant/20">
+                  <div className="h-full bg-secondary transition-all duration-500" style={{ width: `${totalEstimate > 0 ? Math.round((insuranceShare / totalEstimate) * 100) : 0}%` }} />
+                  <div className="h-full bg-tertiary-container transition-all duration-500" style={{ width: `${totalEstimate > 0 ? Math.round((outOfPocket / totalEstimate) * 100) : 0}%` }} />
                 </div>
-                <div className="bg-white/80 p-sm rounded-xl border border-secondary-container/40 mb-sm">
-                  <div className="flex justify-between items-center mb-xs">
-                    <span className="font-label-md text-primary text-xs font-bold truncate max-w-[170px]" title={stateScheme.name}>{stateScheme.name}</span>
-                    {isIntakeFilled && <span className="px-1.5 py-[2px] bg-secondary-container text-on-secondary-container rounded-full font-label-sm text-[8px] font-bold">{t("db_eligible")}</span>}
+                <div className="flex justify-between items-center text-sm text-on-surface">
+                  <span className="font-medium text-on-surface-variant">{t("db_out_of_pocket")}</span>
+                  <span className="font-bold text-tertiary">{isIntakeFilled ? formatINR(outOfPocket) : "—"}</span>
+                </div>
+
+                {/* Deductions display if any savings tips checked */}
+                {totalSavings > 0 && (
+                  <div className="flex justify-between items-center text-sm p-sm bg-secondary/10 text-secondary rounded font-bold border border-secondary/20 animate-fade-in">
+                    <span>Interactive Tips Savings Applied</span>
+                    <span>-{formatINR(totalSavings)}</span>
                   </div>
-                  <p className="font-body-sm text-on-surface-variant text-[10px] leading-normal">
-                    {stateScheme.description}
+                )}
+
+                <div className="flex justify-between items-center text-sm pt-sm border-t border-outline-variant/40 font-bold text-on-surface">
+                  <span>{t("db_adjusted")}</span>
+                  <span className="text-primary text-base">{isIntakeFilled ? formatINR(outOfPocketAdjusted) : "—"}</span>
+                </div>
+
+                <div className="p-sm bg-surface-container-low rounded-lg flex items-start gap-xs mt-xs border border-outline-variant/20">
+                  <span className="material-symbols-outlined text-primary text-sm mt-0.5">info</span>
+                  <p className="font-body-sm text-on-surface-variant text-xs leading-relaxed">
+                    {isIntakeFilled ? (
+                      hasInsurance
+                        ? `Estimated policy cover based on standard critical illness room rent limits.`
+                        : "No private insurance detected. Cash pay and national scheme pricing limits applied."
+                    ) : (
+                      "No profile data loaded. Onboard via chat or intake to calculate limits."
+                    )}
                   </p>
-                  {isIntakeFilled ? (
-                    <Link
-                      to="/schemes"
-                      className="mt-sm text-secondary font-label-md flex items-center gap-xs hover:underline text-xs"
-                    >
-                      Check Documentation Setup
-                      <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                    </Link>
-                  ) : (
-                    <Link
-                      to="/intake"
-                      className="mt-sm text-secondary font-label-md flex items-center gap-xs hover:underline text-xs"
-                    >
-                      Complete Intake Form
-                      <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                    </Link>
-                  )}
                 </div>
-                <p className="font-label-sm text-on-surface-variant opacity-80 italic text-[9px]">
-                  Last verified: 2026 scheme guides
-                </p>
               </div>
             </div>
 
-            <Link
-              to={isIntakeFilled ? "/cost-breakdown" : "/intake"}
-              className="w-full bg-primary text-on-primary py-3 rounded-2xl font-headline-sm hover:brightness-110 hover:-translate-y-0.5 transition-all flex justify-center items-center gap-xs shadow-md"
-            >
-              {isIntakeFilled ? t("db_breakdown") : t("db_start")}
-              <span className="material-symbols-outlined">arrow_forward</span>
-            </Link>
+            {/* Navigation buttons */}
+            <div className="flex flex-col sm:flex-row gap-sm">
+              <Link
+                to="/cost-breakdown"
+                className="flex-1 bg-primary text-on-primary py-3 rounded-2xl font-headline-sm hover:brightness-110 hover:-translate-y-0.5 transition-all flex justify-center items-center gap-xs shadow-md"
+              >
+                {t("db_breakdown")}
+                <span className="material-symbols-outlined">arrow_forward</span>
+              </Link>
+              <Link
+                to="/schemes"
+                className="flex-1 bg-secondary-container text-on-secondary-container py-3 rounded-2xl font-headline-sm hover:brightness-110 hover:-translate-y-0.5 transition-all flex justify-center items-center gap-xs shadow-md border border-secondary/30"
+              >
+                <span className="material-symbols-outlined">account_balance</span>
+                View Government Schemes
+              </Link>
+            </div>
           </div>
 
         </div>
       </div>
+
+      {/* Floating AI Cost Assistant: popup button + panel */}
+      {isChatOpen && (
+        <div className="fixed bottom-24 right-6 z-50 w-[92vw] max-w-sm bg-surface rounded-3xl border border-outline-variant/70 tonal-card-shadow overflow-hidden flex flex-col h-[480px] animate-fade-in">
+          <div className="px-md py-sm border-b border-outline-variant flex justify-between items-center shrink-0">
+            <div className="flex items-center gap-xs">
+              <span className="material-symbols-outlined text-primary text-[20px]">calculate</span>
+              <span className="font-label-md text-xs font-bold text-on-surface uppercase tracking-wider">{t("db_assistant_title")}</span>
+            </div>
+            <div className="flex items-center gap-xs">
+              <button
+                onClick={clearChatHistory}
+                className="p-1 hover:bg-surface-container rounded-full text-outline hover:text-error transition-all"
+                title="Clear Cost Chat History"
+              >
+                <span className="material-symbols-outlined text-[16px]">delete_sweep</span>
+              </button>
+              <button
+                onClick={() => setIsChatOpen(false)}
+                className="p-1 hover:bg-surface-container rounded-full text-outline hover:text-on-surface transition-all"
+                title="Close"
+                aria-label="Close assistant"
+              >
+                <span className="material-symbols-outlined text-[16px]">close</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Chat Thread */}
+          <div className="flex-1 overflow-y-auto p-sm space-y-sm custom-scrollbar bg-surface-bright/10">
+            {chatMessages.map((msg, idx) => (
+              <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div
+                  className={`max-w-[85%] p-sm text-xs rounded-xl shadow-xs leading-relaxed ${
+                    msg.role === "user"
+                      ? "bg-primary text-on-primary rounded-tr-none"
+                      : "bg-surface-container text-on-surface rounded-tl-none border border-outline-variant/30"
+                  }`}
+                >
+                  <div>{msg.text}</div>
+                  {msg.role === "bot" && (
+                    <div className="pt-1 mt-1 border-t border-outline-variant/20 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => toggleSpeakMessage(idx, msg.text)}
+                        className={`flex items-center gap-[2px] text-[9px] font-semibold transition-all ${
+                          speakingMsgIndex === idx
+                            ? "text-primary bg-primary/10 px-1 rounded"
+                            : "text-outline hover:text-primary"
+                        }`}
+                        title={speakingMsgIndex === idx ? "Stop playback" : "Listen to response"}
+                      >
+                        <span className="material-symbols-outlined text-[12px]">
+                          {speakingMsgIndex === idx ? "volume_off" : "volume_up"}
+                        </span>
+                        <span>{speakingMsgIndex === idx ? "Stop" : "Listen"}</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            {isChatLoading && (
+              <div className="flex justify-start">
+                <div className="p-sm text-xs rounded-xl rounded-tl-none bg-surface-container border border-outline-variant/30 flex items-center gap-xs">
+                  <span className="w-1.5 h-1.5 bg-outline rounded-full animate-bounce" />
+                  <span className="w-1.5 h-1.5 bg-outline rounded-full animate-bounce delay-100" />
+                  <span className="w-1.5 h-1.5 bg-outline rounded-full animate-bounce delay-200" />
+                </div>
+              </div>
+            )}
+            <div ref={chatEndRef} />
+          </div>
+
+          {/* Quick suggestions */}
+          {chatMessages.length <= 1 && (
+            <div className="px-sm py-1 border-t border-outline-variant/30 bg-surface-bright/20 flex flex-wrap gap-xs shrink-0">
+              <button
+                onClick={() => sendChatMessage("Estimate Stage 2 private care in Karnataka")}
+                className="text-[9px] px-2 py-1 rounded bg-white hover:bg-surface-container-low border border-outline-variant/30 font-medium transition-colors"
+              >
+                Stage II in Karnataka
+              </button>
+              <button
+                onClick={() => sendChatMessage("Costs for government hospital stage 3, no insurance")}
+                className="text-[9px] px-2 py-1 rounded bg-white hover:bg-surface-container-low border border-outline-variant/30 font-medium transition-colors"
+              >
+                Govt Hospital Stage III
+              </button>
+            </div>
+          )}
+
+          {/* Message Entry box */}
+          <div className="p-xs bg-surface border-t border-outline-variant/40 flex items-center gap-xs shrink-0">
+            <button
+              type="button"
+              onClick={toggleVoiceInput}
+              disabled={isChatLoading}
+              className={`p-1.5 rounded-xl active:scale-95 transition-all focus:outline-none ${
+                isListening
+                  ? "bg-error text-on-error animate-pulse shadow-sm"
+                  : "bg-surface-container-high text-outline hover:text-primary"
+              }`}
+              title={isListening ? "Stop listening" : "Voice input"}
+              aria-label="Toggle voice input"
+            >
+              <span className="material-symbols-outlined text-[16px]">
+                {isListening ? "mic_off" : "mic"}
+              </span>
+            </button>
+            <input
+              type="text"
+              placeholder="Ask and save details (e.g. state, age, stage)..."
+              value={draftChat}
+              onChange={e => setDraftChat(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") sendChatMessage(); }}
+              disabled={isChatLoading}
+              className="flex-1 bg-surface-container-low rounded-xl border border-outline-variant/50 px-sm py-1.5 text-xs focus:outline-none focus:border-primary disabled:opacity-50"
+            />
+            <button
+              onClick={() => sendChatMessage()}
+              disabled={!draftChat.trim() || isChatLoading}
+              className="p-1.5 bg-primary text-on-primary rounded-xl hover:opacity-90 active:scale-95 transition-all disabled:opacity-40"
+            >
+              <span className="material-symbols-outlined text-[16px]">send</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Floating action button */}
+      <button
+        onClick={() => setIsChatOpen(prev => !prev)}
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary text-on-primary shadow-lg hover:brightness-110 active:scale-95 transition-all flex items-center justify-center"
+        title={isChatOpen ? "Close assistant" : "Open AI Cost Assistant"}
+        aria-label={isChatOpen ? "Close assistant" : "Open AI Cost Assistant"}
+      >
+        <span className="material-symbols-outlined text-[26px]">
+          {isChatOpen ? "close" : "calculate"}
+        </span>
+      </button>
     </AppShell>
   );
 }
