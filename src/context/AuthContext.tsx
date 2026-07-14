@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import type { User } from "firebase/auth";
-import { auth, clearLocalUserData, hydrateLocalFromFirestore, pushLocalToFirestore } from "../firebase";
+import { auth, clearLocalUserData, startRealtimeSync, stopRealtimeSync } from "../firebase";
 
 type AuthContextType = {
   /** The raw Firebase user, or null when signed out. */
@@ -69,9 +69,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // onAuthStateChanged still updates state (and hydrates data) when it lands.
     const readyFallback = setTimeout(() => setAuthReady(true), 2500);
 
-    const unsubscribe = onAuthStateChanged(auth, async (nextUser) => {
+    const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
       clearTimeout(readyFallback);
       if (nextUser) {
+        // Clear the NEW_SIGNUP flag if set — real-time sync seeds new accounts
+        // automatically (first snapshot for a doc-less uid), so it's no longer
+        // consulted; we just tidy it up.
+        sessionStorage.removeItem(NEW_SIGNUP_FLAG);
+
         const name =
           nextUser.displayName ||
           localStorage.getItem("artham_user_name") ||
@@ -84,41 +89,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(nextUser);
         setDisplayName(name);
 
-        // Resolve this account's saved profile before revealing the app.
+        // Open the real-time Firestore listener. It streams the account's saved
+        // profile into LocalStorage (and keeps it live across devices); the
+        // callback fires once the first snapshot resolves.
         setSyncing(true);
-        try {
-          const isNewSignup = sessionStorage.getItem(NEW_SIGNUP_FLAG) === "1";
-          sessionStorage.removeItem(NEW_SIGNUP_FLAG);
-
-          if (isNewSignup) {
-            // Seed the new account with any guest progress from this device.
-            await pushLocalToFirestore(nextUser.uid);
-          } else {
-            const existed = await hydrateLocalFromFirestore(nextUser.uid);
-            if (!existed) {
-              // First login for an account with no stored doc (e.g. first
-              // Google sign-in): persist whatever local context exists.
-              await pushLocalToFirestore(nextUser.uid);
-            }
-          }
-        } catch (err) {
-          console.error("Failed to synchronize user profile:", err);
-        } finally {
+        startRealtimeSync(nextUser.uid, () => {
           setSyncing(false);
           // Let LocalStorage-backed pages re-read their now-current data.
           window.dispatchEvent(new CustomEvent("auth-change"));
-        }
+          setAuthReady(true);
+        });
       } else {
+        stopRealtimeSync();
         setUser(null);
         setDisplayName("");
+        setSyncing(false);
         localStorage.removeItem("artham_is_logged_in");
         localStorage.removeItem("artham_user_name");
         localStorage.removeItem("artham_user_email");
         clearLocalUserData();
         window.dispatchEvent(new CustomEvent("auth-change"));
+        setAuthReady(true);
       }
-
-      setAuthReady(true);
     });
 
     return () => {

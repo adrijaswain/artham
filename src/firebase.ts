@@ -1,7 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
-import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
-import type { Msg, VaultFile } from "./pages/MedicalInput";
+import { getFirestore, doc, onSnapshot, setDoc } from "firebase/firestore";
 
 // Read client configuration from Vite environment variables (VITE_)
 // with fallback mock credentials to prevent application crashes
@@ -28,13 +27,25 @@ setPersistence(auth, browserLocalPersistence).catch((err) => {
   console.warn("Could not set Firebase auth persistence:", err);
 });
 
+// ===========================================================================
+// Central Firestore <-> Auth sync layer
 // ---------------------------------------------------------------------------
-// Canonical list of per-user data keys stored in LocalStorage.
-// These are the ONLY keys tied to a specific user account; everything else
-// (language, session flags) is device-level and never synced to Firestore.
-// ---------------------------------------------------------------------------
+// LocalStorage is the app's synchronous working store (every page reads it
+// directly, and guests who never sign in still get a working app). Firestore
+// is the authoritative cloud copy for a signed-in user, mirrored to LocalStorage
+// in real time and keyed to their Auth uid at `users/{uid}`.
+//
+// Rather than have every page manually push its slice of state to Firestore
+// (the old, fragile approach), this module is the ONE place sync happens:
+//
+//   * We intercept writes to any user-scoped LocalStorage key and debounce a
+//     full-profile push to Firestore. Pages just write LocalStorage as usual.
+//   * `startRealtimeSync(uid)` opens an onSnapshot listener that streams the
+//     cloud profile back into LocalStorage (cross-device / returning login) and
+//     fires an `auth-change` event so pages re-read their data.
+// ===========================================================================
 
-/** Intake / onboarding form fields (12). */
+/** Intake / onboarding form fields — stored inside the `intake` map. */
 export const INTAKE_KEYS = [
   "artham_intake_state",
   "artham_intake_age",
@@ -50,7 +61,12 @@ export const INTAKE_KEYS = [
   "artham_intake_step"
 ] as const;
 
-/** Every LocalStorage key that belongs to the signed-in user's profile. */
+/**
+ * Every LocalStorage key that belongs to the signed-in user's profile and must
+ * be synced to Firestore. Writing any of these (from anywhere in the app)
+ * schedules a cloud push. Device-level keys (language, api key, session flags)
+ * are intentionally excluded.
+ */
 const USER_SCOPED_KEYS = [
   ...INTAKE_KEYS,
   "artham_vault_files",
@@ -60,8 +76,14 @@ const USER_SCOPED_KEYS = [
   "artham_chatbot_next_steps",
   "artham_custom_breakdown"
 ];
+const USER_SCOPED_SET = new Set<string>(USER_SCOPED_KEYS);
 
 const nowIso = () => new Date().toISOString();
+
+// Original, un-patched storage methods — used internally so mirroring cloud
+// data into LocalStorage never loops back into another cloud push.
+const rawSetItem = localStorage.setItem.bind(localStorage);
+const rawRemoveItem = localStorage.removeItem.bind(localStorage);
 
 /** Safely JSON.parse a LocalStorage value, returning `fallback` on error. */
 function readJson<T>(key: string, fallback: T): T {
@@ -81,13 +103,10 @@ function readJson<T>(key: string, fallback: T): T {
  * another's session on a shared browser.
  */
 export function clearLocalUserData() {
-  USER_SCOPED_KEYS.forEach((key) => localStorage.removeItem(key));
+  USER_SCOPED_KEYS.forEach((key) => rawRemoveItem(key));
 }
 
-/**
- * Read the complete user profile currently held in LocalStorage into the
- * shape stored under `users/{uid}` in Firestore.
- */
+/** Read the complete user profile from LocalStorage into the `users/{uid}` shape. */
 function collectLocalUserData() {
   const intake: Record<string, string> = {};
   INTAKE_KEYS.forEach((key) => {
@@ -107,61 +126,52 @@ function collectLocalUserData() {
 }
 
 /**
- * Fetch the Firestore profile for `uid` and write it into LocalStorage so the
- * rest of the app (which reads from LocalStorage) has the user's saved context.
- *
- * Returns `true` if a stored profile existed, `false` for a first-time account.
- * When a profile exists, LocalStorage is cleared first so no stale/guest data
- * from a previous session survives.
+ * Write a `users/{uid}` document into LocalStorage. Runs with `applyingRemote`
+ * set so the storage interception below does NOT echo this back to Firestore.
  */
-export async function hydrateLocalFromFirestore(uid: string): Promise<boolean> {
-  const snapshot = await getDoc(doc(db, "users", uid));
-  if (!snapshot.exists()) return false;
+function applyProfileToLocal(data: Record<string, unknown>) {
+  applyingRemote = true;
+  try {
+    clearLocalUserData();
 
-  const data = snapshot.data();
-
-  // Replace any existing local profile with this account's authoritative data.
-  clearLocalUserData();
-
-  if (data.intake && typeof data.intake === "object") {
-    Object.entries(data.intake as Record<string, unknown>).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        localStorage.setItem(key, String(value));
-      }
-    });
+    const intake = data.intake;
+    if (intake && typeof intake === "object") {
+      Object.entries(intake as Record<string, unknown>).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) rawSetItem(key, String(value));
+      });
+    }
+    if (Array.isArray(data.vaultFiles)) {
+      rawSetItem("artham_vault_files", JSON.stringify(data.vaultFiles));
+    }
+    if (Array.isArray(data.messages)) {
+      rawSetItem("artham_chat_messages", JSON.stringify(data.messages));
+    }
+    if (Array.isArray(data.dashboardMessages)) {
+      rawSetItem("artham_dashboard_chat_messages", JSON.stringify(data.dashboardMessages));
+    }
+    if (typeof data.diagnosisDetails === "string" && data.diagnosisDetails) {
+      rawSetItem("artham_chatbot_diagnosis_details", data.diagnosisDetails);
+    }
+    if (typeof data.nextSteps === "string" && data.nextSteps) {
+      rawSetItem("artham_chatbot_next_steps", data.nextSteps);
+    }
+    if (data.customBreakdown) {
+      rawSetItem("artham_custom_breakdown", JSON.stringify(data.customBreakdown));
+    }
+  } finally {
+    applyingRemote = false;
   }
-
-  if (Array.isArray(data.vaultFiles)) {
-    localStorage.setItem("artham_vault_files", JSON.stringify(data.vaultFiles));
-  }
-  if (Array.isArray(data.messages)) {
-    localStorage.setItem("artham_chat_messages", JSON.stringify(data.messages));
-  }
-  if (Array.isArray(data.dashboardMessages)) {
-    localStorage.setItem("artham_dashboard_chat_messages", JSON.stringify(data.dashboardMessages));
-  }
-  if (typeof data.diagnosisDetails === "string" && data.diagnosisDetails) {
-    localStorage.setItem("artham_chatbot_diagnosis_details", data.diagnosisDetails);
-  }
-  if (typeof data.nextSteps === "string" && data.nextSteps) {
-    localStorage.setItem("artham_chatbot_next_steps", data.nextSteps);
-  }
-  if (data.customBreakdown) {
-    localStorage.setItem("artham_custom_breakdown", JSON.stringify(data.customBreakdown));
-  }
-
-  return true;
 }
 
 /**
- * Push the profile currently in LocalStorage up to `users/{uid}`. Used to seed
- * a brand-new account with any progress the user made while in guest mode.
+ * Push the profile currently in LocalStorage up to `users/{uid}`, merged with
+ * the account's profile fields (name / email).
  */
 export async function pushLocalToFirestore(uid: string) {
   try {
     const user = auth.currentUser;
     const email = user?.email || localStorage.getItem("artham_user_email") || "";
-    const name = user?.displayName || localStorage.getItem("artham_user_name") || "Guest User";
+    const name = user?.displayName || localStorage.getItem("artham_user_name") || "User";
 
     await setDoc(
       doc(db, "users", uid),
@@ -169,60 +179,117 @@ export async function pushLocalToFirestore(uid: string) {
       { merge: true }
     );
   } catch (error) {
-    console.error("Error pushing local data to Firestore:", error);
+    console.error("Error pushing data to Firestore:", error);
   }
 }
 
 // ---------------------------------------------------------------------------
-// Granular, field-level writers used by individual pages as the user edits.
-// Each merges into the single `users/{uid}` document.
+// Storage interception: any user-scoped LocalStorage write schedules a push.
 // ---------------------------------------------------------------------------
 
-async function mergeUserDoc(uid: string, patch: Record<string, unknown>, label: string) {
-  try {
-    await setDoc(doc(db, "users", uid), { ...patch, updatedAt: nowIso() }, { merge: true });
-  } catch (error) {
-    console.error(`Error updating ${label} in Firestore:`, error);
+/** True while we are mirroring cloud data into LocalStorage (suppresses pushes). */
+let applyingRemote = false;
+/** True once the initial cloud snapshot has been applied for the current user. */
+let hydrated = false;
+let pushTimer: ReturnType<typeof setTimeout> | null = null;
+
+function scheduleSync() {
+  const user = auth.currentUser;
+  // Only sync a signed-in user, and never before the initial hydrate — pushing
+  // early would clobber the cloud copy with half-loaded local defaults.
+  if (!user || !hydrated) return;
+  if (pushTimer) clearTimeout(pushTimer);
+  pushTimer = setTimeout(() => {
+    pushTimer = null;
+    pushLocalToFirestore(user.uid);
+  }, 800);
+}
+
+localStorage.setItem = function (key: string, value: string) {
+  rawSetItem(key, value);
+  if (!applyingRemote && USER_SCOPED_SET.has(key)) scheduleSync();
+};
+localStorage.removeItem = function (key: string) {
+  rawRemoveItem(key);
+  if (!applyingRemote && USER_SCOPED_SET.has(key)) scheduleSync();
+};
+
+// ---------------------------------------------------------------------------
+// Real-time sync lifecycle (driven by AuthContext on sign-in / sign-out).
+// ---------------------------------------------------------------------------
+
+let unsubscribeSnapshot: (() => void) | null = null;
+let syncedUid: string | null = null;
+
+/**
+ * Begin streaming `users/{uid}` into LocalStorage.
+ *
+ * @param uid          The signed-in user's uid.
+ * @param onFirstSync  Called once the first snapshot resolves (whether the
+ *                     profile existed, was freshly seeded, or the listener
+ *                     errored) so the UI can drop its loading gate.
+ */
+export function startRealtimeSync(uid: string, onFirstSync?: () => void) {
+  if (syncedUid === uid && unsubscribeSnapshot) {
+    onFirstSync?.();
+    return;
   }
+  stopRealtimeSync();
+
+  syncedUid = uid;
+  hydrated = false;
+  let firstResolved = false;
+  const resolveFirst = () => {
+    if (firstResolved) return;
+    firstResolved = true;
+    hydrated = true;
+    onFirstSync?.();
+  };
+
+  unsubscribeSnapshot = onSnapshot(
+    doc(db, "users", uid),
+    async (snap) => {
+      // Ignore snapshots that only reflect our own un-acknowledged writes;
+      // wait for the server-confirmed version to avoid needless re-hydration.
+      if (snap.metadata.hasPendingWrites) return;
+
+      if (!snap.exists()) {
+        // Brand-new account: seed the cloud with any local/guest progress.
+        if (!firstResolved) {
+          hydrated = true; // allow the seeding push through
+          await pushLocalToFirestore(uid);
+        }
+      } else {
+        applyProfileToLocal(snap.data() as Record<string, unknown>);
+        window.dispatchEvent(new CustomEvent("auth-change"));
+      }
+      resolveFirst();
+    },
+    (error) => {
+      console.error("Firestore realtime sync error:", error);
+      window.dispatchEvent(
+        new CustomEvent("show-toast", {
+          detail: {
+            msg: "Cloud sync is unavailable — your data is saved on this device only.",
+            type: "error"
+          }
+        })
+      );
+      resolveFirst();
+    }
+  );
 }
 
-/** Save intake settings changes directly to Firestore. */
-export function saveUserIntakeToFirestore(uid: string, intakeData: Record<string, string>) {
-  return mergeUserDoc(uid, { intake: intakeData }, "intake");
-}
-
-/** Save Evidence Vault file list directly to Firestore. */
-export function saveUserVaultToFirestore(uid: string, vaultFiles: VaultFile[]) {
-  // Sanitize files so undefined values don't break Firestore.
-  const sanitizedFiles = vaultFiles.map((file) => ({
-    id: file.id,
-    name: file.name,
-    category: file.category,
-    date: file.date,
-    size: file.size,
-    amount: file.amount || "",
-    notes: file.notes || "",
-    aiAnalysis: file.aiAnalysis || "",
-    base64Data: file.base64Data || "",
-    mimeType: file.mimeType || ""
-  }));
-  return mergeUserDoc(uid, { vaultFiles: sanitizedFiles }, "Evidence Vault");
-}
-
-/** Save the MedicalInput chatbot message history directly to Firestore. */
-export function saveUserMessagesToFirestore(uid: string, messages: Msg[]) {
-  return mergeUserDoc(uid, { messages }, "chat history");
-}
-
-/** Save the Dashboard chatbot message history + extracted context to Firestore. */
-export function saveUserDashboardContextToFirestore(
-  uid: string,
-  context: { dashboardMessages?: unknown[]; diagnosisDetails?: string; nextSteps?: string }
-) {
-  return mergeUserDoc(uid, context, "dashboard context");
-}
-
-/** Save custom breakdown personalization directly to Firestore. */
-export function saveUserCustomBreakdownToFirestore(uid: string, customBreakdown: Record<string, unknown> | null) {
-  return mergeUserDoc(uid, { customBreakdown }, "custom breakdown");
+/** Tear down the active listener and pending push (sign-out / account switch). */
+export function stopRealtimeSync() {
+  if (unsubscribeSnapshot) {
+    unsubscribeSnapshot();
+    unsubscribeSnapshot = null;
+  }
+  if (pushTimer) {
+    clearTimeout(pushTimer);
+    pushTimer = null;
+  }
+  syncedUid = null;
+  hydrated = false;
 }

@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import AppShell from "../components/AppShell";
-import { auth, saveUserVaultToFirestore, saveUserMessagesToFirestore } from "../firebase";
 import MarkdownRenderer from "../components/MarkdownRenderer";
 import { useLanguage } from "../components/LanguageContext";
 
@@ -313,7 +312,7 @@ export default function MedicalInput() {
     window.addEventListener("auth-change", checkAuth);
     return () => window.removeEventListener("auth-change", checkAuth);
   }, []);
-
+  
   // Listen for global 'start-new-chat' events and start a fresh conversation
   useEffect(() => {
     const handler = () => {
@@ -329,14 +328,8 @@ export default function MedicalInput() {
   useEffect(() => {
     if (messages.length > 0) {
       localStorage.setItem("artham_chat_messages", JSON.stringify(messages));
-      if (auth.currentUser) {
-        saveUserMessagesToFirestore(auth.currentUser.uid, messages);
-      }
     } else {
       localStorage.removeItem("artham_chat_messages");
-      if (auth.currentUser) {
-        saveUserMessagesToFirestore(auth.currentUser.uid, []);
-      }
     }
   }, [messages]);
 
@@ -502,13 +495,10 @@ export default function MedicalInput() {
     window.speechSynthesis.speak(utterance);
   };
 
-  // Sync files to localStorage when changed
+  // Sync files to localStorage when changed (central layer mirrors to Firestore)
   const updateVaultFilesState = (files: VaultFile[]) => {
     setVaultFiles(files);
     localStorage.setItem("artham_vault_files", JSON.stringify(files));
-    if (auth.currentUser) {
-      saveUserVaultToFirestore(auth.currentUser.uid, files);
-    }
   };
 
   // Scroll to bottom of chat
