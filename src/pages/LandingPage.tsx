@@ -1,98 +1,86 @@
+import { useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AppShell from "../components/AppShell";
 import { useLanguage } from "../components/LanguageContext";
+
+type Tone = "primary" | "secondary" | "tertiary";
+type FeatureDefinition = {
+  icon: string;
+  titleKey: string;
+  bodyKey: string;
+  tone: Tone;
+  to: string;
+};
 
 type Feature = {
   icon: string;
   title: string;
   body: string;
-  tone: "primary" | "secondary" | "tertiary";
+  tone: Tone;
   to: string;
+};
+
+type Stat = { value: string; labelKey: string };
+
+type JourneyStep = { n: number; icon: string; titleKey: string; bodyKey: string };
+
+const featureDefinitions: FeatureDefinition[] = [
+  { icon: "mic", titleKey: "lp_feat_voice_title", bodyKey: "lp_feat_voice_desc", tone: "primary", to: "/medical-input" },
+  { icon: "edit_note", titleKey: "lp_feat_quest_title", bodyKey: "lp_feat_quest_desc", tone: "secondary", to: "/intake" },
+  { icon: "upload_file", titleKey: "lp_feat_vault_title", bodyKey: "lp_feat_vault_desc", tone: "tertiary", to: "/medical-input" },
+  { icon: "monitoring", titleKey: "lp_feat_db_title", bodyKey: "lp_feat_db_desc", tone: "primary", to: "/dashboard" },
+  { icon: "receipt_long", titleKey: "lp_feat_breakdown_title", bodyKey: "lp_feat_breakdown_desc", tone: "secondary", to: "/cost-breakdown" },
+  { icon: "lightbulb", titleKey: "lp_feat_action_title", bodyKey: "lp_feat_action_desc", tone: "tertiary", to: "/action-plan" },
+  { icon: "library_books", titleKey: "lp_feat_schemes_title", bodyKey: "lp_feat_schemes_desc", tone: "secondary", to: "/schemes" },
+];
+
+const statsDefinitions: Stat[] = [
+  { value: "₹2.4 L", labelKey: "lp_stat1" },
+  { value: "92%", labelKey: "lp_stat2" },
+  { value: "27,000+", labelKey: "lp_stat3" },
+  { value: "150+", labelKey: "lp_stat4" },
+];
+
+const journeySteps: JourneyStep[] = [
+  { n: 1, icon: "record_voice_over", titleKey: "lp_journey_step1_title", bodyKey: "lp_journey_step1_desc" },
+  { n: 2, icon: "insights", titleKey: "lp_journey_step2_title", bodyKey: "lp_journey_step2_desc" },
+  { n: 3, icon: "map", titleKey: "lp_journey_step3_title", bodyKey: "lp_journey_step3_desc" },
+];
+
+const toneStyles: Record<Tone, { iconBg: string; iconText: string }> = {
+  primary: { iconBg: "bg-primary-fixed", iconText: "text-primary" },
+  secondary: { iconBg: "bg-secondary-fixed", iconText: "text-secondary" },
+  tertiary: { iconBg: "bg-tertiary-fixed", iconText: "text-tertiary" },
 };
 
 export default function LandingPage() {
   const { t } = useLanguage();
   const nav = useNavigate();
 
-  const features: Feature[] = [
-    {
-      icon: "mic",
-      title: t("lp_feat_voice_title"),
-      body: t("lp_feat_voice_desc"),
-      tone: "primary",
-      to: "/medical-input",
-    },
-    {
-      icon: "edit_note",
-      title: t("lp_feat_quest_title"),
-      body: t("lp_feat_quest_desc"),
-      tone: "secondary",
-      to: "/intake",
-    },
-    {
-      icon: "upload_file",
-      title: t("lp_feat_vault_title"),
-      body: t("lp_feat_vault_desc"),
-      tone: "tertiary",
-      to: "/medical-input",
-    },
-    {
-      icon: "monitoring",
-      title: t("lp_feat_db_title"),
-      body: t("lp_feat_db_desc"),
-      tone: "primary",
-      to: "/dashboard",
-    },
-    {
-      icon: "receipt_long",
-      title: t("lp_feat_breakdown_title"),
-      body: t("lp_feat_breakdown_desc"),
-      tone: "secondary",
-      to: "/cost-breakdown",
-    },
-    {
-      icon: "lightbulb",
-      title: t("lp_feat_action_title"),
-      body: t("lp_feat_action_desc"),
-      tone: "tertiary",
-      to: "/action-plan",
-    },
-    {
-      icon: "library_books",
-      title: t("lp_feat_schemes_title"),
-      body: t("lp_feat_schemes_desc"),
-      tone: "secondary",
-      to: "/schemes",
-    },
-  ];
+  const features: Feature[] = useMemo(
+    () =>
+      featureDefinitions.map((f) => ({
+        ...f,
+        title: t(f.titleKey),
+        body: t(f.bodyKey),
+      })),
+    [t]
+  );
 
-  const stats = [
-    { value: "₹2.4 L", label: t("lp_stat1") },
-    { value: "92%", label: t("lp_stat2") },
-    { value: "27,000+", label: t("lp_stat3") },
-    { value: "150+", label: t("lp_stat4") },
-  ];
+  const stats = useMemo(
+    () => statsDefinitions.map((s) => ({ value: s.value, label: t(s.labelKey) })),
+    [t]
+  );
 
-  const journey = [
-    {
-      n: 1,
-      title: t("lp_journey_step1_title"),
-      body: t("lp_journey_step1_desc"),
-      icon: "record_voice_over",
-    },
-    {
-      n: 2,
-      title: t("lp_journey_step2_title"),
-      body: t("lp_journey_step2_desc"),
-      icon: "insights",
-    },
-    {
-      n: 3,
-      title: t("lp_journey_step3_title"),
-      body: t("lp_journey_step3_desc"),
-      icon: "map",
-    },
-  ];
+  const journey = useMemo(
+    () =>
+      journeySteps.map((j) => ({
+        ...j,
+        title: t(j.titleKey),
+        body: t(j.bodyKey),
+      })),
+    [t]
+  );
 
   return (
     <AppShell bare bg="bg-[#f5f2fa]">
@@ -261,32 +249,52 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* FEATURE GRID (Bento) */}
+        {/* FEATURE BREAKDOWN */}
         <section className="bg-[#f9f7fc]">
-          <div className="max-w-container-max mx-auto px-margin-mobile md:px-md py-xl">
-            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-md mb-lg">
-              <div className="max-w-2xl">
-                <p className="font-label-md text-secondary uppercase tracking-wider mb-xs">
+          <div className="max-w-container-max mx-auto px-margin-mobile md:px-md py-md">
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-6">
+              <div className="max-w-xl">
+                <p className="font-label-sm text-secondary uppercase tracking-wider mb-1">
                   {t("lp_all_place")}
                 </p>
-                <h2 className="font-headline-lg text-headline-lg text-primary mb-sm">
+                <h2 className="font-headline-lg text-headline-lg text-primary mb-2">
                   {t("lp_workspace_title")}
                 </h2>
-                <p className="font-body-lg text-body-lg text-on-surface-variant">
+                <p className="font-body-sm text-body-sm text-on-surface-variant">
                   {t("lp_workspace_sub")}
                 </p>
               </div>
               <Link
                 to="/dashboard"
-                className="flex-shrink-0 text-primary font-label-md text-label-md flex items-center gap-xs hover:underline"
+                className="flex-shrink-0 text-primary font-label-sm text-label-sm flex items-center gap-2 hover:underline"
               >
                 {t("lp_preview_db")}
                 <span className="material-symbols-outlined text-sm">arrow_forward</span>
               </Link>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
               {features.map((f) => (
-                <FeatureCard key={f.title} {...f} openText={t("lp_open")} />
+                <Link
+                  key={f.title}
+                  to={f.to}
+                  className="group flex flex-col gap-3 rounded-3xl border border-outline-variant bg-surface-container-lowest p-4 hover:border-primary hover:shadow-md transition-all"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${toneStyles[f.tone].iconBg} ${toneStyles[f.tone].iconText}`}>
+                      <span className="material-symbols-outlined text-[18px]">{f.icon}</span>
+                    </div>
+                    <h3 className="font-headline-sm text-sm text-on-surface font-semibold leading-snug">
+                      {f.title}
+                    </h3>
+                  </div>
+                  <p className="font-body-sm text-body-sm text-on-surface-variant leading-snug">
+                    {f.body}
+                  </p>
+                  <div className="mt-auto flex items-center gap-1 text-primary font-label-sm">
+                    <span>{t("lp_open")}</span>
+                    <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                  </div>
+                </Link>
               ))}
             </div>
           </div>
@@ -402,28 +410,3 @@ export default function LandingPage() {
   );
 }
 
-function FeatureCard({ icon, title, body, tone, to, openText }: Feature & { openText: string }) {
-  const tones = {
-    primary: { iconBg: "bg-primary-fixed", iconText: "text-primary" },
-    secondary: { iconBg: "bg-secondary-fixed", iconText: "text-secondary" },
-    tertiary: { iconBg: "bg-tertiary-fixed", iconText: "text-tertiary" },
-  }[tone];
-  return (
-    <Link
-      to={to}
-      className="group bg-surface-container-lowest rounded-xl p-md border border-outline-variant tonal-card-shadow hover:border-primary transition-colors flex flex-col"
-    >
-      <div
-        className={`w-12 h-12 rounded-xl ${tones.iconBg} ${tones.iconText} flex items-center justify-center mb-md`}
-      >
-        <span className="material-symbols-outlined">{icon}</span>
-      </div>
-      <h3 className="font-headline-sm text-headline-sm text-on-surface mb-xs">{title}</h3>
-      <p className="font-body-sm text-body-sm text-on-surface-variant flex-1">{body}</p>
-      <div className="mt-md flex items-center text-primary font-label-md text-label-md gap-xs opacity-0 group-hover:opacity-100 transition-opacity">
-        {openText}
-        <span className="material-symbols-outlined text-sm">arrow_forward</span>
-      </div>
-    </Link>
-  );
-}

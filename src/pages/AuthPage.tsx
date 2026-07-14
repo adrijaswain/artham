@@ -129,8 +129,8 @@ export default function AuthPage({ mode }: { mode: Mode }) {
         <div className="absolute -bottom-32 -left-16 w-96 h-96 rounded-full bg-black/10 blur-3xl" />
 
         <Link to="/" className="flex items-center gap-2.5 relative z-10">
-          <span className="w-9 h-9 rounded-lg bg-white text-primary flex items-center justify-center font-bold text-lg">A</span>
-          <span className="text-xl font-bold tracking-tight">Artham</span>
+          <img src={new URL("../assets/artham_logo_transparent.png", import.meta.url).href} alt="Artham logo" className="w-9 h-9 rounded-2xl object-cover" />
+          <span className="text-xl font-bold tracking-tight text-on-primary">Artham</span>
         </Link>
 
         <div className="relative z-10 max-w-md">
@@ -160,7 +160,7 @@ export default function AuthPage({ mode }: { mode: Mode }) {
       <div className="flex-1 flex flex-col">
         <div className="flex items-center justify-between px-6 py-5 lg:px-12">
           <Link to="/" className="flex items-center gap-2 lg:hidden">
-            <span className="w-8 h-8 rounded-lg bg-primary text-on-primary flex items-center justify-center font-bold">A</span>
+            <img src={new URL("../assets/artham_logo_transparent.png", import.meta.url).href} alt="Artham logo" className="w-8 h-8 rounded-2xl object-cover" />
             <span className="font-bold text-on-surface">Artham</span>
           </Link>
           <Link

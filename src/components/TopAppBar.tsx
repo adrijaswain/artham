@@ -4,6 +4,8 @@ import { useLanguage } from "./LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import type { Language } from "../utils/translations";
 
+const logoSrc = new URL("../assets/artham_logo_transparent.png", import.meta.url).href;
+
 export default function TopAppBar() {
   const navigate = useNavigate();
   const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
@@ -47,9 +49,7 @@ export default function TopAppBar() {
   return (
     <header className="flex justify-between items-center px-md py-sm w-full fixed top-0 z-50 bg-surface/90 backdrop-blur-md border-b border-outline-variant h-16">
       <Link to="/" className="flex items-center gap-sm group">
-        <span className="w-8 h-8 rounded-lg bg-primary text-on-primary flex items-center justify-center font-bold text-base shadow-sm group-hover:scale-105 transition-transform">
-          A
-        </span>
+        <img src={logoSrc} alt="Artham logo" className="w-10 h-10 rounded-2xl shadow-sm object-cover group-hover:scale-105 transition-transform" />
         <span className="font-headline-md text-headline-md font-bold text-on-surface tracking-tight">
           Artham
         </span>
