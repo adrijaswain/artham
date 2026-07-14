@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import AppShell from "../components/AppShell";
-import { auth, saveUserIntakeToFirestore } from "../firebase";
 import { useLanguage } from "../components/LanguageContext";
 
 type Doc = { name: string; sub: string; status: "ready" | "warning" | "pending" };
@@ -218,24 +217,6 @@ export default function ActionPlan() {
         "artham_intake_step"
       ];
       INTAKE_KEYS.forEach(key => localStorage.removeItem(key));
-
-      // Clear Firestore
-      if (auth.currentUser) {
-        saveUserIntakeToFirestore(auth.currentUser.uid, {
-          artham_intake_state: "",
-          artham_intake_age: "",
-          artham_intake_stage: "",
-          artham_intake_hormone_status: "",
-          artham_intake_surgery: "Yes",
-          artham_intake_chemo: "Yes",
-          artham_intake_radiation: "Yes",
-          artham_intake_hospital_type: "Government / Public Hospital",
-          artham_intake_has_insurance: "true",
-          artham_intake_insurance_provider: "",
-          artham_intake_income_bracket: "",
-          artham_intake_step: "1"
-        });
-      }
 
       window.dispatchEvent(new CustomEvent("auth-change"));
     }

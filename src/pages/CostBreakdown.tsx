@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import AppShell from "../components/AppShell";
-import { auth, saveUserCustomBreakdownToFirestore } from "../firebase";
 import MarkdownRenderer from "../components/MarkdownRenderer";
 import { useLanguage } from "../components/LanguageContext";
 
@@ -269,22 +268,14 @@ export default function CostBreakdown() {
     return () => window.removeEventListener("auth-change", handleAuthChange);
   }, []);
 
-  const saveCustomBreakdown = async (breakdown: Record<string, unknown> | null) => {
+  const saveCustomBreakdown = (breakdown: Record<string, unknown> | null) => {
+    // LocalStorage write auto-syncs to Firestore via the central sync layer.
     localStorage.setItem("artham_custom_breakdown", JSON.stringify(breakdown));
     setCustomBreakdown(breakdown);
-    
-    if (auth.currentUser) {
-      try {
-        await saveUserCustomBreakdownToFirestore(auth.currentUser.uid, breakdown);
-      } catch (err) {
-        console.error("Failed to save custom breakdown to firestore:", err);
-      }
-    }
-    
     window.dispatchEvent(new CustomEvent("auth-change"));
   };
 
-  const resetToDefault = async () => {
+  const resetToDefault = () => {
     localStorage.removeItem("artham_custom_breakdown");
     setCustomBreakdown(null);
     setChatHistory([
@@ -297,9 +288,6 @@ export default function CostBreakdown() {
               "রিসেট সম্পূর্ণ হয়েছে। খরচের বিবরণ সাধারণ অনুমানে ফিরে গেছে। আজ এটি কাস্টমাইজ করতে আমি কীভাবে আপনাকে সাহায্য করতে পারি?"
       }
     ]);
-    if (auth.currentUser) {
-      await saveUserCustomBreakdownToFirestore(auth.currentUser.uid, null);
-    }
     window.dispatchEvent(new CustomEvent("auth-change"));
   };
 

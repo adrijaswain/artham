@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AppShell from "../components/AppShell";
-import { auth, saveUserIntakeToFirestore } from "../firebase";
 import { useLanguage } from "../components/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 
@@ -106,25 +105,9 @@ export default function Intake() {
       localStorage.setItem("artham_intake_insurance_provider", insuranceProvider);
       localStorage.setItem("artham_intake_income_bracket", incomeBracket);
       localStorage.setItem("artham_intake_step", String(step));
-
-      // Don't write while the profile is still loading from Firestore, or we
-      // could clobber saved data with a partially-hydrated form.
-      if (auth.currentUser && !syncing) {
-        saveUserIntakeToFirestore(auth.currentUser.uid, {
-          artham_intake_state: patientState,
-          artham_intake_age: age,
-          artham_intake_stage: stage,
-          artham_intake_hormone_status: hormoneStatus,
-          artham_intake_surgery: surgery,
-          artham_intake_chemo: chemo,
-          artham_intake_radiation: radiation,
-          artham_intake_hospital_type: hospitalType,
-          artham_intake_has_insurance: String(hasInsurance),
-          artham_intake_insurance_provider: insuranceProvider,
-          artham_intake_income_bracket: incomeBracket,
-          artham_intake_step: String(step)
-        });
-      }
+      // Writing LocalStorage above is enough — the central sync layer in
+      // firebase.ts debounces a Firestore push whenever a signed-in user's
+      // profile keys change (and never before the initial cloud hydrate).
     }, 1000);
 
     return () => clearTimeout(timer);
@@ -166,23 +149,6 @@ export default function Intake() {
       ];
       INTAKE_KEYS.forEach(key => localStorage.removeItem(key));
 
-      if (auth.currentUser) {
-        saveUserIntakeToFirestore(auth.currentUser.uid, {
-          artham_intake_state: "",
-          artham_intake_age: "",
-          artham_intake_stage: "",
-          artham_intake_hormone_status: "",
-          artham_intake_surgery: "Yes",
-          artham_intake_chemo: "Yes",
-          artham_intake_radiation: "Yes",
-          artham_intake_hospital_type: "Government / Public Hospital",
-          artham_intake_has_insurance: "true",
-          artham_intake_insurance_provider: "",
-          artham_intake_income_bracket: "",
-          artham_intake_step: "1"
-        });
-      }
-
       window.dispatchEvent(new CustomEvent("auth-change"));
     }
   };
@@ -201,28 +167,10 @@ export default function Intake() {
     else if (key === "insurance_provider") setInsuranceProvider(val as string);
     else if (key === "income_bracket") setIncomeBracket(val as string);
 
-    // 2. Save directly to LocalStorage
+    // 2. Save directly to LocalStorage (central sync layer pushes to Firestore)
     localStorage.setItem(`artham_intake_${key}`, String(val));
 
-    // 3. Save to firestore if logged in
-    if (auth.currentUser) {
-      saveUserIntakeToFirestore(auth.currentUser.uid, {
-        artham_intake_state: key === "state" ? (val as string) : patientState,
-        artham_intake_age: key === "age" ? (val as string) : age,
-        artham_intake_stage: key === "stage" ? (val as string) : stage,
-        artham_intake_hormone_status: key === "hormone_status" ? (val as string) : hormoneStatus,
-        artham_intake_surgery: key === "surgery" ? (val as string) : surgery,
-        artham_intake_chemo: key === "chemo" ? (val as string) : chemo,
-        artham_intake_radiation: key === "radiation" ? (val as string) : radiation,
-        artham_intake_hospital_type: key === "hospital_type" ? (val as string) : hospitalType,
-        artham_intake_has_insurance: key === "has_insurance" ? String(val) : String(hasInsurance),
-        artham_intake_insurance_provider: key === "insurance_provider" ? (val as string) : insuranceProvider,
-        artham_intake_income_bracket: key === "income_bracket" ? (val as string) : incomeBracket,
-        artham_intake_step: String(step)
-      });
-    }
-
-    // 4. Notify other views reactively
+    // 3. Notify other views reactively
     window.dispatchEvent(new CustomEvent("auth-change"));
   };
 
@@ -293,23 +241,6 @@ export default function Intake() {
       localStorage.setItem("artham_intake_insurance_provider", insuranceProvider);
       localStorage.setItem("artham_intake_income_bracket", incomeBracket);
       localStorage.setItem("artham_intake_step", "4");
-
-      if (auth.currentUser) {
-        saveUserIntakeToFirestore(auth.currentUser.uid, {
-          artham_intake_state: patientState,
-          artham_intake_age: age,
-          artham_intake_stage: stage,
-          artham_intake_hormone_status: hormoneStatus,
-          artham_intake_surgery: surgery,
-          artham_intake_chemo: chemo,
-          artham_intake_radiation: radiation,
-          artham_intake_hospital_type: hospitalType,
-          artham_intake_has_insurance: String(hasInsurance),
-          artham_intake_insurance_provider: insuranceProvider,
-          artham_intake_income_bracket: incomeBracket,
-          artham_intake_step: "4"
-        });
-      }
 
       window.dispatchEvent(new CustomEvent("auth-change"));
       setShowSummaryScreen(true); // Show live profile summary on completion

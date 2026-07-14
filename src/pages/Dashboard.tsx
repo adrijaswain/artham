@@ -2,8 +2,7 @@ import { Link } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import AppShell from "../components/AppShell";
 import { useLanguage } from "../components/LanguageContext";
-import { useAuth, consumeShowChatPopup } from "../context/AuthContext";
-import { auth, saveUserDashboardContextToFirestore, saveUserIntakeToFirestore } from "../firebase";
+import { consumeShowChatPopup } from "../context/AuthContext";
 
 type ChatMsg = {
   role: "bot" | "user";
@@ -109,7 +108,6 @@ Read the dialogue and extract any values the user mentions. You MUST respond ONL
 };
 
 export default function Dashboard() {
-  const { syncing } = useAuth();
   const { t } = useLanguage();
   const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem("artham_is_logged_in") === "true");
 
@@ -319,34 +317,9 @@ export default function Dashboard() {
     if (container) container.scrollTop = container.scrollHeight;
   }, [chatMessages]);
 
-  // Persist the dashboard's derived context (chat history, extracted diagnosis /
-  // next steps) and any intake edits made via the assistant to Firestore, keyed
-  // by uid, so it is restored on the user's next login.
-  useEffect(() => {
-    const user = auth.currentUser;
-    if (!user || syncing) return;
-    const timer = setTimeout(() => {
-      saveUserDashboardContextToFirestore(user.uid, {
-        dashboardMessages: chatMessages,
-        diagnosisDetails: extractedDiagnosis,
-        nextSteps: extractedNextSteps
-      });
-      saveUserIntakeToFirestore(user.uid, {
-        artham_intake_state: patientState,
-        artham_intake_age: age,
-        artham_intake_stage: stage,
-        artham_intake_hormone_status: hormoneStatus,
-        artham_intake_surgery: surgery,
-        artham_intake_chemo: chemo,
-        artham_intake_radiation: radiation,
-        artham_intake_hospital_type: hospitalType,
-        artham_intake_has_insurance: String(hasInsurance),
-        artham_intake_insurance_provider: insuranceProvider,
-        artham_intake_income_bracket: incomeBracket
-      });
-    }, 1200);
-    return () => clearTimeout(timer);
-  }, [chatMessages, extractedDiagnosis, extractedNextSteps, patientState, age, stage, hormoneStatus, surgery, chemo, radiation, hospitalType, hasInsurance, insuranceProvider, incomeBracket, syncing]);
+  // The dashboard's derived context (chat history, extracted diagnosis / next
+  // steps) is written to LocalStorage as it changes; the central sync layer in
+  // firebase.ts mirrors those keys to Firestore for signed-in users.
 
   useEffect(() => {
     const handleAuthChange = () => {
