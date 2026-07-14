@@ -20,7 +20,6 @@ export default function SideNav() {
     <aside className="hidden md:flex flex-col h-[calc(100vh-64px)] py-lg w-64 fixed left-0 top-16 bg-surface border-r border-outline-variant z-40 overflow-y-auto custom-scrollbar">
       <div className="px-md mb-md">
         <h2 className="font-headline-sm text-headline-sm text-on-surface font-semibold">{t("nav_planning") || "Financial Planning"}</h2>
-        <p className="font-label-sm text-label-sm text-on-surface-variant">{t("nav_clarity") || "Empathetic Clarity"}</p>
       </div>
       <nav className="flex-1 space-y-0.5 px-2">
         {items.map((item) => (
