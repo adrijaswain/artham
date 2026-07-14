@@ -14,7 +14,6 @@ export const translations: Record<Language, Record<string, string>> = {
     nav_support: "Support",
     nav_privacy: "Privacy",
     nav_planning: "Financial Planning",
-    nav_clarity: "Empathetic Clarity",
 
     // Dashboard
     db_title: "Estimated Total Treatment Cost Range",
@@ -386,7 +385,6 @@ export const translations: Record<Language, Record<string, string>> = {
     nav_support: "सहायता",
     nav_privacy: "गोपनीयता",
     nav_planning: "वित्तीय योजना",
-    nav_clarity: "सहानुभूतिपूर्ण स्पष्टता",
 
     // Dashboard
     db_title: "अनुमानित कुल उपचार लागत सीमा",
@@ -758,7 +756,6 @@ export const translations: Record<Language, Record<string, string>> = {
     nav_support: "मदत",
     nav_privacy: "गोपनीयता",
     nav_planning: "वित्तीय नियोजन",
-    nav_clarity: "सहानुभूतीपूर्वक स्पष्टता",
 
     // Dashboard
     db_title: "अंदाजे एकूण खर्चाची श्रेणी",
@@ -1130,7 +1127,6 @@ export const translations: Record<Language, Record<string, string>> = {
     nav_support: "ಬೆಂಬಲ",
     nav_privacy: "ಗೌಪ್ಯತೆ",
     nav_planning: "ಹಣಕಾಸು ಯೋಜನೆ",
-    nav_clarity: "ಸಹಾನುಭೂತಿಯ ಸ್ಪಷ್ಟತೆ",
 
     // Dashboard
     db_title: "ಅಂದಾಜು ಒಟ್ಟು ಚಿಕಿತ್ಸಾ ವೆಚ್ಚದ ಶ್ರೇಣಿ",
@@ -1502,7 +1498,6 @@ export const translations: Record<Language, Record<string, string>> = {
     nav_support: "সহায়তা",
     nav_privacy: "গোপনীয়তা",
     nav_planning: "আর্থিক পরিকল্পনা",
-    nav_clarity: "সহানুভূতিশীল স্পষ্টতা",
 
     // Dashboard
     db_title: "আনুমানিক মোট চিকিত্সা খরচ পরিসীমা",

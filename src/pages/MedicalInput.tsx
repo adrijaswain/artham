@@ -314,6 +314,17 @@ export default function MedicalInput() {
     return () => window.removeEventListener("auth-change", checkAuth);
   }, []);
 
+  // Listen for global 'start-new-chat' events and start a fresh conversation
+  useEffect(() => {
+    const handler = () => {
+      setMessages([]);
+      setDraft("");
+      setTimeout(() => inputRef.current?.focus(), 60);
+    };
+    window.addEventListener("start-new-chat", handler as EventListener);
+    return () => window.removeEventListener("start-new-chat", handler as EventListener);
+  }, []);
+
   // Sync messages list to LocalStorage & Firestore on update
   useEffect(() => {
     if (messages.length > 0) {
@@ -348,6 +359,7 @@ export default function MedicalInput() {
   const [isAnalyzingFile, setIsAnalyzingFile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
   // Voice integration states & refs
   const [isListening, setIsListening] = useState(false);
@@ -847,45 +859,8 @@ Failed to analyze document: ${errMsg}.
 
         {/* Chat Header Bar */}
         <header className="px-md py-sm border-b border-outline-variant/40 bg-surface-container-low flex justify-between items-center shrink-0 z-10 shadow-sm">
-          <h3 className="font-headline-sm text-headline-sm text-primary flex items-center gap-xs">
-            <span className="material-symbols-outlined text-primary text-[22px]">forum</span>
-            {t("nav_medical")}
-          </h3>
-          <div className="flex items-center gap-xs">
-            {/* Gemini API Status Badge */}
-            {apiKey ? (
-              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary/10 text-secondary border border-secondary/20 text-[11px] font-bold">
-                <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
-                Gemini Active
-              </span>
-            ) : (
-              <button
-                onClick={() => { setShowKeyModal(true); setTempKey(customApiKey); }}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-tertiary/10 text-tertiary border border-tertiary/20 text-[11px] font-bold hover:bg-tertiary/20 transition-all cursor-pointer"
-                title="Configure Gemini API Key"
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-tertiary" />
-                Gemini Demo Mode
-              </button>
-            )}
-
-            <button
-              onClick={() => { setShowKeyModal(true); setTempKey(customApiKey); }}
-              className="p-1.5 hover:bg-surface-container rounded-full text-outline hover:text-primary transition-all flex items-center justify-center"
-              title="Configure Gemini API Key"
-            >
-              <span className="material-symbols-outlined text-[18px]">settings_accessibility</span>
-            </button>
-
-            <button
-              onClick={() => setMessages([])}
-              className="flex items-center gap-xs px-3 py-1.5 rounded-xl border border-outline-variant bg-surface-bright text-xs font-bold text-outline hover:text-primary hover:border-primary transition-all active:scale-95"
-              title="Clear chat and start new conversation"
-            >
-              <span className="material-symbols-outlined text-[18px]">add</span>
-              <span>{t("mi_new_chat")}</span>
-            </button>
-          </div>
+          {/* Left-side actions: New Chat button moved here */}
+          <div className="flex items-center gap-xs" />
         </header>
 
         {/* Scrollable Conversation Workspace */}
@@ -1205,6 +1180,7 @@ Failed to analyze document: ${errMsg}.
                 <textarea
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
+                  ref={inputRef}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
