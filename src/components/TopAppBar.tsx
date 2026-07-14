@@ -83,24 +83,15 @@ export default function TopAppBar() {
               </span>
               <span className="hidden sm:inline truncate max-w-[120px]">{userName}</span>
             </div>
-            <div className="flex flex-col items-center">
-              <button
-                onClick={handleLogout}
-                className="p-2 rounded-full hover:bg-surface-container text-on-surface-variant hover:text-error transition-all active:scale-95"
-                title="Sign Out"
-              >
-                <span className="material-symbols-outlined text-[20px]">logout</span>
-              </button>
-
-              <button
-                onClick={() => window.dispatchEvent(new CustomEvent("start-new-chat"))}
-                className="mt-16 px-3 py-1.5 rounded-full bg-surface-bright hover:bg-surface-container text-sm font-semibold transition-all"
-                title="New Chat"
-                aria-label="New Chat"
-              >
-                New Chat
-              </button>
-            </div>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-xs px-3 py-2 rounded-full border border-outline-variant text-on-surface-variant hover:text-error hover:border-error/40 hover:bg-error/5 transition-all active:scale-95 text-xs font-semibold"
+              title="Sign Out"
+              aria-label="Sign Out"
+            >
+              <span className="material-symbols-outlined text-[18px]">logout</span>
+              <span className="hidden sm:inline">Sign out</span>
+            </button>
           </div>
         ) : (
           <div className="flex items-center gap-xs">

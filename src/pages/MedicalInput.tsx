@@ -849,8 +849,20 @@ Failed to analyze document: ${errMsg}.
 
         {/* Chat Header Bar */}
         <header className="px-md py-sm border-b border-outline-variant/40 bg-surface-container-low flex justify-between items-center shrink-0 z-10 shadow-sm">
-          {/* Left-side actions: New Chat button moved here */}
-          <div className="flex items-center gap-xs" />
+          <div className="flex items-center gap-xs">
+            <span className="material-symbols-outlined text-primary text-[20px]">medical_services</span>
+            <span className="font-headline-sm text-sm font-bold text-on-surface">{t("nav_medical")}</span>
+          </div>
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent("start-new-chat"))}
+            disabled={messages.length === 0 && !draft}
+            className="flex items-center gap-xs px-3 py-1.5 rounded-full border border-outline-variant bg-surface-bright text-on-surface hover:bg-surface-container hover:border-primary/40 text-xs font-semibold transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+            title="New Chat"
+            aria-label="New Chat"
+          >
+            <span className="material-symbols-outlined text-[18px]">add_comment</span>
+            <span>New Chat</span>
+          </button>
         </header>
 
         {/* Scrollable Conversation Workspace */}

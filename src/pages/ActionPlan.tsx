@@ -1298,23 +1298,43 @@ export default function ActionPlan() {
                     <span className="text-primary">{totalReadiness}% score</span>
                   </div>
                   
-                  <div className="relative flex flex-col items-center h-28 justify-end overflow-hidden pt-4">
-                    <div className="absolute top-4 w-40 h-40 border-[12px] border-surface-container-high rounded-full" />
-                    <div
-                      className="absolute top-4 w-40 h-40 border-[12px] border-t-secondary border-r-secondary border-l-transparent border-b-transparent rounded-full origin-center transition-all duration-700"
-                      style={{ transform: `rotate(${-135 + (totalReadiness * 1.8)}deg)` }}
-                    />
-                    <div className="text-center pb-2 z-10">
-                      <span className="font-headline-md text-headline-md text-primary font-bold">
-                        {totalReadiness > 80 ? (language === "en" ? "High" : language === "hi" ? "उच्च" : language === "mr" ? "उच्च" : language === "kn" ? "ಹೆಚ್ಚು" : "উচ্চ") : 
-                         totalReadiness > 50 ? (language === "en" ? "Medium" : language === "hi" ? "मध्यम" : language === "mr" ? "मध्यम" : language === "kn" ? "ಮಧ್ಯಮ" : "মাঝারি") : 
-                         (language === "en" ? "Needs Review" : language === "hi" ? "समीक्षा की आवश्यकता" : language === "mr" ? "पुनरावलोकन आवश्यक" : language === "kn" ? "ಪರಿಶೀಲನೆ ಅಗತ್ಯವಿದೆ" : "পর্যালোচনা প্রয়োজন")}
-                      </span>
-                      <p className="text-[10px] text-on-surface-variant font-medium">
-                        {language === "en" ? "Application Reliability Score" : language === "hi" ? "आवेदन विश्वसनीयता स्कोर" : language === "mr" ? "अर्ज विश्वासार्हता निर्देशांक" : language === "kn" ? "ಅರ್ಜಿ ವಿಶ್ವಾಸಾರ್ಹತೆ ಸ್ಕೋರ್" : "আবেদন নির্ভরযোগ্যতা স্কোর"}
-                      </p>
-                    </div>
-                  </div>
+                  {(() => {
+                    const gaugeColor =
+                      totalReadiness > 80 ? "text-secondary" : totalReadiness > 50 ? "text-primary" : "text-error";
+                    const levelLabel =
+                      totalReadiness > 80
+                        ? language === "en" ? "High" : language === "hi" ? "उच्च" : language === "mr" ? "उच्च" : language === "kn" ? "ಹೆಚ್ಚು" : "উচ্চ"
+                        : totalReadiness > 50
+                        ? language === "en" ? "Medium" : language === "hi" ? "मध्यम" : language === "mr" ? "मध्यम" : language === "kn" ? "ಮಧ್ಯಮ" : "মাঝারি"
+                        : language === "en" ? "Needs Review" : language === "hi" ? "समीक्षा की आवश्यकता" : language === "mr" ? "पुनरावलोकन आवश्यक" : language === "kn" ? "ಪರಿಶೀಲನೆ ಅಗತ್ಯವಿದೆ" : "পর্যালোচনা প্রয়োজন";
+                    // Semicircular gauge. Both arcs share the same path and use
+                    // pathLength=100 so the coloured arc length equals the score %.
+                    const ARC = "M 18 104 A 86 86 0 0 1 190 104";
+                    return (
+                      <div className="relative flex flex-col items-center">
+                        <svg viewBox="0 0 208 118" className="w-full max-w-[240px]" role="img" aria-label={`Readiness ${totalReadiness}%`}>
+                          <path d={ARC} fill="none" stroke="currentColor" className="text-surface-container-high" strokeWidth="16" strokeLinecap="round" pathLength={100} />
+                          <path
+                            d={ARC}
+                            fill="none"
+                            stroke="currentColor"
+                            className={`${gaugeColor} transition-all duration-700`}
+                            strokeWidth="16"
+                            strokeLinecap="round"
+                            pathLength={100}
+                            strokeDasharray={`${totalReadiness} 100`}
+                          />
+                        </svg>
+                        <div className="-mt-10 text-center z-10">
+                          <div className="font-headline-md text-headline-md text-primary font-bold leading-none">{totalReadiness}%</div>
+                          <div className={`text-xs font-bold mt-0.5 ${gaugeColor}`}>{levelLabel}</div>
+                          <p className="text-[10px] text-on-surface-variant font-medium mt-0.5">
+                            {language === "en" ? "Application Reliability Score" : language === "hi" ? "आवेदन विश्वसनीयता स्कोर" : language === "mr" ? "अर्ज विश्वासार्हता निर्देशांक" : language === "kn" ? "ಅರ್ಜಿ ವಿಶ್ವಾಸಾರ್ಹತೆ ಸ್ಕೋರ್" : "আবেদন নির্ভরযোগ্যতা স্কোর"}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })()}
                   <p className="text-[10px] text-outline leading-tight mt-sm text-center italic font-medium">
                     {language === "en" ? "Readiness scales automatically as you check off timeline steps, documents, and schemes." :
                      language === "hi" ? "जैसे-जैसे आप समयरेखा चरणों, दस्तावेजों और योजनाओं को चिह्नित करते हैं, तैयारी का स्तर अपने आप बढ़ता है।" :
