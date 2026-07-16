@@ -555,6 +555,11 @@ export default function Dashboard() {
 
   const outOfPocketAdjusted = Math.max(0, outOfPocket - totalSavings);
 
+  // "Best case" scenario = the realistic out-of-pocket you'd actually pay once
+  // insurance coverage and income-based welfare subsidies are applied to your
+  // intake profile (vs. the gross "Expected" total treatment cost).
+  const bestCaseOop = outOfPocketAdjusted;
+
   const formatINR = (val: number) => "₹" + val.toLocaleString("en-IN");
 
   // Confidence Score mapping
@@ -847,10 +852,10 @@ export default function Dashboard() {
               <h3 className="font-headline-sm text-sm text-primary uppercase tracking-wider font-bold">{t("db_scenarios")}</h3>
               <span className="material-symbols-outlined text-outline cursor-pointer hover:text-primary transition-colors">info</span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-sm">
               <ScenarioCard
                 label={t("db_best")}
-                value={isIntakeFilled ? formatINR(Math.round(totalEstimate * 0.45)) : "—"}
+                value={isIntakeFilled ? formatINR(bestCaseOop) : "—"}
                 icon="trending_down"
                 tone="secondary"
                 body={isIntakeFilled ? t("db_best_desc") : t("db_fill")}
@@ -861,13 +866,6 @@ export default function Dashboard() {
                 icon="stars"
                 tone="primary"
                 body={isIntakeFilled ? t("db_expected_desc") : t("db_fill")}
-              />
-              <ScenarioCard
-                label={t("db_complex")}
-                value={isIntakeFilled ? formatINR(Math.round(totalEstimate * 2.1)) : "—"}
-                icon="warning"
-                tone="tertiary"
-                body={isIntakeFilled ? t("db_complex_desc") : t("db_fill")}
               />
             </div>
           </div>

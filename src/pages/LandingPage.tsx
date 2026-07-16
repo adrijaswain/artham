@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import type { ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AppShell from "../components/AppShell";
 import { useLanguage } from "../components/LanguageContext";
@@ -220,6 +221,70 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* WHY EARLY DETECTION MATTERS */}
+        <section className="max-w-container-max mx-auto px-margin-mobile md:px-md py-xl">
+          <div className="text-center mb-lg max-w-2xl mx-auto">
+            <p className="font-label-md text-secondary uppercase tracking-wider mb-xs">{t("lp_ed_tag")}</p>
+            <h2 className="font-headline-lg text-headline-lg text-primary mb-sm">{t("lp_ed_title")}</h2>
+            <p className="font-body-lg text-body-lg text-on-surface-variant">{t("lp_ed_sub")}</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+            {[
+              { icon: "favorite", tone: "primary" as Tone, stat: t("lp_ed_1_stat"), label: t("lp_ed_1_label") },
+              { icon: "savings", tone: "secondary" as Tone, stat: t("lp_ed_2_stat"), label: t("lp_ed_2_label") },
+              { icon: "healing", tone: "tertiary" as Tone, stat: t("lp_ed_3_stat"), label: t("lp_ed_3_label") },
+            ].map((c) => (
+              <div
+                key={c.label}
+                className="bg-surface-container-lowest border border-outline-variant rounded-3xl p-lg tonal-card-shadow flex flex-col gap-sm"
+              >
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${toneStyles[c.tone].iconBg} ${toneStyles[c.tone].iconText}`}>
+                  <span className="material-symbols-outlined fill-icon">{c.icon}</span>
+                </div>
+                <p className={`font-headline-lg text-headline-lg font-bold ${toneStyles[c.tone].iconText}`}>{c.stat}</p>
+                <p className="font-body-md text-body-md text-on-surface-variant leading-snug">{c.label}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-center text-body-sm text-on-surface-variant/70 mt-md max-w-2xl mx-auto italic">{t("lp_ed_note")}</p>
+        </section>
+
+        {/* THE COST OF WAITING — DELAYED-TREATMENT STATISTICS */}
+        <section className="bg-[#f0ecf7]">
+          <div className="max-w-container-max mx-auto px-margin-mobile md:px-md py-xl">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-lg items-center">
+              <div className="lg:col-span-5">
+                <p className="font-label-md text-secondary uppercase tracking-wider mb-xs">{t("lp_delay_tag")}</p>
+                <h2 className="font-headline-lg text-headline-lg text-primary mb-sm">{t("lp_delay_title")}</h2>
+                <p className="font-body-lg text-body-lg text-on-surface-variant mb-lg">{t("lp_delay_sub")}</p>
+                <button
+                  onClick={() => nav("/intake")}
+                  className="bg-primary text-on-primary px-lg py-md rounded-xl font-label-md text-label-md hover:brightness-110 transition-all shadow-lg inline-flex items-center gap-sm focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  {t("lp_delay_cta")}
+                  <span className="material-symbols-outlined">arrow_forward</span>
+                </button>
+              </div>
+              <div className="lg:col-span-7">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-md">
+                  {[
+                    { icon: "warning", stat: t("lp_delay_1_stat"), label: t("lp_delay_1_label") },
+                    { icon: "payments", stat: t("lp_delay_2_stat"), label: t("lp_delay_2_label") },
+                    { icon: "savings", stat: t("lp_delay_3_stat"), label: t("lp_delay_3_label") },
+                    { icon: "bolt", stat: t("lp_delay_4_stat"), label: t("lp_delay_4_label") },
+                  ].map((s) => (
+                    <div key={s.label} className="bg-surface rounded-3xl border border-outline-variant p-lg tonal-card-shadow">
+                      <span className="material-symbols-outlined text-secondary mb-sm">{s.icon}</span>
+                      <p className="font-headline-md text-headline-md text-primary font-bold mb-xs">{s.stat}</p>
+                      <p className="font-body-sm text-body-sm text-on-surface-variant leading-snug">{s.label}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* HOW IT WORKS */}
         <section className="max-w-container-max mx-auto px-margin-mobile md:px-md py-xl">
           <div className="text-center mb-lg max-w-2xl mx-auto">
@@ -249,127 +314,81 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* FEATURE BREAKDOWN */}
+        {/* FEATURE SHOWCASE — alternating text + product mockups */}
         <section className="bg-[#f9f7fc]">
-          <div className="max-w-container-max mx-auto px-margin-mobile md:px-md py-md">
-            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-6">
-              <div className="max-w-xl">
-                <p className="font-label-sm text-secondary uppercase tracking-wider mb-1">
-                  {t("lp_all_place")}
-                </p>
-                <h2 className="font-headline-lg text-headline-lg text-primary mb-2">
-                  {t("lp_workspace_title")}
-                </h2>
-                <p className="font-body-sm text-body-sm text-on-surface-variant">
-                  {t("lp_workspace_sub")}
-                </p>
-              </div>
-              <Link
-                to="/dashboard"
-                className="flex-shrink-0 text-primary font-label-sm text-label-sm flex items-center gap-2 hover:underline"
-              >
-                {t("lp_preview_db")}
-                <span className="material-symbols-outlined text-sm">arrow_forward</span>
-              </Link>
+          <div className="max-w-container-max mx-auto px-margin-mobile md:px-md py-xl">
+            <div className="text-center max-w-2xl mx-auto mb-xl">
+              <p className="font-label-md text-secondary uppercase tracking-wider mb-xs">{t("lp_all_place")}</p>
+              <h2 className="font-headline-lg text-headline-lg text-primary mb-sm">{t("lp_workspace_title")}</h2>
+              <p className="font-body-lg text-body-lg text-on-surface-variant">{t("lp_workspace_sub")}</p>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
-              {features.map((f) => (
-                <Link
-                  key={f.title}
-                  to={f.to}
-                  className="group flex flex-col gap-3 rounded-3xl border border-outline-variant bg-surface-container-lowest p-4 hover:border-primary hover:shadow-md transition-all"
-                >
-                  <div className="flex items-center gap-2">
-                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${toneStyles[f.tone].iconBg} ${toneStyles[f.tone].iconText}`}>
+
+            <div className="space-y-xl">
+              <ShowcaseRow
+                reverse={false}
+                icon="edit_note"
+                eyebrow={t("nav_intake")}
+                title={t("lp_feat_quest_title")}
+                body={t("lp_feat_quest_desc")}
+                to="/intake"
+                cta={t("lp_open")}
+              >
+                <IntakeMockup t={t} />
+              </ShowcaseRow>
+
+              <ShowcaseRow
+                reverse
+                icon="receipt_long"
+                eyebrow={t("nav_breakdown")}
+                title={t("lp_feat_breakdown_title")}
+                body={t("lp_feat_breakdown_desc")}
+                to="/cost-breakdown"
+                cta={t("lp_open")}
+              >
+                <CostMockup t={t} />
+              </ShowcaseRow>
+
+              <ShowcaseRow
+                reverse={false}
+                icon="monitoring"
+                eyebrow={t("nav_dashboard")}
+                title={t("lp_feat_db_title")}
+                body={t("lp_feat_db_desc")}
+                to="/dashboard"
+                cta={t("lp_open")}
+              >
+                <DashboardMockup t={t} />
+              </ShowcaseRow>
+
+              <ShowcaseRow
+                reverse
+                icon="forum"
+                eyebrow={t("nav_medical")}
+                title={t("lp_feat_voice_title")}
+                body={t("lp_feat_voice_desc")}
+                to="/medical-input"
+                cta={t("lp_open")}
+              >
+                <ChatMockup t={t} />
+              </ShowcaseRow>
+            </div>
+
+            {/* Compact index of everything else */}
+            <div className="mt-xl pt-lg border-t border-outline-variant/50">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {features.map((f) => (
+                  <Link
+                    key={f.title}
+                    to={f.to}
+                    className="group flex items-center gap-3 rounded-2xl border border-outline-variant bg-surface-container-lowest p-3 hover:border-primary hover:shadow-md transition-all"
+                  >
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${toneStyles[f.tone].iconBg} ${toneStyles[f.tone].iconText}`}>
                       <span className="material-symbols-outlined text-[18px]">{f.icon}</span>
                     </div>
-                    <h3 className="font-headline-sm text-sm text-on-surface font-semibold leading-snug">
-                      {f.title}
-                    </h3>
-                  </div>
-                  <p className="font-body-sm text-body-sm text-on-surface-variant leading-snug">
-                    {f.body}
-                  </p>
-                  <div className="mt-auto flex items-center gap-1 text-primary font-label-sm">
-                    <span>{t("lp_open")}</span>
-                    <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* WHY US */}
-        <section className="max-w-container-max mx-auto px-margin-mobile md:px-md py-xl">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-lg items-center">
-            <div>
-              <p className="font-label-md text-secondary uppercase tracking-wider mb-xs">
-                {t("lp_why_title")}
-              </p>
-              <h2 className="font-headline-lg text-headline-lg text-primary mb-md">
-                {t("lp_people_not_paper")}
-              </h2>
-              <div className="space-y-md">
-                {[
-                  {
-                    i: "psychology",
-                    t: t("lp_design_stress"),
-                    b: t("lp_design_stress_desc"),
-                  },
-                  {
-                    i: "fact_check",
-                    t: t("lp_verified_bills"),
-                    b: t("lp_verified_bills_desc"),
-                  },
-                  {
-                    i: "shield_lock",
-                    t: t("lp_data_yours"),
-                    b: t("lp_data_yours_desc"),
-                  },
-                  {
-                    i: "diversity_3",
-                    t: t("lp_multilingual"),
-                    b: t("lp_multilingual_desc"),
-                  },
-                ].map((row) => (
-                  <div key={row.t} className="flex gap-md">
-                    <div className="w-12 h-12 rounded-xl bg-secondary-container text-secondary flex items-center justify-center flex-shrink-0">
-                      <span className="material-symbols-outlined">{row.i}</span>
-                    </div>
-                    <div>
-                      <h4 className="font-headline-sm text-headline-sm text-on-surface mb-xs">{row.t}</h4>
-                      <p className="font-body-md text-body-md text-on-surface-variant">{row.b}</p>
-                    </div>
-                  </div>
+                    <h3 className="font-headline-sm text-sm text-on-surface font-semibold leading-snug">{f.title}</h3>
+                    <span className="material-symbols-outlined text-[18px] text-outline group-hover:text-primary ml-auto">arrow_forward</span>
+                  </Link>
                 ))}
-              </div>
-            </div>
-            {/* Testimonial-like card */}
-            <div className="relative">
-              <div className="bg-gradient-to-br from-primary to-primary-container rounded-xl p-lg text-on-primary shadow-lg">
-                <span className="material-symbols-outlined text-[48px] opacity-30 mb-sm">format_quote</span>
-                <p className="font-body-lg text-body-lg mb-md leading-relaxed">
-                  {t("lp_quote_priya")}
-                </p>
-                <div className="flex items-center gap-md pt-md border-t border-on-primary/20">
-                  <div className="w-12 h-12 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed font-bold">
-                    PD
-                  </div>
-                  <div>
-                    <p className="font-label-md">Priya D.</p>
-                    <p className="font-label-sm opacity-70">{t("lp_priya_role")}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="absolute -bottom-4 -right-4 bg-white p-sm rounded-xl tonal-card-shadow border border-outline-variant flex items-center gap-sm">
-                <span className="material-symbols-outlined fill-icon text-tertiary-container">
-                  star
-                </span>
-                <div>
-                  <p className="font-bold text-primary text-sm">4.9 / 5</p>
-                  <p className="text-[10px] text-on-surface-variant">{t("lp_rating")}</p>
-                </div>
               </div>
             </div>
           </div>
@@ -407,6 +426,196 @@ export default function LandingPage() {
         </section>
       </div>
     </AppShell>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Feature showcase: alternating text + product mockup ("screenshot") */
+/* ------------------------------------------------------------------ */
+
+type TFn = (key: string) => string;
+
+function ShowcaseRow({
+  reverse,
+  icon,
+  eyebrow,
+  title,
+  body,
+  to,
+  cta,
+  children,
+}: {
+  reverse: boolean;
+  icon: string;
+  eyebrow: string;
+  title: string;
+  body: string;
+  to: string;
+  cta: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-lg items-center">
+      <div className={reverse ? "lg:order-2" : ""}>
+        <div className="inline-flex items-center gap-xs px-sm py-xs bg-surface border border-outline-variant rounded-full font-label-sm text-label-sm text-on-surface-variant mb-sm">
+          <span className="material-symbols-outlined text-[16px] text-secondary">{icon}</span>
+          {eyebrow}
+        </div>
+        <h3 className="font-headline-lg text-[26px] leading-tight text-primary font-bold mb-sm">{title}</h3>
+        <p className="font-body-lg text-body-lg text-on-surface-variant mb-md">{body}</p>
+        <Link to={to} className="inline-flex items-center gap-xs text-primary font-label-md hover:underline">
+          {cta}
+          <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+        </Link>
+      </div>
+      <div className={reverse ? "lg:order-1" : ""}>{children}</div>
+    </div>
+  );
+}
+
+function MockWindow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-surface rounded-2xl shadow-lg border border-outline-variant overflow-hidden">
+      <div className="flex items-center gap-1.5 px-4 py-3 border-b border-outline-variant bg-surface-container-low">
+        <span className="w-2.5 h-2.5 rounded-full bg-outline-variant" />
+        <span className="w-2.5 h-2.5 rounded-full bg-outline-variant" />
+        <span className="w-2.5 h-2.5 rounded-full bg-outline-variant" />
+        <span className="ml-3 text-[11px] text-on-surface-variant font-medium truncate">{label}</span>
+      </div>
+      <div className="p-5">{children}</div>
+    </div>
+  );
+}
+
+function IntakeMockup({ t }: { t: TFn }) {
+  const steps = [t("it_step_demographics"), t("it_step_diagnosis"), t("it_step_treatments"), t("it_step_finance")];
+  return (
+    <MockWindow label="Artham · Intake">
+      <div className="flex items-center justify-between mb-4">
+        {steps.map((s, i) => (
+          <div key={s} className="flex flex-col items-center flex-1">
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${i === 0 ? "bg-primary text-on-primary" : i < 1 ? "bg-secondary text-on-secondary" : "bg-surface-container-high text-outline"}`}>
+              {i + 1}
+            </div>
+            <span className="text-[8px] font-semibold text-on-surface-variant mt-1 truncate max-w-[60px] text-center">{s}</span>
+          </div>
+        ))}
+      </div>
+      <div className="space-y-2.5">
+        <div>
+          <p className="text-[10px] font-semibold text-on-surface-variant mb-1">{t("it_age")}</p>
+          <div className="h-8 rounded-lg border border-outline-variant bg-surface-container-lowest flex items-center px-3 text-xs text-on-surface">45</div>
+        </div>
+        <div>
+          <p className="text-[10px] font-semibold text-on-surface-variant mb-1">{t("it_state")}</p>
+          <div className="h-8 rounded-lg border border-primary bg-surface-container-lowest flex items-center px-3 text-xs text-on-surface">Maharashtra</div>
+        </div>
+        <div className="grid grid-cols-3 gap-1.5 pt-1">
+          {[t("it_surgery"), t("it_chemo"), t("it_radiation")].map((c) => (
+            <div key={c} className="rounded-lg bg-secondary-container/50 border border-secondary/20 px-2 py-1.5 text-center">
+              <p className="text-[8px] font-bold text-on-secondary-container uppercase truncate">{c}</p>
+              <p className="text-[10px] font-bold text-on-surface">{t("it_yes")}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </MockWindow>
+  );
+}
+
+function CostMockup({ t }: { t: TFn }) {
+  return (
+    <MockWindow label="Artham · Cost estimate">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-[11px] uppercase tracking-wider font-semibold text-on-surface-variant">{t("lp_est_total")}</span>
+        <span className="flex items-center gap-1 text-[11px] font-semibold text-on-secondary-container bg-secondary-container px-2 py-0.5 rounded-full">
+          <span className="material-symbols-outlined text-[13px] fill-icon">verified</span>
+          92%
+        </span>
+      </div>
+      <h3 className="text-2xl font-bold text-on-surface tracking-tight mb-4">₹4,50,000 – ₹7,50,000</h3>
+      <div className="space-y-1.5">
+        <div className="flex justify-between text-sm text-on-surface">
+          <span className="text-on-surface-variant">{t("lp_insurance_covers")}</span>
+          <span className="font-semibold">₹4,35,000</span>
+        </div>
+        <div className="w-full h-2.5 bg-surface-container-high rounded-full overflow-hidden flex">
+          <div className="bg-primary" style={{ width: "75%" }} />
+          <div className="bg-tertiary" style={{ width: "25%" }} />
+        </div>
+        <div className="flex justify-between text-sm text-on-surface">
+          <span className="text-on-surface-variant">{t("lp_oop")}</span>
+          <span className="font-semibold">₹1,45,000</span>
+        </div>
+      </div>
+      <div className="mt-4 space-y-1.5">
+        {["Diagnostics", "Surgery", "Chemotherapy"].map((row, i) => (
+          <div key={row} className="flex items-center justify-between text-[11px] py-1.5 border-b border-outline-variant/50 last:border-0">
+            <span className="text-on-surface-variant">{row}</span>
+            <span className="font-semibold text-on-surface">{["₹41,000", "₹2,60,000", "₹3,20,000"][i]}</span>
+          </div>
+        ))}
+      </div>
+    </MockWindow>
+  );
+}
+
+function DashboardMockup({ t }: { t: TFn }) {
+  return (
+    <MockWindow label="Artham · Dashboard">
+      <div className="grid grid-cols-2 gap-2.5 mb-3">
+        <div className="rounded-xl border border-secondary/30 bg-secondary-container/40 p-3">
+          <p className="text-[9px] uppercase font-bold text-on-secondary-container tracking-wider">{t("db_best")}</p>
+          <p className="text-lg font-bold text-on-surface mt-0.5">₹72,500</p>
+        </div>
+        <div className="rounded-xl border border-primary/30 bg-primary-container/40 p-3">
+          <p className="text-[9px] uppercase font-bold text-on-primary-container tracking-wider">{t("db_expected")}</p>
+          <p className="text-lg font-bold text-on-surface mt-0.5">₹5,80,000</p>
+        </div>
+      </div>
+      <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-3">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Coverage</span>
+          <span className="text-[10px] font-bold text-secondary">75%</span>
+        </div>
+        <div className="w-full h-2 bg-surface-container-high rounded-full overflow-hidden">
+          <div className="h-full bg-primary rounded-full" style={{ width: "75%" }} />
+        </div>
+        <div className="flex items-center gap-1.5 mt-3">
+          <span className="material-symbols-outlined text-[16px] fill-icon text-secondary">verified</span>
+          <span className="text-[11px] text-on-surface-variant">PM-JAY eligible · high confidence</span>
+        </div>
+      </div>
+    </MockWindow>
+  );
+}
+
+function ChatMockup({ t }: { t: TFn }) {
+  return (
+    <MockWindow label="Artham · Clinical Navigator">
+      <div className="space-y-2.5">
+        <div className="flex justify-end">
+          <div className="max-w-[80%] bg-primary text-on-primary rounded-2xl rounded-br-sm px-3 py-2 text-[11px]">
+            What will my chemotherapy cost, and does insurance cover it?
+          </div>
+        </div>
+        <div className="flex justify-start">
+          <div className="max-w-[85%] bg-surface-container-high text-on-surface rounded-2xl rounded-bl-sm px-3 py-2 text-[11px] space-y-1">
+            <p className="font-bold text-primary">Chemotherapy (TC × 4)</p>
+            <p>Est. <b>₹2,00,000–₹3,20,000</b> at a private hospital. With your insurance, ~75% is cashless.</p>
+            <p className="text-on-surface-variant">You also qualify for PM-JAY — I can add it to your Action Plan.</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 pt-1">
+          <div className="flex-1 h-8 rounded-full border border-outline-variant bg-surface-container-lowest flex items-center px-3 text-[11px] text-outline">
+            {t("mi_placeholder_chat")}
+          </div>
+          <div className="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center shrink-0">
+            <span className="material-symbols-outlined text-[16px]">send</span>
+          </div>
+        </div>
+      </div>
+    </MockWindow>
   );
 }
 

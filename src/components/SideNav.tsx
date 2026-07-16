@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { useLanguage } from "./LanguageContext";
+import { downloadReport } from "../utils/report";
 
 export default function SideNav() {
   const { t } = useLanguage();
@@ -45,7 +46,10 @@ export default function SideNav() {
         ))}
       </nav>
       <div className="px-md mt-auto pt-md space-y-sm">
-        <button className="w-full bg-primary text-on-primary py-2.5 rounded-full font-label-md text-label-md hover:brightness-110 transition-all flex items-center justify-center gap-xs shadow-sm">
+        <button
+          onClick={downloadReport}
+          className="w-full bg-primary text-on-primary py-2.5 rounded-full font-label-md text-label-md hover:brightness-110 transition-all flex items-center justify-center gap-xs shadow-sm active:scale-95"
+        >
           <span className="material-symbols-outlined text-[18px]">download</span>
           {t("nav_download")}
         </button>

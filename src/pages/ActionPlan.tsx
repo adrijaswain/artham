@@ -793,28 +793,6 @@ export default function ActionPlan() {
     }
   };
 
-  // Dynamically calculate progress metrics
-  const docsReady = docs.filter((d) => d.status === "ready").length;
-  const docsProgress = docs.length > 0 ? Math.round((docsReady / docs.length) * 100) : 0;
-  const timelineReady = timelineSteps.filter((t) => t.completed).length;
-  const timelineProgress = timelineSteps.length > 0 ? Math.round((timelineReady / timelineSteps.length) * 100) : 0;
-
-  const schemeProgresses = suggestedSchemes.map((scheme) => {
-    const stepsCount = scheme.steps.length;
-    const completedCount = scheme.steps.filter((_, idx) =>
-      completedSchemeSteps.includes(`${scheme.id}_${idx}`)
-    ).length;
-    const progress = stepsCount > 0 ? Math.round((completedCount / stepsCount) * 100) : 100;
-    return { id: scheme.id, progress };
-  });
-
-  const avgSchemeProgress = schemeProgresses.length > 0
-    ? Math.round(schemeProgresses.reduce((acc, curr) => acc + curr.progress, 0) / schemeProgresses.length)
-    : 100;
-
-  // Overall consolidated readiness calculation (averaging active components)
-  const totalReadiness = Math.round((docsProgress + timelineProgress + avgSchemeProgress) / 3);
-
   return (
     <AppShell>
       <div className="px-margin-mobile md:px-gutter pt-md pb-xl max-w-container-max mx-auto space-y-lg animate-fade-in">
@@ -1283,65 +1261,6 @@ export default function ActionPlan() {
                     <span className="material-symbols-outlined text-[14px]">restart_alt</span>
                     {language === "en" ? "Reset Profile" : language === "hi" ? "प्रोफ़ाइल रीसेट" : language === "mr" ? "प्रोफाइल रीसेट" : language === "kn" ? "ರಿಸೆಟ್" : "রিসেট প্রোফাইল"}
                   </button>
-                </div>
-
-                {/* Consolidated Readiness Index */}
-                <div className="pt-sm border-t border-outline-variant/40">
-                  <div className="flex justify-between items-center text-[10px] font-bold text-outline uppercase tracking-wider mb-sm">
-                    <span>
-                      {language === "en" ? "Conjoint Readiness Index" :
-                       language === "hi" ? "संयुक्त तैयारी सूचकांक" :
-                       language === "mr" ? "एकत्रित सज्जता निर्देशांक" :
-                       language === "kn" ? "ಸನ್ನದ್ಧತೆ ಸೂಚ್ಯಂಕ" :
-                       "যৌথ প্রস্তুতি সূচক"}
-                    </span>
-                    <span className="text-primary">{totalReadiness}% score</span>
-                  </div>
-                  
-                  {(() => {
-                    const gaugeColor =
-                      totalReadiness > 80 ? "text-secondary" : totalReadiness > 50 ? "text-primary" : "text-error";
-                    const levelLabel =
-                      totalReadiness > 80
-                        ? language === "en" ? "High" : language === "hi" ? "उच्च" : language === "mr" ? "उच्च" : language === "kn" ? "ಹೆಚ್ಚು" : "উচ্চ"
-                        : totalReadiness > 50
-                        ? language === "en" ? "Medium" : language === "hi" ? "मध्यम" : language === "mr" ? "मध्यम" : language === "kn" ? "ಮಧ್ಯಮ" : "মাঝারি"
-                        : language === "en" ? "Needs Review" : language === "hi" ? "समीक्षा की आवश्यकता" : language === "mr" ? "पुनरावलोकन आवश्यक" : language === "kn" ? "ಪರಿಶೀಲನೆ ಅಗತ್ಯವಿದೆ" : "পর্যালোচনা প্রয়োজন";
-                    // Semicircular gauge. Both arcs share the same path and use
-                    // pathLength=100 so the coloured arc length equals the score %.
-                    const ARC = "M 18 104 A 86 86 0 0 1 190 104";
-                    return (
-                      <div className="relative flex flex-col items-center">
-                        <svg viewBox="0 0 208 118" className="w-full max-w-[240px]" role="img" aria-label={`Readiness ${totalReadiness}%`}>
-                          <path d={ARC} fill="none" stroke="currentColor" className="text-surface-container-high" strokeWidth="16" strokeLinecap="round" pathLength={100} />
-                          <path
-                            d={ARC}
-                            fill="none"
-                            stroke="currentColor"
-                            className={`${gaugeColor} transition-all duration-700`}
-                            strokeWidth="16"
-                            strokeLinecap="round"
-                            pathLength={100}
-                            strokeDasharray={`${totalReadiness} 100`}
-                          />
-                        </svg>
-                        <div className="-mt-10 text-center z-10">
-                          <div className="font-headline-md text-headline-md text-primary font-bold leading-none">{totalReadiness}%</div>
-                          <div className={`text-xs font-bold mt-0.5 ${gaugeColor}`}>{levelLabel}</div>
-                          <p className="text-[10px] text-on-surface-variant font-medium mt-0.5">
-                            {language === "en" ? "Application Reliability Score" : language === "hi" ? "आवेदन विश्वसनीयता स्कोर" : language === "mr" ? "अर्ज विश्वासार्हता निर्देशांक" : language === "kn" ? "ಅರ್ಜಿ ವಿಶ್ವಾಸಾರ್ಹತೆ ಸ್ಕೋರ್" : "আবেদন নির্ভরযোগ্যতা স্কোর"}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })()}
-                  <p className="text-[10px] text-outline leading-tight mt-sm text-center italic font-medium">
-                    {language === "en" ? "Readiness scales automatically as you check off timeline steps, documents, and schemes." :
-                     language === "hi" ? "जैसे-जैसे आप समयरेखा चरणों, दस्तावेजों और योजनाओं को चिह्नित करते हैं, तैयारी का स्तर अपने आप बढ़ता है।" :
-                     language === "mr" ? "तुम्ही जसजसे टप्पे, कागदपत्रे आणि योजना पूर्ण कराल, तसतसा सज्जता निर्देशांक स्वयंचलितपणे वाढेल." :
-                     language === "kn" ? "ನೀವು ಹಂತಗಳು, ದಾಖಲೆಗಳು ಮತ್ತು ಯೋಜನೆಗಳನ್ನು ಪೂರ್ಣಗೊಳಿಸಿದಂತೆ ಸನ್ನದ್ಧತೆಯ ಸೂಚ್ಯಂಕವು ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಹೆಚ್ಚಾಗುತ್ತದೆ." :
-                     "আপনি যখন সময়রেখার ধাপ, নথি এবং প্রকল্পগুলি চিহ্নিত করবেন, তখন প্রস্তুতির হার স্বয়ংক্রিয়ভাবে বৃদ্ধি পাবে।"}
-                  </p>
                 </div>
               </section>
 

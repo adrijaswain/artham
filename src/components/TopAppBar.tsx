@@ -71,10 +71,6 @@ export default function TopAppBar() {
             language
           </span>
         </div>
-        <button className="p-2 rounded-full hover:bg-surface-container transition-all text-on-surface-variant hover:text-on-surface">
-          <span className="material-symbols-outlined">notifications</span>
-        </button>
-        
         {isLoggedIn ? (
           <div className="flex items-center gap-xs sm:gap-sm">
             <div className="flex items-center gap-xs bg-surface-container border border-outline-variant text-on-surface px-2 py-1.5 rounded-full text-xs font-semibold">

@@ -18,7 +18,7 @@ export type VaultFile = {
   amount?: string;
   notes?: string;
   size: string;
-  base64Data?: string; // For image previews and multimodal Gemini prompts
+  base64Data?: string; // For image previews and multimodal vision prompts
   mimeType?: string;
   aiAnalysis?: string;
 };
@@ -26,208 +26,192 @@ const generateUniqueId = () => {
   return Date.now().toString();
 };
 
-const initialVaultFiles: VaultFile[] = [
-  {
-    id: "1",
-    name: "MRI_Knee_Scan_Report.png",
-    category: "Medical Report / Scan",
-    date: "2026-05-10",
-    notes: "Left knee MRI showing severe cartilage erosion and bone-on-bone contact.",
-    size: "1.2 MB",
-    aiAnalysis: `### **Artham AI Document Analysis**
-    
-**1. Patient & Document Summary:**
-* **Patient Name:** Verified (Matched intake profile)
-* **Report Date:** May 10, 2026
+// The Evidence Vault starts empty — users upload their own documents and the
+// assistant analyzes their real details (no template/sample files).
+const initialVaultFiles: VaultFile[] = [];
 
-**2. Clinical Findings:**
-* Left knee scan indicates **Grade IV Osteoarthritis** (end-stage cartilage loss).
-* Joint space narrowing is severe, especially in the medial compartment.
-* Subchondral sclerosis and osteophyte formations observed.
-* Surgeon recommendations: Total Knee Replacement (TKR) is highly indicated.
+// ---------------------------------------------------------------------------
+// Groq API integration (OpenAI-compatible chat completions).
+// Model is configurable via VITE_GROQ_MODEL (default llama-3.3-70b-versatile).
+// An optional vision model (VITE_GROQ_VISION_MODEL) enables reading uploaded
+// image documents; when unset, document analysis works from the details the
+// user provides in the upload form.
+// ---------------------------------------------------------------------------
+const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
+const groqModel = () => (import.meta.env.VITE_GROQ_MODEL as string) || "llama-3.3-70b-versatile";
+const groqVisionModel = () => (import.meta.env.VITE_GROQ_VISION_MODEL as string) || "";
 
-**3. Financial & Claim Feasibility:**
-* Diagnostic code (ICD-10) matches standard orthopedic surgical packages.
-* **Feasibility Rating:** **High** (High-quality diagnostic evidence).
-* Recommended action: Attach this file directly to pre-authorization requests.`,
-    base64Data: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", // Mock tiny 1x1 png base64
-    mimeType: "image/png"
-  }
-];
-
-// Gemini API call helper for Chat
-const queryGeminiChat = async (history: Msg[], apiKey: string): Promise<string> => {
-  const lang = localStorage.getItem("artham_language") || "en";
-  const languageNames: Record<string, string> = {
-    en: "English",
-    hi: "Hindi (हिन्दी)",
-    mr: "Marathi (मराठी)",
-    kn: "Kannada (ಕನ್ನಡ)",
-    bn: "Bengali (বাঙালি)"
-  };
-  const activeLanguageName = languageNames[lang] || "English";
-
-  const patientState = localStorage.getItem("artham_intake_state") || "Not specified";
-  const age = localStorage.getItem("artham_intake_age") || "Not specified";
-  const stage = localStorage.getItem("artham_intake_stage") || "Not specified";
-  const hormoneStatus = localStorage.getItem("artham_intake_hormone_status") || "Not specified";
-  const surgery = localStorage.getItem("artham_intake_surgery") || "Yes";
-  const chemo = localStorage.getItem("artham_intake_chemo") || "Yes";
-  const radiation = localStorage.getItem("artham_intake_radiation") || "Yes";
-  const hospitalType = localStorage.getItem("artham_intake_hospital_type") || "Not specified";
-  const hasIns = localStorage.getItem("artham_intake_has_insurance") !== "false";
-  const provider = localStorage.getItem("artham_intake_insurance_provider");
-  const insurance = hasIns ? (provider || "Yes (details pending)") : "No Insurance";
-  const incomeBracket = localStorage.getItem("artham_intake_income_bracket") || "Not specified";
-
-  const systemPrompt = `You are the Artham Clinical Navigator, an expert clinical AI and financial navigation assistant for breast cancer in India. Your goal is to guide the user in understanding their clinical context, diagnostics, treatments, and costs in direct alignment with the Artham web application.
-
-User Intake Profile (DO NOT reprint or list these parameters back to the user unless directly asked. Keep it implicitly in context):
-- State: ${patientState}
-- Age: ${age}
-- Cancer Stage: ${stage}
-- HER2 / Hormone Status: ${hormoneStatus}
-- Surgery Recommended: ${surgery}
-- Chemotherapy Recommended: ${chemo}
-- Radiation Recommended: ${radiation}
-- Hospital Type: ${hospitalType}
-- Insurance Status: ${insurance}
-- Household Income: ${incomeBracket}
-
-Be professional, empathetic, clear, and extremely concise. Keep responses highly focused:
-CRITICAL LANGUAGE REQUIREMENT: You MUST speak, explain, and write your entire response in the ${activeLanguageName} language. Respond strictly in the ${activeLanguageName} language.
-1. STRICT CONCISENESS: Limit your response to 100-150 words max. Do not exceed this limit. Bullet points and short paragraphs only.
-2. NO SPIRALING: Answer the user's question directly and stay on point. Avoid general explanations or repeating clinical basic facts unless explicitly asked.
-3. Greeting Behavior: If the user says a greeting (like "Hi" or "Hello"), respond with a single warm sentence greeting them in ${activeLanguageName} and asking how you can help, without giving a long clinical readout.
-4. Personalization: Tailor your responses to directly align with the User's Intake Profile. E.g. if their state is Karnataka, focus on Arogya Karnataka. If they are Stage II, mention the clinical stage expectations. If they are HER2 Positive, you can mention targeted therapies like Trastuzumab.
-5. Cost Context: Discuss staging, surgery (lumpectomy, mastectomy), chemotherapy, radiation, and targeted therapy (HER2+), referencing costs in Indian Rupees (₹) and Lakhs.
-6. Scheme & Welfare Integration: Frame suggestions around Indian welfare schemes like Ayushman Bharat (PM-JAY), Rashtriya Arogya Nidhi (RAN), and State Illness Assistance funds.
-7. Platform Feature Referrals: When helpful, guide patients to use other parts of Artham (Cost Breakdown, Preventive Plans, Action Plan & Dashboard, Evidence Vault).
-8. Output Style: Always structure your responses with clean Markdown, using bold headers, bullet lists, and crisp summaries. Keep advice practical and navigation-oriented.
-9. Disclaimer: Include a brief single-sentence disclaimer that Artham is for financial navigation support and is not a substitute for oncologists.`;
-
-  // Format history for Gemini API
-  const contents = history.map(h => ({
-    role: h.role === "bot" ? "model" : "user",
-    parts: [{ text: h.text }]
-  }));
-
-  const payload = {
-    contents,
-    systemInstruction: {
-      parts: [{ text: systemPrompt }]
-    }
-  };
-
-  const modelName = (import.meta.env.VITE_GEMINI_MODEL as string) || "gemini-1.5-flash";
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    }
-  );
-
-  if (!response.ok) {
-    const errData = await response.json();
-    throw new Error(errData.error?.message || "Gemini API Request failed");
-  }
-
-  const data = await response.json();
-  if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
-    return data.candidates[0].content.parts[0].text;
-  }
-  throw new Error("Invalid response format from Gemini API");
+const LANGUAGE_NAMES: Record<string, string> = {
+  en: "English",
+  hi: "Hindi (हिन्दी)",
+  mr: "Marathi (मराठी)",
+  kn: "Kannada (ಕನ್ನಡ)",
+  bn: "Bengali (বাঙালি)"
 };
 
-// Gemini API call helper for Multimodal Document Analysis
-const analyzeDocumentWithGemini = async (file: VaultFile, apiKey: string): Promise<string> => {
+const getActiveLanguageName = () => {
   const lang = localStorage.getItem("artham_language") || "en";
-  const languageNames: Record<string, string> = {
-    en: "English",
-    hi: "Hindi (हिन्दी)",
-    mr: "Marathi (मराठी)",
-    kn: "Kannada (ಕನ್ನಡ)",
-    bn: "Bengali (বাঙালি)"
-  };
-  const activeLanguageName = languageNames[lang] || "English";
+  return LANGUAGE_NAMES[lang] || "English";
+};
 
-  const patientState = localStorage.getItem("artham_intake_state") || "Not specified";
-  const age = localStorage.getItem("artham_intake_age") || "Not specified";
-  const stage = localStorage.getItem("artham_intake_stage") || "Not specified";
-  const hormoneStatus = localStorage.getItem("artham_intake_hormone_status") || "Not specified";
-  const surgery = localStorage.getItem("artham_intake_surgery") || "Yes";
-  const chemo = localStorage.getItem("artham_intake_chemo") || "Yes";
-  const radiation = localStorage.getItem("artham_intake_radiation") || "Yes";
-  const hospitalType = localStorage.getItem("artham_intake_hospital_type") || "Not specified";
+// Compact intake-profile block, pulled from the user's saved onboarding data.
+const buildIntakeContext = (): string => {
+  const g = (k: string, fallback = "Not specified") => localStorage.getItem(k) || fallback;
   const hasIns = localStorage.getItem("artham_intake_has_insurance") !== "false";
   const provider = localStorage.getItem("artham_intake_insurance_provider");
-  const insurance = hasIns ? (provider || "Yes (details pending)") : "No Insurance";
-  const incomeBracket = localStorage.getItem("artham_intake_income_bracket") || "Not specified";
+  const insurance = hasIns ? (provider || "Insured (details pending)") : "No Insurance";
+  return [
+    `- State: ${g("artham_intake_state")}`,
+    `- Age: ${g("artham_intake_age")}`,
+    `- Cancer Stage: ${g("artham_intake_stage")}`,
+    `- HER2 / Hormone Receptor Status: ${g("artham_intake_hormone_status")}`,
+    `- Surgery Planned: ${g("artham_intake_surgery")}`,
+    `- Chemotherapy Planned: ${g("artham_intake_chemo")}`,
+    `- Radiation Planned: ${g("artham_intake_radiation")}`,
+    `- Hospital Type: ${g("artham_intake_hospital_type")}`,
+    `- Insurance Status: ${insurance}`,
+    `- Household Income: ${g("artham_intake_income_bracket")}`
+  ].join("\n");
+};
 
-  const parts: ({ text: string } | { inlineData: { mimeType: string; data: string } })[] = [];
+// Summarize the user's uploaded Evidence Vault so the assistant can reference
+// the real details of documents they have added.
+const buildVaultContext = (vaultFiles: VaultFile[]): string => {
+  if (!vaultFiles || vaultFiles.length === 0) return "No documents uploaded yet.";
+  return vaultFiles
+    .slice(0, 12)
+    .map((f, i) =>
+      [
+        `${i + 1}. ${f.name} — ${f.category}${f.date ? ` (dated ${f.date})` : ""}`,
+        f.amount ? `   Declared amount: ₹${f.amount}` : "",
+        f.notes ? `   User notes: ${f.notes}` : "",
+        f.aiAnalysis ? `   Prior analysis: ${f.aiAnalysis.replace(/\s+/g, " ").slice(0, 500)}` : ""
+      ]
+        .filter(Boolean)
+        .join("\n")
+    )
+    .join("\n");
+};
 
-  // Inject base64 data if it's an image
-  if (file.base64Data && file.mimeType) {
-    parts.push({
-      inlineData: {
-        mimeType: file.mimeType,
-        data: file.base64Data
-      }
-    });
-  }
+type GroqMessage = {
+  role: "system" | "user" | "assistant";
+  content: string | ({ type: "text"; text: string } | { type: "image_url"; image_url: { url: string } })[];
+};
 
-  const promptText = `You are the Artham clinical audit assistant. 
-  Analyze this medical document in the context of the user's clinical profile.
-  
-  CRITICAL: You MUST write your entire analysis and next actions response strictly in the ${activeLanguageName} language.
-  
-  User Profile: State: ${patientState}, Age: ${age}, Stage: ${stage}, Hormone Status: ${hormoneStatus}, Surgery: ${surgery}, Chemotherapy: ${chemo}, Radiation: ${radiation}, Hospital: ${hospitalType}, Insured: ${insurance}, Income: ${incomeBracket}.
-  
-  Category: ${file.category}
-  Filename: ${file.name}
-  User notes: ${file.notes || 'None'}
-  
-  Extract the following details in a clean, professional, structured format:
-  1. Patient Name & Document Date (if visible).
-  2. Primary clinical findings / diagnosis / prescribed treatments or drugs.
-  3. Financial Details: Extract any bills, claim amounts, or cost quotes (in INR/₹) if present.
-  4. Claim Verification: Rate how reliable this evidence is for insurance claims (High, Medium, Low) and explain why based on details.
-  5. Next Actions: Suggest step-by-step next actions (e.g. submit to PM-JAY, claim reimbursement, attach to pre-auth).
-  
-  Format your response with beautiful Markdown, using bold headers, clean bullet points, and high contrast styling.`;
-
-  parts.push({ text: promptText });
-
-  const payload = {
-    contents: [{ parts }]
-  };
-
-  const modelName = (import.meta.env.VITE_GEMINI_MODEL as string) || "gemini-2.5-flash";
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    }
-  );
+// Core Groq chat-completions call.
+const callGroq = async (apiKey: string, model: string, messages: GroqMessage[]): Promise<string> => {
+  const response = await fetch(GROQ_ENDPOINT, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({ model, temperature: 0.4, max_tokens: 1024, messages })
+  });
 
   if (!response.ok) {
-    const errData = await response.json();
-    throw new Error(errData.error?.message || "Gemini API Document Analysis failed");
+    let detail = `${response.status} ${response.statusText}`;
+    try {
+      const errData = await response.json();
+      detail = errData.error?.message || detail;
+    } catch {
+      /* keep status text */
+    }
+    throw new Error(detail || "Groq API request failed");
   }
 
   const data = await response.json();
-  if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
-    return data.candidates[0].content.parts[0].text;
+  const content = data.choices?.[0]?.message?.content;
+  if (typeof content !== "string") throw new Error("Invalid response format from Groq API");
+  return content;
+};
+
+// Groq chat helper for the Clinical Navigator conversation. The system prompt
+// carries the intake profile and a summary of uploaded documents.
+const queryGroqChat = async (history: Msg[], apiKey: string, vaultFiles: VaultFile[]): Promise<string> => {
+  const activeLanguageName = getActiveLanguageName();
+
+  const systemPrompt = `You are the Artham Clinical Navigator, an expert clinical and financial-navigation assistant focused specifically on BREAST CANCER care in India.
+
+User Intake Profile (keep implicitly in context; do not reprint unless asked):
+${buildIntakeContext()}
+
+User's Evidence Vault documents (reference their details when relevant):
+${buildVaultContext(vaultFiles)}
+
+Guidelines:
+CRITICAL LANGUAGE REQUIREMENT: Write your ENTIRE response strictly in ${activeLanguageName}.
+1. SCOPE: Only address breast-cancer diagnosis, treatment (surgery, chemotherapy, radiation, targeted & hormone therapy), treatment costs in India (₹, Lakhs), insurance, and government/welfare schemes. If asked about an unrelated topic or a different disease, briefly say you focus on breast-cancer navigation and steer back.
+2. CONCISENESS: 100-150 words max. Bullet points and short paragraphs only. Answer directly; do not spiral into generic background.
+3. GREETINGS: If the user only greets you, reply with one warm sentence in ${activeLanguageName} asking how you can help — no clinical readout.
+4. PERSONALIZE: Tailor to the intake profile (e.g. state scheme like Arogya Karnataka; Stage II expectations; Trastuzumab for HER2+) and reference the user's uploaded documents when useful.
+5. SCHEMES: Frame financial help around Ayushman Bharat (PM-JAY), Rashtriya Arogya Nidhi (RAN), and State Illness Assistance funds.
+6. REFERRALS: When helpful, point to Artham features (Cost Breakdown, Action Plan, Dashboard, Schemes, Evidence Vault).
+7. STYLE: Clean Markdown — bold headers, bullet lists, crisp summaries.
+8. DISCLAIMER: End with one short sentence that Artham supports financial navigation and is not a substitute for an oncologist.`;
+
+  const messages: GroqMessage[] = [
+    { role: "system", content: systemPrompt },
+    ...history.map((h) => ({
+      role: (h.role === "bot" ? "assistant" : "user") as "assistant" | "user",
+      content: h.text
+    }))
+  ];
+
+  return callGroq(apiKey, groqModel(), messages);
+};
+
+// Groq document-analysis helper. If a vision model is configured and the file
+// is an image, the scan itself is read; otherwise the analysis is built from
+// the document details the user supplied in the upload form.
+const analyzeDocumentWithGroq = async (file: VaultFile, apiKey: string): Promise<string> => {
+  const activeLanguageName = getActiveLanguageName();
+
+  const systemPrompt = `You are the Artham clinical audit assistant for breast-cancer care in India. Write your ENTIRE response strictly in ${activeLanguageName}, using clean Markdown with bold headers and bullet points.`;
+
+  const instructions = `Analyze the uploaded document in the context of the patient's breast-cancer profile and give practical, India-specific guidance.
+
+Patient intake profile:
+${buildIntakeContext()}
+
+Document details:
+- Filename: ${file.name}
+- Category: ${file.category}
+- Date: ${file.date || "Not specified"}
+- Declared amount (₹): ${file.amount || "None"}
+- User notes: ${file.notes || "None"}
+
+Produce these sections:
+1. **Document Summary** — what this document is and its role in the treatment/claim journey.
+2. **Key Details** — clinical and/or financial values (state clearly what is missing and ask the user to add it to the notes if needed).
+3. **Claim Feasibility** — rate its usefulness as evidence for an insurance/scheme claim (High / Medium / Low) and why.
+4. **Next Actions** — concrete step-by-step actions (e.g. attach to PM-JAY pre-auth, submit for reimbursement).`;
+
+  const visionModel = groqVisionModel();
+  const isImage = !!(file.base64Data && file.mimeType && file.mimeType.startsWith("image/"));
+
+  if (visionModel && isImage) {
+    const dataUrl = `data:${file.mimeType};base64,${file.base64Data}`;
+    return callGroq(apiKey, visionModel, [
+      { role: "system", content: systemPrompt },
+      {
+        role: "user",
+        content: [
+          { type: "text", text: instructions },
+          { type: "image_url", image_url: { url: dataUrl } }
+        ]
+      }
+    ]);
   }
-  throw new Error("Invalid response format from Gemini API");
+
+  const noVisionNote = isImage
+    ? "\n\nNote: the image contents are not read automatically here. Base your analysis on the details above, and ask the user to type any critical values (findings, amounts, dates) into the document notes."
+    : "";
+
+  return callGroq(apiKey, groqModel(), [
+    { role: "system", content: systemPrompt },
+    { role: "user", content: instructions + noVisionNote }
+  ]);
 };
 
 const allSuggestions = [
@@ -272,10 +256,10 @@ export default function MedicalInput() {
   });
 
   // API Key management
-  const [customApiKey, setCustomApiKey] = useState(() => localStorage.getItem("gemini_api_key") || "");
+  const [customApiKey, setCustomApiKey] = useState(() => localStorage.getItem("groq_api_key") || "");
   const [showKeyModal, setShowKeyModal] = useState(false);
   const [tempKey, setTempKey] = useState("");
-  const apiKey = customApiKey || (import.meta.env.VITE_GEMINI_API_KEY as string) || "";
+  const apiKey = customApiKey || (import.meta.env.VITE_GROQ_API_KEY as string) || "";
 
   const [isVaultOpen, setIsVaultOpen] = useState(false);
 
@@ -550,9 +534,9 @@ export default function MedicalInput() {
 
     if (apiKey) {
       try {
-        const aiResponse = await queryGeminiChat(updatedMessages, apiKey);
+        const aiResponse = await queryGroqChat(updatedMessages, apiKey, vaultFiles);
 
-        // Extract a clinical badge from Gemini response
+        // Extract a clinical badge from the AI response
         let extractedBadge = undefined;
         const surgeryMatch = aiResponse.match(/surgery|procedure|mastectomy|replacement|chemotherapy|radiation/i);
         if (surgeryMatch) {
@@ -568,7 +552,7 @@ export default function MedicalInput() {
         const errMsg = err instanceof Error ? err.message : String(err);
         setMessages(m => [...m, {
           role: "bot",
-          text: `I encountered an issue connecting to the Gemini API: ${errMsg}. Please verify your API key or try again in a few moments.`,
+          text: `I encountered an issue connecting to the Groq API: ${errMsg}. Please verify your API key or try again in a few moments.`,
           isError: true
         }]);
       } finally {
@@ -681,7 +665,7 @@ export default function MedicalInput() {
     // 4. Execute AI analysis
     if (apiKey) {
       try {
-        const responseText = await analyzeDocumentWithGemini(newFile, apiKey);
+        const responseText = await analyzeDocumentWithGroq(newFile, apiKey);
 
         // Save the extracted results inside the permanent repository entry
         const finalFiles = updatedFiles.map(f => {
@@ -703,7 +687,7 @@ export default function MedicalInput() {
         
 Failed to analyze document: ${errMsg}. 
 
-*Please check that your Gemini API Key is active, and ensure that the uploaded image size is under 4MB.*`;
+*Please check that your Groq API Key is active, and ensure that the uploaded image size is under 4MB.*`;
 
         const finalFiles = updatedFiles.map(f => {
           if (f.id === newFile.id) {
@@ -768,7 +752,7 @@ Failed to analyze document: ${errMsg}.
 
     if (apiKey) {
       try {
-        const responseText = await analyzeDocumentWithGemini(file, apiKey);
+        const responseText = await analyzeDocumentWithGroq(file, apiKey);
         const updatedFiles = vaultFiles.map(f => {
           if (f.id === file.id) {
             return { ...f, aiAnalysis: responseText };
@@ -786,7 +770,7 @@ Failed to analyze document: ${errMsg}.
         
 Failed to analyze document: ${errMsg}. 
 
-*Please check that your Gemini API Key is active, and ensure that the uploaded image size is under 4MB.*`;
+*Please check that your Groq API Key is active, and ensure that the uploaded image size is under 4MB.*`;
         const updatedFiles = vaultFiles.map(f => {
           if (f.id === file.id) {
             return { ...f, aiAnalysis: errorText };
@@ -1414,14 +1398,14 @@ Failed to analyze document: ${errMsg}.
         </div>
       )}
 
-      {/* 3. Gemini API Key Configuration Modal */}
+      {/* 3. Groq API Key Configuration Modal */}
       {showKeyModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-md bg-on-surface/50 backdrop-blur-sm animate-fade-in">
           <div className="bg-surface-bright border border-outline-variant/60 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-zoom-in">
             <div className="p-md md:p-lg border-b border-outline-variant/40 bg-surface-container-low flex justify-between items-center">
               <h3 className="font-headline-sm text-headline-sm text-primary flex items-center gap-xs">
                 <span className="material-symbols-outlined text-primary text-[22px]">vpn_key</span>
-                Gemini API Configuration
+                Groq API Configuration
               </h3>
               <button
                 onClick={() => setShowKeyModal(false)}
@@ -1434,30 +1418,30 @@ Failed to analyze document: ${errMsg}.
 
             <div className="p-md md:p-lg space-y-md">
               <p className="text-xs text-outline leading-relaxed">
-                By default, Artham loads the Gemini API key from the environment variable <code>VITE_GEMINI_API_KEY</code>. You can also paste your key below to save it in your browser cache.
+                By default, Artham loads the Groq API key from the environment variable <code>VITE_GROQ_API_KEY</code>. You can also paste your key below to save it in your browser cache.
               </p>
 
               {/* Status Indicator */}
-              <div className={`p-sm rounded-xl border flex items-start gap-sm text-xs ${import.meta.env.VITE_GEMINI_API_KEY
+              <div className={`p-sm rounded-xl border flex items-start gap-sm text-xs ${import.meta.env.VITE_GROQ_API_KEY
                   ? "bg-secondary/10 border-secondary/20 text-on-secondary-container"
                   : customApiKey
                     ? "bg-primary/10 border-primary/20 text-on-primary-container"
                     : "bg-tertiary/10 border-tertiary/20 text-on-tertiary-container"
                 }`}>
                 <span className="material-symbols-outlined mt-0.5 text-[18px]">
-                  {import.meta.env.VITE_GEMINI_API_KEY || customApiKey ? "check_circle" : "info"}
+                  {import.meta.env.VITE_GROQ_API_KEY || customApiKey ? "check_circle" : "info"}
                 </span>
                 <div>
                   <p className="font-bold">
-                    {import.meta.env.VITE_GEMINI_API_KEY
+                    {import.meta.env.VITE_GROQ_API_KEY
                       ? "Using Key from Environment (.env)"
                       : customApiKey
                         ? "Using Key from Browser Storage"
                         : "Currently in Demo Mock Mode"}
                   </p>
                   <p className="text-[11px] opacity-80 mt-0.5">
-                    {import.meta.env.VITE_GEMINI_API_KEY
-                      ? "VITE_GEMINI_API_KEY is configured in the project environment variables."
+                    {import.meta.env.VITE_GROQ_API_KEY
+                      ? "VITE_GROQ_API_KEY is configured in the project environment variables."
                       : customApiKey
                         ? "A custom key is stored locally in this browser."
                         : "No key found. AI features will use pre-recorded simulated responses."}
@@ -1468,12 +1452,12 @@ Failed to analyze document: ${errMsg}.
               {/* Key Input */}
               <div className="space-y-xs">
                 <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider pl-1">
-                  Gemini API Key
+                  Groq API Key
                 </label>
                 <div className="relative">
                   <input
                     type="password"
-                    placeholder="AIzaSy..."
+                    placeholder="gsk_..."
                     value={tempKey}
                     onChange={(e) => setTempKey(e.target.value)}
                     className="w-full pl-3 pr-10 py-2.5 rounded-xl border border-outline-variant bg-surface-bright font-body-sm text-on-surface outline-none focus:ring-2 focus:ring-primary focus:border-primary"
@@ -1483,7 +1467,7 @@ Failed to analyze document: ${errMsg}.
                   </span>
                 </div>
                 <p className="text-[10px] text-outline pl-1">
-                  Your key is sent directly to Google Gemini APIs and is never uploaded to external servers.
+                  Your key is sent directly to the Groq API and is never uploaded to external servers.
                 </p>
               </div>
             </div>
@@ -1492,7 +1476,7 @@ Failed to analyze document: ${errMsg}.
               {customApiKey && (
                 <button
                   onClick={() => {
-                    localStorage.removeItem("gemini_api_key");
+                    localStorage.removeItem("groq_api_key");
                     setCustomApiKey("");
                     setTempKey("");
                     setShowKeyModal(false);
@@ -1512,7 +1496,7 @@ Failed to analyze document: ${errMsg}.
               </button>
               <button
                 onClick={() => {
-                  localStorage.setItem("gemini_api_key", tempKey.trim());
+                  localStorage.setItem("groq_api_key", tempKey.trim());
                   setCustomApiKey(tempKey.trim());
                   setShowKeyModal(false);
                 }}
@@ -1610,7 +1594,7 @@ Failed to analyze document: ${errMsg}.
                 </div>
               )}
 
-              {/* Gemini AI Clinical Audit Panel */}
+              {/* Groq AI Clinical Audit Panel */}
               <div className="border-t border-outline-variant/40 pt-md">
                 {isAnalyzingFile ? (
                   /* Loading extraction skeleton */
@@ -1645,9 +1629,9 @@ Failed to analyze document: ${errMsg}.
                       <span className="material-symbols-outlined">auto_awesome</span>
                     </div>
                     <div>
-                      <h4 className="font-label-md text-on-surface font-semibold">Gemini Multimodal Document Extractor</h4>
+                      <h4 className="font-label-md text-on-surface font-semibold">Groq AI Document Extractor</h4>
                       <p className="text-xs text-outline mt-xs max-w-md">
-                        Trigger real Google Gemini AI to analyze the document. Artham will parse diagnostic findings, verify claims compatibility, and extract billing cost values.
+                        Trigger Groq AI to analyze the document details. Artham will parse diagnostic findings, verify claims compatibility, and extract billing cost values.
                       </p>
                     </div>
 

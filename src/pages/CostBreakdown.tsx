@@ -658,7 +658,7 @@ export default function CostBreakdown() {
 
     if (effStage === "Stage III" || effStage === "Stage IV" || category === "Premium" || category === "Private") {
       const icuCost = 1 * ADDITIONAL.icu[category];
-      hospitalizationItems.push(createItem("ICU Admission", "1 day ICU monitoring following complex surgery.", icuCost, "icu"));
+      hospitalizationItems.push(createItem("ICU Admission", "1 day post-surgical ICU monitoring.", icuCost, "icu"));
     }
   }
 
@@ -935,38 +935,6 @@ export default function CostBreakdown() {
                 })}
               </div>
 
-              {/* Financial Resilience Insight */}
-              <div className="mt-xl bg-primary-container/20 text-on-primary-container p-lg rounded-3xl flex flex-col md:flex-row gap-lg items-center overflow-hidden border border-outline-variant/40 relative">
-                <div className="absolute top-0 right-0 w-40 h-40 bg-primary-container/30 rounded-full blur-xl pointer-events-none" />
-                
-                <div className="flex-1 z-10 space-y-sm">
-                  <h2 className="font-headline-md text-headline-md font-bold text-primary">{t("cb_resilience_title")}</h2>
-                  <p className="font-body-md text-on-surface-variant text-xs leading-relaxed max-w-2xl">
-                    {t("cb_resilience_desc")}
-                  </p>
-                  <Link
-                    to="/action-plan"
-                    className="inline-flex items-center gap-xs bg-secondary hover:bg-secondary/90 px-md py-sm rounded-xl font-bold text-xs text-on-secondary shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all"
-                  >
-                    {t("db_action")}
-                    <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                  </Link>
-                </div>
-                
-                <div className="w-full md:w-64 flex flex-col items-center gap-sm z-10 bg-surface-container-low border border-outline-variant/40 p-md rounded-2xl">
-                  <div className="relative w-44 h-22 overflow-hidden flex flex-col justify-end items-center pt-2">
-                    <div className="absolute top-2 w-36 h-36 border-[10px] border-surface-container-high rounded-full" />
-                    <div
-                      className="absolute top-2 w-36 h-36 border-[10px] border-t-secondary border-r-secondary border-l-transparent border-b-transparent rounded-full origin-center transition-all duration-700"
-                      style={{ transform: "rotate(45deg)" }}
-                    />
-                    <span className="font-headline-sm text-sm text-primary font-bold z-10">{t("cb_excellent")}</span>
-                  </div>
-                  <p className="font-label-sm text-[9px] uppercase font-bold text-outline text-center tracking-wider mt-1">
-                    {t("cb_net_alignment")}
-                  </p>
-                </div>
-              </div>
             </div>
 
           </div>

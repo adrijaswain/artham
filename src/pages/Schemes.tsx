@@ -3614,15 +3614,82 @@ export default function Schemes() {
           )
         ) : (
           sortedAndFilteredInsurers.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter animate-fade-in">
-              {sortedAndFilteredInsurers.map((ins) => (
-                <InsuranceTile
-                  key={ins.name}
-                  insurance={ins}
-                  onViewDetails={() => setActiveDetailedInsurance(ins)}
-                />
-              ))}
-            </div>
+            (() => {
+              // After a breast-cancer diagnosis it becomes a pre-existing
+              // condition. Almost all retail health / critical-illness plans are
+              // then declined for that condition; only a handful of insurers may
+              // consider applicants, and only at very high premiums with long
+              // waiting periods and the existing cancer excluded.
+              const postDiagnosisApplicable = new Set([
+                "Star Health & Allied Insurance Co. Ltd.",
+                "Care Health Insurance Ltd.",
+                "Aditya Birla Health Insurance Co. Ltd."
+              ]);
+              const applicable = sortedAndFilteredInsurers.filter((i) => postDiagnosisApplicable.has(i.name));
+              const notApplicable = sortedAndFilteredInsurers.filter((i) => !postDiagnosisApplicable.has(i.name));
+              return (
+                <div className="space-y-lg animate-fade-in">
+                  {/* Post-diagnosis advisory */}
+                  <div className="bg-tertiary-container/40 border border-tertiary/30 rounded-2xl p-md flex gap-sm">
+                    <span className="material-symbols-outlined text-tertiary shrink-0">info</span>
+                    <div className="space-y-1">
+                      <h4 className="font-headline-sm text-sm text-on-surface font-bold">
+                        {language === "en" ? "Insurance after a diagnosis" : language === "hi" ? "निदान के बाद बीमा" : "Insurance after a diagnosis"}
+                      </h4>
+                      <p className="text-body-sm text-on-surface-variant leading-relaxed">
+                        {language === "en"
+                          ? "Most health and critical-illness policies must be bought BEFORE a diagnosis. Once breast cancer is diagnosed it becomes a pre-existing condition, so new retail cover for it is usually declined — or offered by only a few insurers at very high premiums, with long waiting periods and the existing condition excluded. Always confirm eligibility directly with the insurer. Government schemes (see the Schemes tab) remain your strongest option."
+                          : language === "hi"
+                          ? "अधिकांश स्वास्थ्य और गंभीर-बीमारी पॉलिसी निदान से पहले ही खरीदी जानी चाहिए। स्तन कैंसर का निदान होने पर यह पूर्व-मौजूद स्थिति बन जाती है, इसलिए इसके लिए नई रिटेल कवर आमतौर पर अस्वीकृत की जाती है — या केवल कुछ बीमाकर्ता बहुत अधिक प्रीमियम, लंबी प्रतीक्षा अवधि और मौजूदा स्थिति को बाहर रखते हुए देते हैं। पात्रता की पुष्टि सीधे बीमाकर्ता से करें। सरकारी योजनाएँ (योजनाएँ टैब देखें) सबसे मजबूत विकल्प बनी रहती हैं।"
+                          : "Most health and critical-illness policies must be bought BEFORE a diagnosis. Once breast cancer is diagnosed it becomes a pre-existing condition, so new retail cover for it is usually declined — or offered by only a few insurers at very high premiums, with long waiting periods and the existing condition excluded. Always confirm eligibility directly with the insurer. Government schemes (see the Schemes tab) remain your strongest option."}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Group 1: may consider applicants post-diagnosis */}
+                  {applicable.length > 0 && (
+                    <div className="space-y-sm">
+                      <div className="flex items-center gap-sm">
+                        <span className="material-symbols-outlined text-secondary text-[20px]">verified_user</span>
+                        <h3 className="font-headline-sm text-sm text-on-surface font-bold">
+                          {language === "en" ? "May consider applicants after diagnosis (high premium)" : language === "hi" ? "निदान के बाद आवेदकों पर विचार कर सकते हैं (उच्च प्रीमियम)" : "May consider applicants after diagnosis (high premium)"}
+                        </h3>
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container">{applicable.length}</span>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+                        {applicable.map((ins) => (
+                          <div key={ins.name} className="rounded-3xl ring-2 ring-secondary/40 ring-offset-2 ring-offset-background">
+                            <InsuranceTile insurance={ins} onViewDetails={() => setActiveDetailedInsurance(ins)} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Group 2: typically unavailable post-diagnosis */}
+                  {notApplicable.length > 0 && (
+                    <div className="space-y-sm">
+                      <div className="flex items-center gap-sm">
+                        <span className="material-symbols-outlined text-outline text-[20px]">block</span>
+                        <h3 className="font-headline-sm text-sm text-on-surface font-bold">
+                          {language === "en" ? "Best bought before diagnosis — usually not available after" : language === "hi" ? "निदान से पहले लेना सर्वोत्तम — बाद में आमतौर पर उपलब्ध नहीं" : "Best bought before diagnosis — usually not available after"}
+                        </h3>
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant">{notApplicable.length}</span>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter opacity-90">
+                        {notApplicable.map((ins) => (
+                          <InsuranceTile
+                            key={ins.name}
+                            insurance={ins}
+                            onViewDetails={() => setActiveDetailedInsurance(ins)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()
           ) : (
             <div className="flex flex-col items-center justify-center py-xl bg-surface-container-lowest rounded-2xl border border-dashed border-outline-variant/80 p-lg text-center shadow-inner">
               <span className="material-symbols-outlined text-[64px] text-outline/50 mb-sm">
