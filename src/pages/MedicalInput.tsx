@@ -126,12 +126,10 @@ const callGroq = async (apiKey: string, model: string, messages: GroqMessage[]):
   return content;
 };
 
-// Groq chat helper for the Clinical Navigator conversation. The system prompt
-// carries the intake profile and a summary of uploaded documents.
-const queryGroqChat = async (history: Msg[], apiKey: string, vaultFiles: VaultFile[]): Promise<string> => {
+// Shared system prompt for the Clinical Navigator chat (used by both providers).
+const buildChatSystemPrompt = (vaultFiles: VaultFile[]): string => {
   const activeLanguageName = getActiveLanguageName();
-
-  const systemPrompt = `You are the Artham Clinical Navigator, an expert clinical and financial-navigation assistant focused specifically on BREAST CANCER care in India.
+  return `You are the Artham Clinical Navigator, an expert clinical and financial-navigation assistant focused specifically on BREAST CANCER care in India.
 
 User Intake Profile (keep implicitly in context; do not reprint unless asked):
 ${buildIntakeContext()}
@@ -141,34 +139,20 @@ ${buildVaultContext(vaultFiles)}
 
 Guidelines:
 CRITICAL LANGUAGE REQUIREMENT: Write your ENTIRE response strictly in ${activeLanguageName}.
-1. SCOPE: Only address breast-cancer diagnosis, treatment (surgery, chemotherapy, radiation, targeted & hormone therapy), treatment costs in India (₹, Lakhs), insurance, and government/welfare schemes. If asked about an unrelated topic or a different disease, briefly say you focus on breast-cancer navigation and steer back.
-2. CONCISENESS: 100-150 words max. Bullet points and short paragraphs only. Answer directly; do not spiral into generic background.
+1. SCOPE: Focus on breast-cancer diagnosis, treatment (surgery, chemotherapy, radiation, targeted & hormone therapy), treatment costs in India (₹, Lakhs), insurance, and government/welfare schemes. If asked about an unrelated topic or a different disease, briefly note you focus on breast-cancer navigation, then still help as best you can.
+2. BE GENUINELY HELPFUL: Directly answer the user's actual question first with concrete, specific information. Keep it focused (roughly 120-200 words) using short paragraphs and bullets — but never refuse or deflect a reasonable question.
 3. GREETINGS: If the user only greets you, reply with one warm sentence in ${activeLanguageName} asking how you can help — no clinical readout.
 4. PERSONALIZE: Tailor to the intake profile (e.g. state scheme like Arogya Karnataka; Stage II expectations; Trastuzumab for HER2+) and reference the user's uploaded documents when useful.
 5. SCHEMES: Frame financial help around Ayushman Bharat (PM-JAY), Rashtriya Arogya Nidhi (RAN), and State Illness Assistance funds.
 6. REFERRALS: When helpful, point to Artham features (Cost Breakdown, Action Plan, Dashboard, Schemes, Evidence Vault).
 7. STYLE: Clean Markdown — bold headers, bullet lists, crisp summaries.
 8. DISCLAIMER: End with one short sentence that Artham supports financial navigation and is not a substitute for an oncologist.`;
-
-  const messages: GroqMessage[] = [
-    { role: "system", content: systemPrompt },
-    ...history.map((h) => ({
-      role: (h.role === "bot" ? "assistant" : "user") as "assistant" | "user",
-      content: h.text
-    }))
-  ];
-
-  return callGroq(apiKey, groqModel(), messages);
 };
 
-// Groq document-analysis helper. If a vision model is configured and the file
-// is an image, the scan itself is read; otherwise the analysis is built from
-// the document details the user supplied in the upload form.
-const analyzeDocumentWithGroq = async (file: VaultFile, apiKey: string): Promise<string> => {
+// Shared document-analysis prompt (used by both providers).
+const buildDocPrompt = (file: VaultFile): { system: string; instructions: string } => {
   const activeLanguageName = getActiveLanguageName();
-
-  const systemPrompt = `You are the Artham clinical audit assistant for breast-cancer care in India. Write your ENTIRE response strictly in ${activeLanguageName}, using clean Markdown with bold headers and bullet points.`;
-
+  const system = `You are the Artham clinical audit assistant for breast-cancer care in India. Write your ENTIRE response strictly in ${activeLanguageName}, using clean Markdown with bold headers and bullet points.`;
   const instructions = `Analyze the uploaded document in the context of the patient's breast-cancer profile and give practical, India-specific guidance.
 
 Patient intake profile:
@@ -186,32 +170,131 @@ Produce these sections:
 2. **Key Details** — clinical and/or financial values (state clearly what is missing and ask the user to add it to the notes if needed).
 3. **Claim Feasibility** — rate its usefulness as evidence for an insurance/scheme claim (High / Medium / Low) and why.
 4. **Next Actions** — concrete step-by-step actions (e.g. attach to PM-JAY pre-auth, submit for reimbursement).`;
+  return { system, instructions };
+};
 
+// ---- Groq provider ----
+const queryGroqChat = async (history: Msg[], apiKey: string, vaultFiles: VaultFile[]): Promise<string> => {
+  const messages: GroqMessage[] = [
+    { role: "system", content: buildChatSystemPrompt(vaultFiles) },
+    ...history.map((h) => ({
+      role: (h.role === "bot" ? "assistant" : "user") as "assistant" | "user",
+      content: h.text
+    }))
+  ];
+  return callGroq(apiKey, groqModel(), messages);
+};
+
+const analyzeDocumentWithGroq = async (file: VaultFile, apiKey: string): Promise<string> => {
+  const { system, instructions } = buildDocPrompt(file);
   const visionModel = groqVisionModel();
   const isImage = !!(file.base64Data && file.mimeType && file.mimeType.startsWith("image/"));
 
   if (visionModel && isImage) {
     const dataUrl = `data:${file.mimeType};base64,${file.base64Data}`;
     return callGroq(apiKey, visionModel, [
-      { role: "system", content: systemPrompt },
-      {
-        role: "user",
-        content: [
-          { type: "text", text: instructions },
-          { type: "image_url", image_url: { url: dataUrl } }
-        ]
-      }
+      { role: "system", content: system },
+      { role: "user", content: [{ type: "text", text: instructions }, { type: "image_url", image_url: { url: dataUrl } }] }
     ]);
   }
 
   const noVisionNote = isImage
     ? "\n\nNote: the image contents are not read automatically here. Base your analysis on the details above, and ask the user to type any critical values (findings, amounts, dates) into the document notes."
     : "";
-
   return callGroq(apiKey, groqModel(), [
-    { role: "system", content: systemPrompt },
+    { role: "system", content: system },
     { role: "user", content: instructions + noVisionNote }
   ]);
+};
+
+// ---- Gemini provider (fallback for chat; primary for reading uploaded files) ----
+const GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models";
+const geminiModel = () => (import.meta.env.VITE_GEMINI_MODEL as string) || "gemini-2.5-flash";
+
+type GeminiPart = { text: string } | { inlineData: { mimeType: string; data: string } };
+
+const callGemini = async (apiKey: string, payload: Record<string, unknown>): Promise<string> => {
+  const response = await fetch(`${GEMINI_ENDPOINT}/${geminiModel()}:generateContent?key=${apiKey}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    let detail = `${response.status} ${response.statusText}`;
+    try {
+      const errData = await response.json();
+      detail = errData.error?.message || detail;
+    } catch {
+      /* keep status text */
+    }
+    throw new Error(detail || "Gemini API request failed");
+  }
+
+  const data = await response.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (typeof text !== "string") throw new Error("Invalid response format from Gemini API");
+  return text;
+};
+
+const queryGeminiChat = async (history: Msg[], apiKey: string, vaultFiles: VaultFile[]): Promise<string> => {
+  const contents = history.map((h) => ({
+    role: h.role === "bot" ? "model" : "user",
+    parts: [{ text: h.text }]
+  }));
+  return callGemini(apiKey, {
+    contents,
+    systemInstruction: { parts: [{ text: buildChatSystemPrompt(vaultFiles) }] }
+  });
+};
+
+const analyzeDocumentWithGemini = async (file: VaultFile, apiKey: string): Promise<string> => {
+  const { system, instructions } = buildDocPrompt(file);
+  const parts: GeminiPart[] = [];
+  // Gemini is multimodal — feed the actual scan/image so it reads the document.
+  if (file.base64Data && file.mimeType) {
+    parts.push({ inlineData: { mimeType: file.mimeType, data: file.base64Data } });
+  }
+  parts.push({ text: instructions });
+  return callGemini(apiKey, {
+    contents: [{ parts }],
+    systemInstruction: { parts: [{ text: system }] }
+  });
+};
+
+// ---- Provider orchestration: automatic Groq <-> Gemini switching ----
+// Chat: prefer Groq; if it errors (or has no key), fall back to Gemini.
+const runChat = async (
+  history: Msg[],
+  groqKey: string,
+  geminiKey: string,
+  vaultFiles: VaultFile[]
+): Promise<string> => {
+  if (groqKey) {
+    try {
+      return await queryGroqChat(history, groqKey, vaultFiles);
+    } catch (err) {
+      if (geminiKey) return await queryGeminiChat(history, geminiKey, vaultFiles);
+      throw err;
+    }
+  }
+  if (geminiKey) return await queryGeminiChat(history, geminiKey, vaultFiles);
+  throw new Error("No API key configured");
+};
+
+// Documents: prefer Gemini (it can actually read uploaded scans/images); fall
+// back to Groq if Gemini has no key or errors.
+const runDocAnalysis = async (file: VaultFile, groqKey: string, geminiKey: string): Promise<string> => {
+  if (geminiKey) {
+    try {
+      return await analyzeDocumentWithGemini(file, geminiKey);
+    } catch (err) {
+      if (groqKey) return await analyzeDocumentWithGroq(file, groqKey);
+      throw err;
+    }
+  }
+  if (groqKey) return await analyzeDocumentWithGroq(file, groqKey);
+  throw new Error("No API key configured");
 };
 
 const allSuggestions = [
@@ -259,7 +342,10 @@ export default function MedicalInput() {
   const [customApiKey, setCustomApiKey] = useState(() => localStorage.getItem("groq_api_key") || "");
   const [showKeyModal, setShowKeyModal] = useState(false);
   const [tempKey, setTempKey] = useState("");
-  const apiKey = customApiKey || (import.meta.env.VITE_GROQ_API_KEY as string) || "";
+  // Two providers with automatic switching: Groq (primary for chat) and Gemini
+  // (primary for reading uploaded files, and chat fallback if Groq errors).
+  const groqKey = customApiKey || (import.meta.env.VITE_GROQ_API_KEY as string) || "";
+  const geminiKey = (import.meta.env.VITE_GEMINI_API_KEY as string) || "";
 
   const [isVaultOpen, setIsVaultOpen] = useState(false);
 
@@ -532,9 +618,9 @@ export default function MedicalInput() {
     setDraft("");
     setIsChatLoading(true);
 
-    if (apiKey) {
+    if (groqKey || geminiKey) {
       try {
-        const aiResponse = await queryGroqChat(updatedMessages, apiKey, vaultFiles);
+        const aiResponse = await runChat(updatedMessages, groqKey, geminiKey, vaultFiles);
 
         // Extract a clinical badge from the AI response
         let extractedBadge = undefined;
@@ -552,7 +638,7 @@ export default function MedicalInput() {
         const errMsg = err instanceof Error ? err.message : String(err);
         setMessages(m => [...m, {
           role: "bot",
-          text: `I encountered an issue connecting to the Groq API: ${errMsg}. Please verify your API key or try again in a few moments.`,
+          text: `I ran into an issue reaching the AI service: ${errMsg}. Please try again in a few moments.`,
           isError: true
         }]);
       } finally {
@@ -662,10 +748,10 @@ export default function MedicalInput() {
     setDraft("");
     setIsChatLoading(true);
 
-    // 4. Execute AI analysis
-    if (apiKey) {
+    // 4. Execute AI analysis (Gemini reads the uploaded file; Groq as fallback)
+    if (groqKey || geminiKey) {
       try {
-        const responseText = await analyzeDocumentWithGroq(newFile, apiKey);
+        const responseText = await runDocAnalysis(newFile, groqKey, geminiKey);
 
         // Save the extracted results inside the permanent repository entry
         const finalFiles = updatedFiles.map(f => {
@@ -750,9 +836,9 @@ Failed to analyze document: ${errMsg}.
   const runFileAnalysis = async (file: VaultFile) => {
     setIsAnalyzingFile(true);
 
-    if (apiKey) {
+    if (groqKey || geminiKey) {
       try {
-        const responseText = await analyzeDocumentWithGroq(file, apiKey);
+        const responseText = await runDocAnalysis(file, groqKey, geminiKey);
         const updatedFiles = vaultFiles.map(f => {
           if (f.id === file.id) {
             return { ...f, aiAnalysis: responseText };

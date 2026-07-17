@@ -2701,6 +2701,12 @@ export default function Schemes() {
   const location = useLocation();
   const activeTab: "schemes" | "insurances" = location.pathname.includes("insurance") ? "insurances" : "schemes";
   const [selectedSector, setSelectedSector] = useState("All");
+  // Post-diagnosis applicability filter for the insurances tab:
+  // "All" | "post" (may cover after diagnosis) | "pre" (not available after)
+  const [selectedApplicability, setSelectedApplicability] = useState("All");
+  // Collapsible insurer groups — the long "before diagnosis" list is collapsed
+  // by default so it doesn't make the page very long.
+  const [openInsGroups, setOpenInsGroups] = useState<{ post: boolean; pre: boolean }>({ post: true, pre: false });
 
   // Advanced filters state
   const [selectedAgeGroup, setSelectedAgeGroup] = useState("Any Age");
@@ -2957,6 +2963,7 @@ export default function Schemes() {
     setSelectedGender("Any Gender");
     setSortBy("Default");
     setSelectedSector("All");
+    setSelectedApplicability("All");
   };
 
   return (
@@ -3181,8 +3188,8 @@ export default function Schemes() {
           ) : (
             <div className="flex flex-col lg:flex-row gap-sm items-stretch lg:items-center">
               {/* Insurers Search Input */}
-              <div className="relative flex-grow">
-                <span className="material-symbols-outlined absolute left-3 text-outline pointer-events-none">search</span>
+              <div className="relative flex-grow flex items-center">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[20px]">search</span>
                 <input
                   type="text"
                   placeholder={language === "en" ? "Search insurers by name, sector, or HQ..." : language === "hi" ? "नाम, क्षेत्र या मुख्यालय से बीमाकर्ता खोजें..." : language === "mr" ? "नाव, क्षेत्र किंवा मुख्यालयानुसार बीमाकर्ता शोधा..." : language === "kn" ? "ಹೆಸರು, ವಲಯ ಅಥವಾ ಪ್ರಧಾನ ಕಚೇರಿ ಮೂಲಕ ವಿಮೆದಾರರನ್ನು ಹುಡುಕಿ..." : "নাম, সেক্টর বা সদর দপ্তর দিয়ে বীমাকারী খুঁজুন..."}
@@ -3204,6 +3211,21 @@ export default function Schemes() {
                   <option value="Public Sector">{language === "en" ? "Public Sector" : language === "hi" ? "सार्वजनिक क्षेत्र" : language === "mr" ? "सार्वजनिक क्षेत्र" : language === "kn" ? "ಸಾರ್ವಜನಿಕ ವಲಯ" : "সরকারি সেক্টর"}</option>
                   <option value="Private Sector">{language === "en" ? "Private Sector" : language === "hi" ? "निजी क्षेत्र" : language === "mr" ? "खाजगी क्षेत्र" : language === "kn" ? "ಖಾಸಗಿ ವಲಯ" : "বেসরকারি সেক্টর"}</option>
                   <option value="Standalone Health">{language === "en" ? "Standalone Health" : language === "hi" ? "स्टैंडअलोन स्वास्थ्य" : language === "mr" ? "स्वतंत्र आरोग्य" : language === "kn" ? "ಸ್ವತಂತ್ರ ಆರೋಗ್ಯ" : "স্বতন্ত্র স্বাস্থ্য"}</option>
+                </select>
+                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">expand_more</span>
+              </div>
+
+              {/* Post-diagnosis applicability dropdown */}
+              <div className="relative shrink-0">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[18px]">medical_information</span>
+                <select
+                  className="pl-10 pr-8 py-3 rounded-xl border border-outline-variant bg-surface-container-lowest font-body-md text-on-surface outline-none appearance-none cursor-pointer focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                  value={selectedApplicability}
+                  onChange={(e) => setSelectedApplicability(e.target.value)}
+                >
+                  <option value="All">{language === "en" ? "All insurers" : language === "hi" ? "सभी बीमाकर्ता" : "All insurers"}</option>
+                  <option value="post">{language === "en" ? "May cover after diagnosis" : language === "hi" ? "निदान के बाद संभव" : "May cover after diagnosis"}</option>
+                  <option value="pre">{language === "en" ? "Not available after diagnosis" : language === "hi" ? "निदान के बाद उपलब्ध नहीं" : "Not available after diagnosis"}</option>
                 </select>
                 <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">expand_more</span>
               </div>
@@ -3646,45 +3668,59 @@ export default function Schemes() {
                     </div>
                   </div>
 
-                  {/* Group 1: may consider applicants post-diagnosis */}
-                  {applicable.length > 0 && (
-                    <div className="space-y-sm">
-                      <div className="flex items-center gap-sm">
+                  {/* Group 1: may consider applicants post-diagnosis (collapsible) */}
+                  {selectedApplicability !== "pre" && applicable.length > 0 && (
+                    <div className="rounded-2xl border border-outline-variant/60 overflow-hidden">
+                      <button
+                        onClick={() => setOpenInsGroups((g) => ({ ...g, post: !g.post }))}
+                        className="w-full flex items-center gap-sm px-md py-3 bg-surface-container-low hover:bg-surface-container transition-all text-left"
+                        aria-expanded={openInsGroups.post}
+                      >
                         <span className="material-symbols-outlined text-secondary text-[20px]">verified_user</span>
-                        <h3 className="font-headline-sm text-sm text-on-surface font-bold">
+                        <h3 className="font-headline-sm text-sm text-on-surface font-bold flex-1">
                           {language === "en" ? "May consider applicants after diagnosis (high premium)" : language === "hi" ? "निदान के बाद आवेदकों पर विचार कर सकते हैं (उच्च प्रीमियम)" : "May consider applicants after diagnosis (high premium)"}
                         </h3>
                         <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container">{applicable.length}</span>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
-                        {applicable.map((ins) => (
-                          <div key={ins.name} className="rounded-3xl ring-2 ring-secondary/40 ring-offset-2 ring-offset-background">
-                            <InsuranceTile insurance={ins} onViewDetails={() => setActiveDetailedInsurance(ins)} />
-                          </div>
-                        ))}
-                      </div>
+                        <span className={`material-symbols-outlined text-outline transition-transform ${openInsGroups.post ? "rotate-180" : ""}`}>expand_more</span>
+                      </button>
+                      {openInsGroups.post && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter p-md">
+                          {applicable.map((ins) => (
+                            <div key={ins.name} className="rounded-3xl ring-2 ring-secondary/40 ring-offset-2 ring-offset-background">
+                              <InsuranceTile insurance={ins} onViewDetails={() => setActiveDetailedInsurance(ins)} />
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
 
-                  {/* Group 2: typically unavailable post-diagnosis */}
-                  {notApplicable.length > 0 && (
-                    <div className="space-y-sm">
-                      <div className="flex items-center gap-sm">
+                  {/* Group 2: typically unavailable post-diagnosis (collapsible) */}
+                  {selectedApplicability !== "post" && notApplicable.length > 0 && (
+                    <div className="rounded-2xl border border-outline-variant/60 overflow-hidden">
+                      <button
+                        onClick={() => setOpenInsGroups((g) => ({ ...g, pre: !g.pre }))}
+                        className="w-full flex items-center gap-sm px-md py-3 bg-surface-container-low hover:bg-surface-container transition-all text-left"
+                        aria-expanded={openInsGroups.pre}
+                      >
                         <span className="material-symbols-outlined text-outline text-[20px]">block</span>
-                        <h3 className="font-headline-sm text-sm text-on-surface font-bold">
+                        <h3 className="font-headline-sm text-sm text-on-surface font-bold flex-1">
                           {language === "en" ? "Best bought before diagnosis — usually not available after" : language === "hi" ? "निदान से पहले लेना सर्वोत्तम — बाद में आमतौर पर उपलब्ध नहीं" : "Best bought before diagnosis — usually not available after"}
                         </h3>
                         <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant">{notApplicable.length}</span>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter opacity-90">
-                        {notApplicable.map((ins) => (
-                          <InsuranceTile
-                            key={ins.name}
-                            insurance={ins}
-                            onViewDetails={() => setActiveDetailedInsurance(ins)}
-                          />
-                        ))}
-                      </div>
+                        <span className={`material-symbols-outlined text-outline transition-transform ${openInsGroups.pre ? "rotate-180" : ""}`}>expand_more</span>
+                      </button>
+                      {openInsGroups.pre && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter p-md opacity-90">
+                          {notApplicable.map((ins) => (
+                            <InsuranceTile
+                              key={ins.name}
+                              insurance={ins}
+                              onViewDetails={() => setActiveDetailedInsurance(ins)}
+                            />
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

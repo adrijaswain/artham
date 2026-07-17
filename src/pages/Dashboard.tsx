@@ -1159,16 +1159,17 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Floating action button */}
+      {/* Floating action button (expanded pill) */}
       <button
         onClick={() => setIsChatOpen(prev => !prev)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary text-on-primary shadow-lg hover:brightness-110 active:scale-95 transition-all flex items-center justify-center"
+        className="fixed bottom-6 right-6 z-50 h-14 px-5 rounded-full bg-primary text-on-primary shadow-lg hover:brightness-110 active:scale-95 transition-all flex items-center gap-2.5 font-label-md text-label-md font-semibold"
         title={isChatOpen ? "Close assistant" : "Open AI Cost Assistant"}
         aria-label={isChatOpen ? "Close assistant" : "Open AI Cost Assistant"}
       >
-        <span className="material-symbols-outlined text-[26px]">
+        <span className="material-symbols-outlined text-[24px]">
           {isChatOpen ? "close" : "calculate"}
         </span>
+        <span>{isChatOpen ? "Close" : "AI Cost Assistant"}</span>
       </button>
     </AppShell>
   );
