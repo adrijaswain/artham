@@ -45,7 +45,7 @@ setPersistence(auth, browserLocalPersistence).catch((err) => {
 //     fires an `auth-change` event so pages re-read their data.
 // ===========================================================================
 
-/** Intake / onboarding form fields — stored inside the `intake` map. */
+/** Intake / onboarding form fields - stored inside the `intake` map. */
 export const INTAKE_KEYS = [
   "artham_intake_state",
   "artham_intake_age",
@@ -80,7 +80,7 @@ const USER_SCOPED_SET = new Set<string>(USER_SCOPED_KEYS);
 
 const nowIso = () => new Date().toISOString();
 
-// Original, un-patched storage methods — used internally so mirroring cloud
+// Original, un-patched storage methods - used internally so mirroring cloud
 // data into LocalStorage never loops back into another cloud push.
 const rawSetItem = localStorage.setItem.bind(localStorage);
 const rawRemoveItem = localStorage.removeItem.bind(localStorage);
@@ -195,7 +195,7 @@ let pushTimer: ReturnType<typeof setTimeout> | null = null;
 
 function scheduleSync() {
   const user = auth.currentUser;
-  // Only sync a signed-in user, and never before the initial hydrate — pushing
+  // Only sync a signed-in user, and never before the initial hydrate - pushing
   // early would clobber the cloud copy with half-loaded local defaults.
   if (!user || !hydrated) return;
   if (pushTimer) clearTimeout(pushTimer);
@@ -270,7 +270,7 @@ export function startRealtimeSync(uid: string, onFirstSync?: () => void) {
       window.dispatchEvent(
         new CustomEvent("show-toast", {
           detail: {
-            msg: "Cloud sync is unavailable — your data is saved on this device only.",
+            msg: "Cloud sync is unavailable - your data is saved on this device only.",
             type: "error"
           }
         })

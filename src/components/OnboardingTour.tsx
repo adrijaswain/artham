@@ -16,7 +16,7 @@ const STEPS: Step[] = [
   {
     tourId: "medical-input",
     title: "Add your medical info",
-    body: "Upload prescriptions and bills, or just describe them by voice — we'll pull out the details automatically.",
+    body: "Upload prescriptions and bills, or just describe them by voice - we'll pull out the details automatically.",
   },
   {
     tourId: "dashboard",

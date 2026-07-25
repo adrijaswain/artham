@@ -87,51 +87,20 @@ export default function LandingPage() {
     <AppShell bare bg="bg-[#f5f2fa]">
       <div className="relative">
         {/* HERO */}
-        <section className="relative overflow-hidden">
-          <div className="absolute inset-0 -z-10">
-            <div className="absolute top-[-200px] right-[-150px] w-[600px] h-[600px] bg-primary-fixed-dim rounded-full blur-[120px] opacity-20" />
-            <div className="absolute top-[100px] left-[-200px] w-[500px] h-[500px] bg-secondary-fixed rounded-full blur-[120px] opacity-15" />
+        <section className="relative overflow-hidden bg-gradient-to-br from-secondary via-primary to-[#2a2039]">
+          <div className="absolute inset-0 -z-10 overflow-hidden">
+            <div className="absolute -top-40 -right-32 w-[550px] h-[550px] bg-white/10 rounded-full blur-[130px]" />
+            <div className="absolute -bottom-48 -left-24 w-[500px] h-[500px] bg-black/20 rounded-full blur-[130px]" />
           </div>
           <div className="max-w-container-max mx-auto px-margin-mobile md:px-md pt-lg md:pt-xl pb-lg">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-lg items-center">
               <div className="lg:col-span-7">
-                <div className="inline-flex items-center gap-xs px-sm py-xs bg-surface border border-outline-variant text-on-surface-variant rounded-full font-label-sm text-label-sm mb-md">
-                  <span className="material-symbols-outlined text-[16px] fill-icon text-secondary">verified</span>
-                  {t("lp_built_empathy")}
-                </div>
-                <h1 className="font-headline-lg text-headline-lg md:text-[56px] md:leading-[1.05] md:tracking-[-0.02em] text-on-surface font-bold mb-md">
+                <h1 className="font-headline-lg text-headline-lg md:text-[56px] md:leading-[1.05] md:tracking-[-0.02em] text-on-primary font-bold mb-md">
                   {t("lp_hero_title")}
                 </h1>
-                <p className="font-body-lg text-body-lg text-on-surface-variant max-w-[640px] mb-lg">
+                <p className="font-body-lg text-body-lg text-on-primary/80 max-w-[640px] mb-lg">
                   {t("lp_hero_sub")}
                 </p>
-                <div className="flex flex-col sm:flex-row gap-sm">
-                  <button
-                    onClick={() => nav("/intake")}
-                    className="bg-primary text-on-primary px-lg py-md rounded-xl font-label-md text-label-md hover:brightness-110 transition-all shadow-lg flex items-center justify-center gap-sm focus-visible:ring-2 focus-visible:ring-primary"
-                  >
-                    <span className="material-symbols-outlined">play_arrow</span>
-                    {t("lp_btn_start")}
-                  </button>
-                  <button
-                    onClick={() => nav("/preventive-plans")}
-                    className="border-2 border-primary text-primary px-lg py-md rounded-xl font-label-md text-label-md hover:bg-primary/5 transition-all flex items-center justify-center focus-visible:ring-2 focus-visible:ring-primary"
-                  >
-                    {t("lp_btn_preventive")}
-                  </button>
-                </div>
-                <div className="mt-lg flex flex-wrap items-center gap-md text-on-surface-variant">
-                  {[
-                    ["lock", t("lp_lock")],
-                    ["schedule", t("lp_ready")],
-                    ["payments", t("lp_no_card")],
-                  ].map(([i, textVal]) => (
-                    <div key={textVal} className="flex items-center gap-xs">
-                      <span className="material-symbols-outlined text-secondary text-[20px]">{i}</span>
-                      <span className="font-label-md text-label-md">{textVal}</span>
-                    </div>
-                  ))}
-                </div>
               </div>
 
               {/* Hero Visual: clean product preview (mirrors the dashboard) */}
@@ -202,6 +171,43 @@ export default function LandingPage() {
                 </div>
               </div>
             </div>
+
+            {/* Two paths - soft tinted panels, side by side below the hero row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-md mt-lg pt-lg border-t border-white/10">
+              <button
+                onClick={() => nav("/intake")}
+                className="group flex flex-col items-start gap-xs text-left rounded-2xl bg-white/10 hover:bg-white/[0.14] p-md transition-all"
+              >
+                <span className="flex items-center gap-xs text-secondary-fixed-dim text-[11px] font-semibold uppercase tracking-wide">
+                  <span className="material-symbols-outlined text-[14px]">request_quote</span>
+                  {t("lp_path_diagnosed_kicker")}
+                </span>
+                <span className="flex items-center gap-sm text-on-primary font-bold text-lg">
+                  {t("lp_btn_start")}
+                  <span className="w-7 h-7 rounded-full bg-white/15 flex items-center justify-center group-hover:bg-white/30 transition-all">
+                    <span className="material-symbols-outlined text-[16px] group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
+                  </span>
+                </span>
+                <span className="text-on-primary/70 text-xs leading-snug max-w-sm">{t("lp_btn_start_desc")}</span>
+              </button>
+
+              <button
+                onClick={() => nav("/preventive-plans")}
+                className="group flex flex-col items-start gap-xs text-left rounded-2xl bg-white/[0.05] hover:bg-white/10 p-md transition-all"
+              >
+                <span className="flex items-center gap-xs text-secondary-fixed-dim text-[11px] font-semibold uppercase tracking-wide">
+                  <span className="material-symbols-outlined text-[14px]">health_and_safety</span>
+                  {t("lp_path_preventive_kicker")}
+                </span>
+                <span className="flex items-center gap-sm text-on-primary font-bold text-lg">
+                  {t("lp_btn_preventive")}
+                  <span className="w-7 h-7 rounded-full bg-white/15 flex items-center justify-center group-hover:bg-white/30 transition-all">
+                    <span className="material-symbols-outlined text-[16px] group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
+                  </span>
+                </span>
+                <span className="text-on-primary/70 text-xs leading-snug max-w-sm">{t("lp_btn_preventive_desc")}</span>
+              </button>
+            </div>
           </div>
         </section>
 
@@ -249,7 +255,7 @@ export default function LandingPage() {
           <p className="text-center text-body-sm text-on-surface-variant/70 mt-md max-w-2xl mx-auto italic">{t("lp_ed_note")}</p>
         </section>
 
-        {/* THE COST OF WAITING — DELAYED-TREATMENT STATISTICS */}
+        {/* THE COST OF WAITING - DELAYED-TREATMENT STATISTICS */}
         <section className="bg-[#f0ecf7]">
           <div className="max-w-container-max mx-auto px-margin-mobile md:px-md py-xl">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-lg items-center">
@@ -314,7 +320,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* FEATURE SHOWCASE — alternating text + product mockups */}
+        {/* FEATURE SHOWCASE - alternating text + product mockups */}
         <section className="bg-[#f9f7fc]">
           <div className="max-w-container-max mx-auto px-margin-mobile md:px-md py-xl">
             <div className="text-center max-w-2xl mx-auto mb-xl">
@@ -603,7 +609,7 @@ function ChatMockup({ t }: { t: TFn }) {
           <div className="max-w-[85%] bg-surface-container-high text-on-surface rounded-2xl rounded-bl-sm px-3 py-2 text-[11px] space-y-1">
             <p className="font-bold text-primary">Chemotherapy (TC × 4)</p>
             <p>Est. <b>₹2,00,000–₹3,20,000</b> at a private hospital. With your insurance, ~75% is cashless.</p>
-            <p className="text-on-surface-variant">You also qualify for PM-JAY — I can add it to your Action Plan.</p>
+            <p className="text-on-surface-variant">You also qualify for PM-JAY - I can add it to your Action Plan.</p>
           </div>
         </div>
         <div className="flex items-center gap-2 pt-1">

@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import TopAppBar from "./TopAppBar";
 import SideNav from "./SideNav";
-import Footer from "./Footer";
 import OnboardingTour from "./OnboardingTour";
 import { needsTour } from "../context/AuthContext";
 
@@ -26,9 +25,6 @@ export default function AppShell({ children, bare = false, bg = "bg-background" 
       <main className={`flex-1 pt-16 ${bare ? "" : "md:ml-64"}`}>
         {children}
       </main>
-      <div className={bare ? "" : "md:ml-64"}>
-        <Footer />
-      </div>
       {showTour && <OnboardingTour onFinish={() => setShowTour(false)} />}
     </div>
   );

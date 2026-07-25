@@ -88,7 +88,7 @@ export default function AuthPage({ mode }: { mode: Mode }) {
         navigate("/dashboard");
       } else {
         await sendPasswordResetEmail(auth, email);
-        setSuccess("Password reset link sent — check your inbox.");
+        setSuccess("Password reset link sent - check your inbox.");
       }
     } catch (err) {
       console.error("Auth error:", err);
@@ -124,36 +124,36 @@ export default function AuthPage({ mode }: { mode: Mode }) {
   return (
     <div className="min-h-screen flex bg-background text-on-surface">
       {/* Left brand / marketing panel */}
-      <div className="hidden lg:flex lg:w-[46%] flex-col justify-between bg-primary text-on-primary p-12 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-[46%] flex-col bg-gradient-to-br from-secondary via-primary to-[#2a2039] text-on-primary p-12 relative overflow-hidden">
         <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-white/10 blur-3xl" />
-        <div className="absolute -bottom-32 -left-16 w-96 h-96 rounded-full bg-black/10 blur-3xl" />
+        <div className="absolute -bottom-32 -left-16 w-96 h-96 rounded-full bg-black/20 blur-3xl" />
 
         <Link to="/" className="flex items-center gap-2.5 relative z-10">
           <img src={new URL("../assets/artham_logo_transparent.png", import.meta.url).href} alt="Artham logo" className="w-9 h-9 rounded-2xl object-cover" />
           <span className="text-xl font-bold tracking-tight text-on-primary">Artham</span>
         </Link>
 
-        <div className="relative z-10 max-w-md">
-          <h2 className="text-3xl font-bold leading-tight mb-3">From hospital bills to a clear plan — without the anxiety.</h2>
-          <p className="text-on-primary/80 mb-10 leading-relaxed">
-            Join thousands of patients and caregivers making sense of cancer-care costs in India.
-          </p>
-          <ul className="space-y-5">
-            {highlights.map((h) => (
-              <li key={h.title} className="flex items-start gap-3.5">
-                <span className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
-                  <span className="material-symbols-outlined text-[20px]">{h.icon}</span>
-                </span>
-                <div>
-                  <p className="font-semibold text-sm">{h.title}</p>
-                  <p className="text-on-primary/75 text-sm leading-relaxed">{h.body}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
+        <div className="relative z-10 flex-1 flex items-center">
+          <div className="max-w-md">
+            <h2 className="text-3xl font-bold leading-tight mb-3">From hospital bills to a clear plan - without the anxiety.</h2>
+            <p className="text-on-primary/80 mb-10 leading-relaxed">
+              Join thousands of patients and caregivers making sense of cancer-care costs in India.
+            </p>
+            <ul className="space-y-5">
+              {highlights.map((h) => (
+                <li key={h.title} className="flex items-start gap-3.5">
+                  <span className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-[20px]">{h.icon}</span>
+                  </span>
+                  <div>
+                    <p className="font-semibold text-sm">{h.title}</p>
+                    <p className="text-on-primary/75 text-sm leading-relaxed">{h.body}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
-
-        <p className="relative z-10 text-on-primary/60 text-xs">© 2026 Artham. All rights reserved.</p>
       </div>
 
       {/* Right form panel */}

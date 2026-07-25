@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { LanguageProvider } from "./components/LanguageContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import ScrollToTop from "./components/ScrollToTop";
 import LandingPage from "./pages/LandingPage";
 import AuthPage from "./pages/AuthPage";
 import Intake from "./pages/Intake";
@@ -33,6 +34,7 @@ export default function App() {
     <AuthProvider>
       <LanguageProvider>
         <BrowserRouter>
+          <ScrollToTop />
           <AuthGate>
             <Routes>
               <Route path="/" element={<LandingPage />} />

@@ -4,6 +4,8 @@
 // the user can save it as a PDF. Falls back to downloading an .html file if the
 // print window is blocked.
 
+import { computeCostEstimate, readIntakeProfileFromStorage } from "./costEstimate";
+
 type VaultFileLike = {
   name?: string;
   category?: string;
@@ -11,6 +13,8 @@ type VaultFileLike = {
   amount?: string;
   notes?: string;
 };
+
+const formatINR = (val: number) => "₹" + val.toLocaleString("en-IN");
 
 const get = (key: string, fallback = "Not specified") => {
   const v = localStorage.getItem(key);
@@ -52,6 +56,7 @@ function buildReportHtml(): string {
   const diagnosis = localStorage.getItem("artham_chatbot_diagnosis_details") || "";
   const nextSteps = localStorage.getItem("artham_chatbot_next_steps") || "";
   const vault = readJson<VaultFileLike[]>("artham_vault_files", []);
+  const cost = computeCostEstimate(readIntakeProfileFromStorage());
 
   const today = new Date().toLocaleDateString("en-IN", {
     year: "numeric",
@@ -70,9 +75,9 @@ function buildReportHtml(): string {
     ? vault
         .map(
           (f) =>
-            `<tr><td>${esc(f.name || "Document")}</td><td>${esc(f.category || "—")}</td><td>${esc(
-              f.date || "—"
-            )}</td><td>${esc(f.amount ? "₹" + f.amount : "—")}</td></tr>`
+            `<tr><td>${esc(f.name || "Document")}</td><td>${esc(f.category || "-")}</td><td>${esc(
+              f.date || "-"
+            )}</td><td>${esc(f.amount ? "₹" + f.amount : "-")}</td></tr>`
         )
         .join("")
     : `<tr><td colspan="4" class="muted">No documents uploaded yet.</td></tr>`;
@@ -80,12 +85,28 @@ function buildReportHtml(): string {
   const section = (title: string, body: string) =>
     body ? `<section><h2>${esc(title)}</h2><p>${esc(body)}</p></section>` : "";
 
+  const costSection = cost.isIntakeFilled
+    ? `<h2>Treatment Cost Estimate</h2>
+    <table><tbody>
+      <tr><th>Estimated Total</th><td>${esc(formatINR(cost.minCost))} - ${esc(formatINR(cost.maxCost))}</td></tr>
+      <tr><th>Insurance Covers</th><td>${esc(formatINR(cost.insuranceShare))}</td></tr>
+      <tr><th>Your Out-of-Pocket</th><td>${esc(formatINR(cost.outOfPocket))}</td></tr>
+    </tbody></table>
+    <h2>Cost Breakdown (Brief)</h2>
+    <table class="docs">
+      <thead><tr><th>Category</th><th>Estimated Cost</th></tr></thead>
+      <tbody>${cost.breakdown
+        .map((line) => `<tr><td>${esc(line.label)}</td><td>${esc(formatINR(line.amount))}</td></tr>`)
+        .join("")}</tbody>
+    </table>`
+    : "";
+
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Artham Care Report — ${esc(name)}</title>
+<title>Artham Care Report - ${esc(name)}</title>
 <style>
   :root { --coral: #e2725b; --ink: #2b2430; --muted: #7a7280; --line: #ece6ee; }
   * { box-sizing: border-box; }
@@ -116,6 +137,8 @@ function buildReportHtml(): string {
 
     <h1>Patient Profile</h1>
     <table><tbody>${profileRows}</tbody></table>
+
+    ${costSection}
 
     ${section("Diagnosis Details", diagnosis)}
     ${section("Recommended Next Steps", nextSteps)}
@@ -156,7 +179,7 @@ export function downloadReport() {
     return;
   }
 
-  // Popup blocked — fall back to a direct file download.
+  // Popup blocked - fall back to a direct file download.
   const blob = new Blob([html], { type: "text/html" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

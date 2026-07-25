@@ -3,6 +3,8 @@ import { useState, useEffect, useRef } from "react";
 import AppShell from "../components/AppShell";
 import { useLanguage } from "../components/LanguageContext";
 import { consumeShowChatPopup } from "../context/AuthContext";
+import { getSpeechLocale, loadVoices, pickVoiceForLocale } from "../utils/voice";
+import { computeCostEstimate } from "../utils/costEstimate";
 
 type ChatMsg = {
   role: "bot" | "user";
@@ -205,16 +207,7 @@ export default function Dashboard() {
     try {
       const recognition = new SpeechRecognition();
       recognition.continuous = false;
-      
-      const activeLang = localStorage.getItem("artham_language") || "en";
-      const localeMap: Record<string, string> = {
-        en: "en-IN",
-        hi: "hi-IN",
-        mr: "mr-IN",
-        kn: "kn-IN",
-        bn: "bn-IN"
-      };
-      recognition.lang = localeMap[activeLang] || "en-IN";
+      recognition.lang = getSpeechLocale();
       recognition.interimResults = false;
       recognition.maxAlternatives = 1;
 
@@ -259,7 +252,7 @@ export default function Dashboard() {
       .replace(/₹/g, "Rupees");
   };
 
-  const toggleSpeakMessage = (index: number, text: string) => {
+  const toggleSpeakMessage = async (index: number, text: string) => {
     if (!window.speechSynthesis) {
       window.dispatchEvent(new CustomEvent("show-toast", {
         detail: { msg: "Text-to-speech is not supported in this browser.", type: "error" }
@@ -275,21 +268,12 @@ export default function Dashboard() {
 
     window.speechSynthesis.cancel();
     const cleanText = stripMarkdown(text);
+    const targetLocale = getSpeechLocale();
+    const voices = await loadVoices();
+    const matchingVoice = pickVoiceForLocale(voices, targetLocale);
+
     const utterance = new SpeechSynthesisUtterance(cleanText);
-
-    const activeLang = localStorage.getItem("artham_language") || "en";
-    const localeMap: Record<string, string> = {
-      en: "en-IN",
-      hi: "hi-IN",
-      mr: "mr-IN",
-      kn: "kn-IN",
-      bn: "bn-IN"
-    };
-    utterance.lang = localeMap[activeLang] || "en-IN";
-
-    const voices = window.speechSynthesis.getVoices();
-    const targetLocale = localeMap[activeLang] || "en-IN";
-    const matchingVoice = voices.find(voice => voice.lang.toLowerCase().replace("_", "-") === targetLocale.toLowerCase());
+    utterance.lang = matchingVoice?.lang || targetLocale;
     if (matchingVoice) {
       utterance.voice = matchingVoice;
     }
@@ -311,7 +295,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     localStorage.setItem("artham_dashboard_chat_messages", JSON.stringify(chatMessages));
-    // Scroll only the chat container to its bottom — never the whole page
+    // Scroll only the chat container to its bottom - never the whole page
     // (using scrollIntoView here would yank the page down on load).
     const container = chatEndRef.current?.parentElement;
     if (container) container.scrollTop = container.scrollHeight;
@@ -343,209 +327,28 @@ export default function Dashboard() {
     return () => window.removeEventListener("auth-change", handleAuthChange);
   }, []);
 
-  // Hospital Category: "Government" | "Private" | "Premium"
-  let category: "Government" | "Private" | "Premium" = "Private";
-  if (hospitalType === "Government / Public Hospital") {
-    category = "Government";
-  } else if (hospitalType === "Premium Corporate Hospital") {
-    category = "Premium";
-  } else if (hospitalType === "Private Medical Center") {
-    category = "Private";
-  } else {
-    category = "Private"; // Default fallback
-  }
-
-  // Define exact pricing maps calibrated against Dr. Jay Anam's clinical records
-  const DIAGNOSTICS = {
-    mammogram: { Government: 1000, Private: 3000, Premium: 5000 },
-    ultrasound: { Government: 1500, Private: 4000, Premium: 6000 },
-    biopsy: { Government: 5000, Private: 20000, Premium: 35000 },
-    histopathology: { Government: 3000, Private: 10000, Premium: 15000 },
-    ihc: { Government: 5000, Private: 15000, Premium: 25000 },
-    pet: { Government: 10000, Private: 30000, Premium: 45000 },
-    mri: { Government: 8000, Private: 25000, Premium: 40000 },
-    bloodTests: { Government: 2000, Private: 8000, Premium: 12000 }
-  };
-
-  const SURGERY = {
-    lumpectomy: { Government: 75000, Private: 185000, Premium: 350000 },
-    mastectomy: { Government: 100000, Private: 270000, Premium: 500000 },
-    slnb: { Government: 30000, Private: 75000, Premium: 125000 },
-    alnd: { Government: 50000, Private: 100000, Premium: 175000 },
-    reconstruction: { Government: 100000, Private: 250000, Premium: 600000 }
-  };
-
-  const CHEMO = {
-    ac4: { Government: 80000, Private: 150000, Premium: 250000 },
-    act: { Government: 150000, Private: 320000, Premium: 600000 },
-    tc4: { Government: 100000, Private: 200000, Premium: 350000 },
-    tc6: { Government: 150000, Private: 300000, Premium: 500000 },
-    fac: { Government: 90000, Private: 180000, Premium: 300000 },
-    fec: { Government: 100000, Private: 200000, Premium: 350000 },
-    cmf: { Government: 70000, Private: 150000, Premium: 250000 },
-    tch6: { Government: 300000, Private: 500000, Premium: 800000 }
-  };
-
-  const RADIATION = {
-    whole: { Government: 75000, Private: 200000, Premium: 350000 },
-    chestWall: { Government: 75000, Private: 200000, Premium: 350000 },
-    regional: { Government: 100000, Private: 250000, Premium: 400000 }
-  };
-
-  const HORMONE = {
-    tamoxifen: { Government: 10000, Private: 50000, Premium: 75000 },
-    letrozole: { Government: 25000, Private: 100000, Premium: 150000 },
-    anastrozole: { Government: 30000, Private: 120000, Premium: 180000 },
-    exemestane: { Government: 40000, Private: 150000, Premium: 200000 }
-  };
-
-  const TARGETED = {
-    trastuzumab: { Government: 400000, Private: 1200000, Premium: 1800000 },
-    pertuzumabTrastuzumab: { Government: 800000, Private: 1800000, Premium: 2500000 },
-    tdm1: { Government: 800000, Private: 1500000, Premium: 2200000 }
-  };
-
-  const IMMUNO = {
-    pembrolizumab: { Government: 1000000, Private: 1500000, Premium: 2500000 },
-    atezolizumab: { Government: 800000, Private: 1200000, Premium: 2000000 }
-  };
-
-  const ADDITIONAL = {
-    consultationInit: { Government: 500, Private: 2000, Premium: 4000 },
-    consultationFollow: { Government: 500, Private: 1500, Premium: 3000 },
-    chemoAdmin: { Government: 2000, Private: 10000, Premium: 20000 },
-    admission: { Government: 2000, Private: 10000, Premium: 25000 },
-    icu: { Government: 10000, Private: 40000, Premium: 75000 }
-  };
-
-  const isIntakeFilled = !!patientState && !!age && !!stage;
-
-  // Calculations
-  let biopsyCost = 0;
-  let imagingCost = 0;
-  let surgeryCost = 0;
-  let chemoCost = 0;
-  let radiationCost = 0;
-  let targetedCost = 0;
-  let hormoneCost = 0;
-  let immunoCost = 0;
-  let consultationCost = 0;
-  let chemoAdminCost = 0;
-  let hospitalizationCost = 0;
-  let icuCost = 0;
-  let chemoCyclesCount = 0;
-
-  if (isIntakeFilled) {
-    biopsyCost = DIAGNOSTICS.biopsy[category] + DIAGNOSTICS.histopathology[category] + DIAGNOSTICS.ihc[category];
-    let baseImaging = DIAGNOSTICS.mammogram[category] + DIAGNOSTICS.ultrasound[category] + DIAGNOSTICS.bloodTests[category];
-    if (stage === "Stage III" || stage === "Stage IV") {
-      baseImaging += DIAGNOSTICS.pet[category];
-    }
-    if (hormoneStatus === "HER2 Positive" || hormoneStatus === "Triple Negative" || Number(age) < 40) {
-      baseImaging += DIAGNOSTICS.mri[category];
-    }
-    imagingCost = baseImaging;
-
-    if (surgery !== "No" && surgery !== "") {
-      let baseSurgery = 0;
-      let nodeSurgery = 0;
-      let reconSurgery = 0;
-      if (stage === "Stage I" || stage === "Stage II") {
-        baseSurgery = SURGERY.lumpectomy[category];
-        nodeSurgery = SURGERY.slnb[category];
-      } else {
-        baseSurgery = SURGERY.mastectomy[category];
-        nodeSurgery = SURGERY.alnd[category];
-      }
-      if (stage === "Stage II" || stage === "Stage III") {
-        reconSurgery = SURGERY.reconstruction[category];
-      }
-      surgeryCost = baseSurgery + nodeSurgery + reconSurgery;
-    }
-
-    if (chemo !== "No" && chemo !== "") {
-      if (hormoneStatus === "HER2 Positive") {
-        chemoCost = CHEMO.tch6[category];
-        chemoCyclesCount = 6;
-      } else if (hormoneStatus === "Triple Negative") {
-        chemoCost = CHEMO.act[category];
-        chemoCyclesCount = 8;
-      } else if (hormoneStatus === "ER+/PR+ Positive") {
-        if (stage === "Stage I" || stage === "Stage II") {
-          chemoCost = CHEMO.tc4[category];
-          chemoCyclesCount = 4;
-        } else {
-          chemoCost = CHEMO.fac[category];
-          chemoCyclesCount = 6;
-        }
-      } else {
-        chemoCost = CHEMO.act[category];
-        chemoCyclesCount = 8;
-      }
-    }
-
-    if (radiation !== "No" && radiation !== "") {
-      if (stage === "Stage I" || stage === "Stage II") {
-        radiationCost = RADIATION.whole[category];
-      } else {
-        radiationCost = RADIATION.chestWall[category] + RADIATION.regional[category];
-      }
-    }
-
-    if (hormoneStatus === "ER+/PR+ Positive") {
-      if (Number(age) >= 50) {
-        hormoneCost = HORMONE.letrozole[category];
-      } else {
-        hormoneCost = HORMONE.tamoxifen[category];
-      }
-    }
-
-    if (hormoneStatus === "HER2 Positive") {
-      if (stage === "Stage III" || stage === "Stage IV") {
-        targetedCost = TARGETED.pertuzumabTrastuzumab[category];
-      } else {
-        targetedCost = TARGETED.trastuzumab[category];
-      }
-    }
-
-    if (hormoneStatus === "Triple Negative" && (stage === "Stage III" || stage === "Stage IV")) {
-      immunoCost = IMMUNO.pembrolizumab[category];
-    }
-
-    consultationCost = ADDITIONAL.consultationInit[category] + (10 * ADDITIONAL.consultationFollow[category]);
-    if (chemo !== "No" && chemoCyclesCount > 0) {
-      chemoAdminCost = chemoCyclesCount * ADDITIONAL.chemoAdmin[category];
-    }
-    hospitalizationCost = 3 * ADDITIONAL.admission[category];
-
-    if (stage === "Stage III" || stage === "Stage IV" || category === "Premium" || category === "Private") {
-      icuCost = 1 * ADDITIONAL.icu[category];
-    }
-  }
-
-  let totalEstimate = isIntakeFilled
-    ? (biopsyCost + imagingCost + surgeryCost + chemoCost + radiationCost + targetedCost + hormoneCost + immunoCost + consultationCost + chemoAdminCost + hospitalizationCost + icuCost)
-    : 0;
-
-  const minCost = Math.round(totalEstimate * 0.9);
-  const maxCost = Math.round(totalEstimate * 1.1);
-
-  // Insurance Share
-  let coveragePercent = 0;
-  if (hasInsurance && isIntakeFilled) {
-    coveragePercent = category === "Government" ? 0.90 : 0.75;
-  }
-  let insuranceShare = Math.round(totalEstimate * coveragePercent);
-  let outOfPocket = totalEstimate - insuranceShare;
-
-  // Apply Welfare Subsidies based on Income Slabs
-  if (isIntakeFilled) {
-    if (incomeBracket === "Below ₹2,50,000") {
-      outOfPocket = 0;
-    } else if (incomeBracket === "₹2,50,000 – ₹5,00,000") {
-      outOfPocket = Math.round(outOfPocket * 0.5);
-    }
-  }
+  const {
+    isIntakeFilled,
+    totalEstimate,
+    minCost,
+    maxCost,
+    insuranceShare,
+    outOfPocket,
+    treatmentDesc,
+    confidenceScore,
+    confidenceText,
+  } = computeCostEstimate({
+    state: patientState,
+    age,
+    stage,
+    hormoneStatus,
+    surgery,
+    chemo,
+    radiation,
+    hospitalType,
+    hasInsurance,
+    incomeBracket,
+  });
 
   // Deduct interactive savings selected by user
   let totalSavings = 0;
@@ -561,17 +364,6 @@ export default function Dashboard() {
   const bestCaseOop = outOfPocketAdjusted;
 
   const formatINR = (val: number) => "₹" + val.toLocaleString("en-IN");
-
-  // Confidence Score mapping
-  const confidenceScore = !isIntakeFilled ? "None" : stage === "Unsure" ? "Medium" : "High";
-  const confidenceText = !isIntakeFilled ? "Intake pending" : stage === "Unsure" ? "Diagnostics pending" : "Verified diagnostics";
-
-  const treatmentDesc = isIntakeFilled ? [
-    surgery !== "No" ? "Surgery" : "",
-    chemo !== "No" ? "Chemotherapy" : "",
-    radiation !== "No" ? "Radiation" : "",
-    hormoneStatus === "HER2 Positive" ? "Targeted Therapy" : ""
-  ].filter(Boolean).join(", ") : "";
 
   // Mock Cost Calculator extraction fallback
   const mockCostAssistant = (userInput: string) => {
@@ -818,10 +610,10 @@ export default function Dashboard() {
           {/* Metadata grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-6 gap-y-4 mt-6 pt-5 border-t border-outline-variant">
             {[
-              { label: t("it_age"), value: age || "—" },
-              { label: t("it_state"), value: patientState || "—" },
-              { label: t("it_stage"), value: stage || "—" },
-              { label: t("it_hospital"), value: hospitalType ? hospitalType.split(" ")[0] : "—" },
+              { label: t("it_age"), value: age || "-" },
+              { label: t("it_state"), value: patientState || "-" },
+              { label: t("it_stage"), value: stage || "-" },
+              { label: t("it_hospital"), value: hospitalType ? hospitalType.split(" ")[0] : "-" },
               { label: t("it_insurance_status"), value: hasInsurance ? (insuranceProvider || t("it_insured")) : t("it_not_insured") },
               { label: t("db_confidence"), value: `${confidenceScore} · ${confidenceText}` }
             ].map((m) => (
@@ -855,14 +647,14 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-sm">
               <ScenarioCard
                 label={t("db_best")}
-                value={isIntakeFilled ? formatINR(bestCaseOop) : "—"}
+                value={isIntakeFilled ? formatINR(bestCaseOop) : "-"}
                 icon="trending_down"
                 tone="secondary"
                 body={isIntakeFilled ? t("db_best_desc") : t("db_fill")}
               />
               <ScenarioCard
                 label={t("db_expected")}
-                value={isIntakeFilled ? formatINR(totalEstimate) : "—"}
+                value={isIntakeFilled ? formatINR(totalEstimate) : "-"}
                 icon="stars"
                 tone="primary"
                 body={isIntakeFilled ? t("db_expected_desc") : t("db_fill")}
@@ -968,7 +760,7 @@ export default function Dashboard() {
               <div className="space-y-md">
                 <div className="flex justify-between items-center text-sm text-on-surface">
                   <span className="font-medium text-on-surface-variant">Covered by {isIntakeFilled ? (hasInsurance ? insuranceProvider : "Ayushman Bharat / State Plan") : "Pending Profile"}</span>
-                  <span className="font-bold text-secondary">{isIntakeFilled ? formatINR(insuranceShare) : "—"}</span>
+                  <span className="font-bold text-secondary">{isIntakeFilled ? formatINR(insuranceShare) : "-"}</span>
                 </div>
                 <div className="w-full h-3.5 bg-surface-container rounded-full overflow-hidden flex border border-outline-variant/20">
                   <div className="h-full bg-secondary transition-all duration-500" style={{ width: `${totalEstimate > 0 ? Math.round((insuranceShare / totalEstimate) * 100) : 0}%` }} />
@@ -976,7 +768,7 @@ export default function Dashboard() {
                 </div>
                 <div className="flex justify-between items-center text-sm text-on-surface">
                   <span className="font-medium text-on-surface-variant">{t("db_out_of_pocket")}</span>
-                  <span className="font-bold text-tertiary">{isIntakeFilled ? formatINR(outOfPocket) : "—"}</span>
+                  <span className="font-bold text-tertiary">{isIntakeFilled ? formatINR(outOfPocket) : "-"}</span>
                 </div>
 
                 {/* Deductions display if any savings tips checked */}
@@ -989,7 +781,7 @@ export default function Dashboard() {
 
                 <div className="flex justify-between items-center text-sm pt-sm border-t border-outline-variant/40 font-bold text-on-surface">
                   <span>{t("db_adjusted")}</span>
-                  <span className="text-primary text-base">{isIntakeFilled ? formatINR(outOfPocketAdjusted) : "—"}</span>
+                  <span className="text-primary text-base">{isIntakeFilled ? formatINR(outOfPocketAdjusted) : "-"}</span>
                 </div>
 
                 <div className="p-sm bg-surface-container-low rounded-lg flex items-start gap-xs mt-xs border border-outline-variant/20">

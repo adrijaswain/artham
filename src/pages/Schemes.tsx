@@ -2704,7 +2704,7 @@ export default function Schemes() {
   // Post-diagnosis applicability filter for the insurances tab:
   // "All" | "post" (may cover after diagnosis) | "pre" (not available after)
   const [selectedApplicability, setSelectedApplicability] = useState("All");
-  // Collapsible insurer groups — the long "before diagnosis" list is collapsed
+  // Collapsible insurer groups - the long "before diagnosis" list is collapsed
   // by default so it doesn't make the page very long.
   const [openInsGroups, setOpenInsGroups] = useState<{ post: boolean; pre: boolean }>({ post: true, pre: false });
 
@@ -3110,11 +3110,11 @@ export default function Schemes() {
           </div>
         )}
 
-        {/* Filters Layout */}
+        {/* Filters Layout (Schemes tab only - the sector/insurer filters were removed from the Insurances tab) */}
+        {activeTab === "schemes" && (
         <div className="bg-surface-container-low p-sm md:p-md rounded-2xl border border-outline-variant/60 shadow-sm mb-lg">
-          {activeTab === "schemes" ? (
             <div className="flex flex-col lg:flex-row gap-sm items-stretch lg:items-center">
-              
+
               {/* Search Input */}
               <div className="relative flex-grow">
                 <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline/80">
@@ -3185,55 +3185,9 @@ export default function Schemes() {
                 </button>
               )}
             </div>
-          ) : (
-            <div className="flex flex-col lg:flex-row gap-sm items-stretch lg:items-center">
-              {/* Insurers Search Input */}
-              <div className="relative flex-grow flex items-center">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[20px]">search</span>
-                <input
-                  type="text"
-                  placeholder={language === "en" ? "Search insurers by name, sector, or HQ..." : language === "hi" ? "नाम, क्षेत्र या मुख्यालय से बीमाकर्ता खोजें..." : language === "mr" ? "नाव, क्षेत्र किंवा मुख्यालयानुसार बीमाकर्ता शोधा..." : language === "kn" ? "ಹೆಸರು, ವಲಯ ಅಥವಾ ಪ್ರಧಾನ ಕಚೇರಿ ಮೂಲಕ ವಿಮೆದಾರರನ್ನು ಹುಡುಕಿ..." : "নাম, সেক্টর বা সদর দপ্তর দিয়ে বীমাকারী খুঁজুন..."}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-outline-variant bg-surface-container-lowest font-body-md text-on-surface outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
 
-              {/* Sector filter dropdown */}
-              <div className="relative shrink-0">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[18px]">filter_list</span>
-                <select
-                  className="pl-10 pr-8 py-3 rounded-xl border border-outline-variant bg-surface-container-lowest font-body-md text-on-surface outline-none appearance-none cursor-pointer focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                  value={selectedSector}
-                  onChange={(e) => setSelectedSector(e.target.value)}
-                >
-                  <option value="All">{language === "en" ? "All Sectors" : language === "hi" ? "सभी क्षेत्र" : language === "mr" ? "सर्व क्षेत्रे" : language === "kn" ? "ಎಲ್ಲಾ ವಲಯಗಳು" : "সব সেক্টর"}</option>
-                  <option value="Public Sector">{language === "en" ? "Public Sector" : language === "hi" ? "सार्वजनिक क्षेत्र" : language === "mr" ? "सार्वजनिक क्षेत्र" : language === "kn" ? "ಸಾರ್ವಜನಿಕ ವಲಯ" : "সরকারি সেক্টর"}</option>
-                  <option value="Private Sector">{language === "en" ? "Private Sector" : language === "hi" ? "निजी क्षेत्र" : language === "mr" ? "खाजगी क्षेत्र" : language === "kn" ? "ಖಾಸಗಿ ವಲಯ" : "বেসরকারি সেক্টর"}</option>
-                  <option value="Standalone Health">{language === "en" ? "Standalone Health" : language === "hi" ? "स्टैंडअलोन स्वास्थ्य" : language === "mr" ? "स्वतंत्र आरोग्य" : language === "kn" ? "ಸ್ವತಂತ್ರ ಆರೋಗ್ಯ" : "স্বতন্ত্র স্বাস্থ্য"}</option>
-                </select>
-                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">expand_more</span>
-              </div>
-
-              {/* Post-diagnosis applicability dropdown */}
-              <div className="relative shrink-0">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[18px]">medical_information</span>
-                <select
-                  className="pl-10 pr-8 py-3 rounded-xl border border-outline-variant bg-surface-container-lowest font-body-md text-on-surface outline-none appearance-none cursor-pointer focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                  value={selectedApplicability}
-                  onChange={(e) => setSelectedApplicability(e.target.value)}
-                >
-                  <option value="All">{language === "en" ? "All insurers" : language === "hi" ? "सभी बीमाकर्ता" : "All insurers"}</option>
-                  <option value="post">{language === "en" ? "May cover after diagnosis" : language === "hi" ? "निदान के बाद संभव" : "May cover after diagnosis"}</option>
-                  <option value="pre">{language === "en" ? "Not available after diagnosis" : language === "hi" ? "निदान के बाद उपलब्ध नहीं" : "Not available after diagnosis"}</option>
-                </select>
-                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">expand_more</span>
-              </div>
-            </div>
-          )}
-
-          {/* Advanced Collapsible Filter Panel (only under Schemes tab) */}
-          {activeTab === "schemes" && showAdvancedFilters && (
+          {/* Advanced Collapsible Filter Panel */}
+          {showAdvancedFilters && (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-sm mt-sm pt-sm border-t border-outline-variant/40 animate-slide-down">
               {/* Age Group Filter */}
               <div className="flex flex-col gap-xs">
@@ -3490,6 +3444,7 @@ export default function Schemes() {
             </div>
           )}
         </div>
+        )}
 
         {/* Featured Hero: Ayushman Bharat (only shown when in Schemes tab, selected state is All India, and no search query exists) */}
         {activeTab === "schemes" && selectedState === "All India" && selectedCategory !== "State Specific" && !searchQuery && (
@@ -3652,18 +3607,20 @@ export default function Schemes() {
               return (
                 <div className="space-y-lg animate-fade-in">
                   {/* Post-diagnosis advisory */}
-                  <div className="bg-tertiary-container/40 border border-tertiary/30 rounded-2xl p-md flex gap-sm">
-                    <span className="material-symbols-outlined text-tertiary shrink-0">info</span>
+                  <div className="bg-tertiary-container/40 border border-tertiary/30 rounded-2xl p-md flex gap-sm items-start">
+                    <span className="w-9 h-9 rounded-full bg-tertiary/15 flex items-center justify-center shrink-0">
+                      <span className="material-symbols-outlined text-tertiary text-[20px]">info</span>
+                    </span>
                     <div className="space-y-1">
                       <h4 className="font-headline-sm text-sm text-on-surface font-bold">
                         {language === "en" ? "Insurance after a diagnosis" : language === "hi" ? "निदान के बाद बीमा" : "Insurance after a diagnosis"}
                       </h4>
                       <p className="text-body-sm text-on-surface-variant leading-relaxed">
                         {language === "en"
-                          ? "Most health and critical-illness policies must be bought BEFORE a diagnosis. Once breast cancer is diagnosed it becomes a pre-existing condition, so new retail cover for it is usually declined — or offered by only a few insurers at very high premiums, with long waiting periods and the existing condition excluded. Always confirm eligibility directly with the insurer. Government schemes (see the Schemes tab) remain your strongest option."
+                          ? "Most health and critical-illness policies must be bought BEFORE a diagnosis. Once breast cancer is diagnosed it becomes a pre-existing condition, so new retail cover for it is usually declined - or offered by only a few insurers at very high premiums, with long waiting periods and the existing condition excluded. Always confirm eligibility directly with the insurer. Government schemes (see the Schemes tab) remain your strongest option."
                           : language === "hi"
-                          ? "अधिकांश स्वास्थ्य और गंभीर-बीमारी पॉलिसी निदान से पहले ही खरीदी जानी चाहिए। स्तन कैंसर का निदान होने पर यह पूर्व-मौजूद स्थिति बन जाती है, इसलिए इसके लिए नई रिटेल कवर आमतौर पर अस्वीकृत की जाती है — या केवल कुछ बीमाकर्ता बहुत अधिक प्रीमियम, लंबी प्रतीक्षा अवधि और मौजूदा स्थिति को बाहर रखते हुए देते हैं। पात्रता की पुष्टि सीधे बीमाकर्ता से करें। सरकारी योजनाएँ (योजनाएँ टैब देखें) सबसे मजबूत विकल्प बनी रहती हैं।"
-                          : "Most health and critical-illness policies must be bought BEFORE a diagnosis. Once breast cancer is diagnosed it becomes a pre-existing condition, so new retail cover for it is usually declined — or offered by only a few insurers at very high premiums, with long waiting periods and the existing condition excluded. Always confirm eligibility directly with the insurer. Government schemes (see the Schemes tab) remain your strongest option."}
+                          ? "अधिकांश स्वास्थ्य और गंभीर-बीमारी पॉलिसी निदान से पहले ही खरीदी जानी चाहिए। स्तन कैंसर का निदान होने पर यह पूर्व-मौजूद स्थिति बन जाती है, इसलिए इसके लिए नई रिटेल कवर आमतौर पर अस्वीकृत की जाती है - या केवल कुछ बीमाकर्ता बहुत अधिक प्रीमियम, लंबी प्रतीक्षा अवधि और मौजूदा स्थिति को बाहर रखते हुए देते हैं। पात्रता की पुष्टि सीधे बीमाकर्ता से करें। सरकारी योजनाएँ (योजनाएँ टैब देखें) सबसे मजबूत विकल्प बनी रहती हैं।"
+                          : "Most health and critical-illness policies must be bought BEFORE a diagnosis. Once breast cancer is diagnosed it becomes a pre-existing condition, so new retail cover for it is usually declined - or offered by only a few insurers at very high premiums, with long waiting periods and the existing condition excluded. Always confirm eligibility directly with the insurer. Government schemes (see the Schemes tab) remain your strongest option."}
                       </p>
                     </div>
                   </div>
@@ -3673,10 +3630,12 @@ export default function Schemes() {
                     <div className="rounded-2xl border border-outline-variant/60 overflow-hidden">
                       <button
                         onClick={() => setOpenInsGroups((g) => ({ ...g, post: !g.post }))}
-                        className="w-full flex items-center gap-sm px-md py-3 bg-surface-container-low hover:bg-surface-container transition-all text-left"
+                        className="w-full flex items-center gap-sm px-md py-3.5 bg-surface-container-low hover:bg-surface-container transition-all text-left"
                         aria-expanded={openInsGroups.post}
                       >
-                        <span className="material-symbols-outlined text-secondary text-[20px]">verified_user</span>
+                        <span className="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center shrink-0">
+                          <span className="material-symbols-outlined text-on-secondary-container text-[18px]">verified_user</span>
+                        </span>
                         <h3 className="font-headline-sm text-sm text-on-surface font-bold flex-1">
                           {language === "en" ? "May consider applicants after diagnosis (high premium)" : language === "hi" ? "निदान के बाद आवेदकों पर विचार कर सकते हैं (उच्च प्रीमियम)" : "May consider applicants after diagnosis (high premium)"}
                         </h3>
@@ -3684,11 +3643,9 @@ export default function Schemes() {
                         <span className={`material-symbols-outlined text-outline transition-transform ${openInsGroups.post ? "rotate-180" : ""}`}>expand_more</span>
                       </button>
                       {openInsGroups.post && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter p-md">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter p-md bg-surface-container-lowest">
                           {applicable.map((ins) => (
-                            <div key={ins.name} className="rounded-3xl ring-2 ring-secondary/40 ring-offset-2 ring-offset-background">
-                              <InsuranceTile insurance={ins} onViewDetails={() => setActiveDetailedInsurance(ins)} />
-                            </div>
+                            <InsuranceTile key={ins.name} insurance={ins} onViewDetails={() => setActiveDetailedInsurance(ins)} />
                           ))}
                         </div>
                       )}
@@ -3700,18 +3657,20 @@ export default function Schemes() {
                     <div className="rounded-2xl border border-outline-variant/60 overflow-hidden">
                       <button
                         onClick={() => setOpenInsGroups((g) => ({ ...g, pre: !g.pre }))}
-                        className="w-full flex items-center gap-sm px-md py-3 bg-surface-container-low hover:bg-surface-container transition-all text-left"
+                        className="w-full flex items-center gap-sm px-md py-3.5 bg-surface-container-low hover:bg-surface-container transition-all text-left"
                         aria-expanded={openInsGroups.pre}
                       >
-                        <span className="material-symbols-outlined text-outline text-[20px]">block</span>
+                        <span className="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center shrink-0">
+                          <span className="material-symbols-outlined text-outline text-[18px]">block</span>
+                        </span>
                         <h3 className="font-headline-sm text-sm text-on-surface font-bold flex-1">
-                          {language === "en" ? "Best bought before diagnosis — usually not available after" : language === "hi" ? "निदान से पहले लेना सर्वोत्तम — बाद में आमतौर पर उपलब्ध नहीं" : "Best bought before diagnosis — usually not available after"}
+                          {language === "en" ? "Best bought before diagnosis - usually not available after" : language === "hi" ? "निदान से पहले लेना सर्वोत्तम - बाद में आमतौर पर उपलब्ध नहीं" : "Best bought before diagnosis - usually not available after"}
                         </h3>
                         <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant">{notApplicable.length}</span>
                         <span className={`material-symbols-outlined text-outline transition-transform ${openInsGroups.pre ? "rotate-180" : ""}`}>expand_more</span>
                       </button>
                       {openInsGroups.pre && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter p-md opacity-90">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter p-md bg-surface-container-lowest opacity-90">
                           {notApplicable.map((ins) => (
                             <InsuranceTile
                               key={ins.name}
@@ -4322,100 +4281,66 @@ interface InsuranceTileProps {
 function InsuranceTile({ insurance, onViewDetails }: InsuranceTileProps) {
   const isStandalone = insurance.sector === "Standalone Health";
   const isPublic = insurance.sector === "Public Sector";
-  
+
   const tagCls = isStandalone
-    ? "bg-tertiary-container text-on-tertiary-container font-semibold"
+    ? "bg-tertiary-container text-on-tertiary-container"
     : isPublic
-    ? "bg-primary-container text-on-primary-container font-semibold"
-    : "bg-surface-variant text-on-surface-variant font-semibold";
+    ? "bg-primary-container text-on-primary-container"
+    : "bg-secondary-container text-on-secondary-container";
 
   return (
-    <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl overflow-hidden flex flex-col hover:-translate-y-1 hover:shadow-lg transition-all duration-300 group">
-      
-      {/* Top Banner section */}
-      <div className="p-md border-b border-outline-variant/40 bg-surface-container-low flex justify-between items-center">
-        <div className="bg-primary/5 p-2 rounded-xl group-hover:bg-primary/10 transition-colors">
-          <span className="material-symbols-outlined text-primary text-[22px]">
-            {isStandalone ? "star_rate" : isPublic ? "domain" : "business"}
-          </span>
-        </div>
-        <div className="flex gap-xs items-center">
-          <span className={`px-2.5 py-0.5 rounded-full font-label-sm text-[11px] ${tagCls}`}>
-            {insurance.sector}
-          </span>
-          <span className="px-2 py-0.5 bg-surface-container text-on-surface-variant rounded-full text-[10px] font-medium flex items-center gap-[2px]">
-            <span className="material-symbols-outlined text-[10px]">badge</span>
-            IRDAI Reg. {insurance.regNumber}
-          </span>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="p-md flex-grow flex flex-col justify-between">
-        <div>
-          <h3 className="font-headline-sm text-headline-sm text-primary mb-xs group-hover:text-primary-container transition-colors line-clamp-2 min-h-[48px]">
+    <div className="bg-surface-container-lowest border border-outline-variant/50 rounded-3xl overflow-hidden flex flex-col hover:shadow-lg hover:border-primary/30 transition-all duration-300">
+      <div className="p-lg flex-grow flex flex-col">
+        <div className="flex items-start justify-between gap-sm mb-sm">
+          <h3 className="font-headline-sm text-headline-sm text-on-surface line-clamp-2">
             {insurance.name}
           </h3>
-          <p className="text-[11px] text-outline font-bold uppercase tracking-wider mb-xs">
-            HQ: {insurance.hq}
-          </p>
-          <p className="font-body-sm text-body-sm text-on-surface-variant mb-sm line-clamp-3">
-            {insurance.body}
-          </p>
+          <span className={`shrink-0 px-2.5 py-1 rounded-full font-label-sm text-[11px] font-semibold ${tagCls}`}>
+            {insurance.sector}
+          </span>
+        </div>
+        <p className="text-[11px] text-outline font-medium mb-md">
+          {insurance.hq} &middot; IRDAI Reg. {insurance.regNumber}
+        </p>
 
-          {/* Primary Oncology Policy Card */}
-          <div className="bg-surface-container-low p-sm rounded-xl border border-outline-variant/40 mb-md">
-            <div className="flex items-center gap-xs mb-1">
-              <span className="material-symbols-outlined text-secondary text-[16px]">verified</span>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-secondary leading-none">Primary Cancer Cover</p>
-            </div>
-            <p className="font-label-md text-label-md text-on-surface font-semibold line-clamp-1">{insurance.primaryPolicy}</p>
-          </div>
-
-          {/* Policy Highlights */}
-          <div className="space-y-xs mb-md border-t border-dashed border-outline-variant/40 pt-md">
-            {insurance.policyFeatures.slice(0, 2).map((feat, idx) => (
-              <div key={idx} className="flex items-center gap-xs">
-                <span className="material-symbols-outlined text-secondary text-[16px] flex-shrink-0 select-none">
-                  check_circle
-                </span>
-                <span className="font-body-sm text-[12px] text-on-surface line-clamp-1">{feat}</span>
-              </div>
-            ))}
-          </div>
+        {/* Primary cover callout */}
+        <div className="border-l-3 border-secondary bg-secondary/5 pl-sm py-1.5 mb-md rounded-r-lg">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-secondary leading-none mb-0.5">Primary Cancer Cover</p>
+          <p className="font-label-md text-label-md text-on-surface font-semibold line-clamp-1">{insurance.primaryPolicy}</p>
         </div>
 
-        {/* Network & Reliability Section */}
-        <div>
-          <div className="bg-surface-container-low p-2 rounded-xl flex justify-between items-center mb-md border border-outline-variant/40">
-            <div className="flex items-center gap-sm">
-              <div className="bg-secondary/10 p-1.5 rounded-lg">
-                <span className="material-symbols-outlined text-secondary text-[18px]">local_hospital</span>
-              </div>
-              <div>
-                <p className="font-label-sm text-[10px] text-outline font-bold leading-none">Cashless Network</p>
-                <p className="text-[12px] text-on-surface font-semibold leading-normal">
-                  {insurance.networkSize > 0 ? insurance.networkHospitals.split(" ")[0] : "Reimbursement"}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-xs pr-1">
-              <span className="material-symbols-outlined text-tertiary text-[18px]">percent</span>
-              <div>
-                <p className="font-label-sm text-[10px] text-outline font-bold leading-none">Claim Ratio</p>
-                <p className="text-[12px] text-on-surface font-semibold leading-normal">{insurance.reliability}%</p>
-              </div>
-            </div>
-          </div>
-
-          {/* CTA Button */}
-          <button
-            onClick={onViewDetails}
-            className="w-full py-2.5 border border-primary text-primary rounded-xl font-label-md text-label-md hover:bg-primary/5 transition-all flex items-center justify-center gap-xs active:scale-[0.98]"
-          >
-            <span className="material-symbols-outlined text-[18px]">launch</span> View Policy & Claim Guide
-          </button>
+        {/* Policy highlight chips */}
+        <div className="flex flex-wrap gap-xs mb-md">
+          {insurance.policyFeatures.slice(0, 2).map((feat, idx) => (
+            <span key={idx} className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface-container-low rounded-full text-[11px] text-on-surface-variant">
+              <span className="material-symbols-outlined text-secondary text-[14px]">check_circle</span>
+              <span className="line-clamp-1">{feat}</span>
+            </span>
+          ))}
         </div>
+
+        <div className="flex-grow" />
+
+        {/* Network & reliability, inline */}
+        <div className="flex items-center gap-md text-[12px] text-on-surface-variant mb-md pt-sm border-t border-dashed border-outline-variant/40">
+          <span className="flex items-center gap-1">
+            <span className="material-symbols-outlined text-[15px] text-outline">local_hospital</span>
+            {insurance.networkSize > 0 ? insurance.networkHospitals.split(" ")[0] : "Reimbursement only"}
+          </span>
+          <span className="text-outline-variant">&middot;</span>
+          <span className="flex items-center gap-1">
+            <span className="material-symbols-outlined text-[15px] text-outline">percent</span>
+            {insurance.reliability}% claim ratio
+          </span>
+        </div>
+
+        <button
+          onClick={onViewDetails}
+          className="w-full py-2.5 bg-primary text-on-primary rounded-xl font-label-md text-label-md hover:brightness-110 transition-all flex items-center justify-center gap-xs active:scale-[0.98] shadow-sm"
+        >
+          View Policy & Claim Guide
+          <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+        </button>
       </div>
     </div>
   );

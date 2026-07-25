@@ -105,7 +105,7 @@ export default function Intake() {
       localStorage.setItem("artham_intake_insurance_provider", insuranceProvider);
       localStorage.setItem("artham_intake_income_bracket", incomeBracket);
       localStorage.setItem("artham_intake_step", String(step));
-      // Writing LocalStorage above is enough — the central sync layer in
+      // Writing LocalStorage above is enough - the central sync layer in
       // firebase.ts debounces a Firestore push whenever a signed-in user's
       // profile keys change (and never before the initial cloud hydrate).
     }, 1000);

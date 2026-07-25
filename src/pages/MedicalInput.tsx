@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import AppShell from "../components/AppShell";
 import MarkdownRenderer from "../components/MarkdownRenderer";
 import { useLanguage } from "../components/LanguageContext";
+import { getSpeechLocale, loadVoices, pickVoiceForLocale } from "../utils/voice";
 
 export type Msg = {
   role: "bot" | "user";
@@ -26,7 +27,7 @@ const generateUniqueId = () => {
   return Date.now().toString();
 };
 
-// The Evidence Vault starts empty — users upload their own documents and the
+// The Evidence Vault starts empty - users upload their own documents and the
 // assistant analyzes their real details (no template/sample files).
 const initialVaultFiles: VaultFile[] = [];
 
@@ -82,7 +83,7 @@ const buildVaultContext = (vaultFiles: VaultFile[]): string => {
     .slice(0, 12)
     .map((f, i) =>
       [
-        `${i + 1}. ${f.name} — ${f.category}${f.date ? ` (dated ${f.date})` : ""}`,
+        `${i + 1}. ${f.name} - ${f.category}${f.date ? ` (dated ${f.date})` : ""}`,
         f.amount ? `   Declared amount: ₹${f.amount}` : "",
         f.notes ? `   User notes: ${f.notes}` : "",
         f.aiAnalysis ? `   Prior analysis: ${f.aiAnalysis.replace(/\s+/g, " ").slice(0, 500)}` : ""
@@ -140,12 +141,12 @@ ${buildVaultContext(vaultFiles)}
 Guidelines:
 CRITICAL LANGUAGE REQUIREMENT: Write your ENTIRE response strictly in ${activeLanguageName}.
 1. SCOPE: Focus on breast-cancer diagnosis, treatment (surgery, chemotherapy, radiation, targeted & hormone therapy), treatment costs in India (₹, Lakhs), insurance, and government/welfare schemes. If asked about an unrelated topic or a different disease, briefly note you focus on breast-cancer navigation, then still help as best you can.
-2. BE GENUINELY HELPFUL: Directly answer the user's actual question first with concrete, specific information. Keep it focused (roughly 120-200 words) using short paragraphs and bullets — but never refuse or deflect a reasonable question.
-3. GREETINGS: If the user only greets you, reply with one warm sentence in ${activeLanguageName} asking how you can help — no clinical readout.
+2. BE GENUINELY HELPFUL: Directly answer the user's actual question first with concrete, specific information. Keep it focused (roughly 120-200 words) using short paragraphs and bullets - but never refuse or deflect a reasonable question.
+3. GREETINGS: If the user only greets you, reply with one warm sentence in ${activeLanguageName} asking how you can help - no clinical readout.
 4. PERSONALIZE: Tailor to the intake profile (e.g. state scheme like Arogya Karnataka; Stage II expectations; Trastuzumab for HER2+) and reference the user's uploaded documents when useful.
 5. SCHEMES: Frame financial help around Ayushman Bharat (PM-JAY), Rashtriya Arogya Nidhi (RAN), and State Illness Assistance funds.
 6. REFERRALS: When helpful, point to Artham features (Cost Breakdown, Action Plan, Dashboard, Schemes, Evidence Vault).
-7. STYLE: Clean Markdown — bold headers, bullet lists, crisp summaries.
+7. STYLE: Clean Markdown - bold headers, bullet lists, crisp summaries.
 8. DISCLAIMER: End with one short sentence that Artham supports financial navigation and is not a substitute for an oncologist.`;
 };
 
@@ -166,10 +167,10 @@ Document details:
 - User notes: ${file.notes || "None"}
 
 Produce these sections:
-1. **Document Summary** — what this document is and its role in the treatment/claim journey.
-2. **Key Details** — clinical and/or financial values (state clearly what is missing and ask the user to add it to the notes if needed).
-3. **Claim Feasibility** — rate its usefulness as evidence for an insurance/scheme claim (High / Medium / Low) and why.
-4. **Next Actions** — concrete step-by-step actions (e.g. attach to PM-JAY pre-auth, submit for reimbursement).`;
+1. **Document Summary** - what this document is and its role in the treatment/claim journey.
+2. **Key Details** - clinical and/or financial values (state clearly what is missing and ask the user to add it to the notes if needed).
+3. **Claim Feasibility** - rate its usefulness as evidence for an insurance/scheme claim (High / Medium / Low) and why.
+4. **Next Actions** - concrete step-by-step actions (e.g. attach to PM-JAY pre-auth, submit for reimbursement).`;
   return { system, instructions };
 };
 
@@ -251,7 +252,7 @@ const queryGeminiChat = async (history: Msg[], apiKey: string, vaultFiles: Vault
 const analyzeDocumentWithGemini = async (file: VaultFile, apiKey: string): Promise<string> => {
   const { system, instructions } = buildDocPrompt(file);
   const parts: GeminiPart[] = [];
-  // Gemini is multimodal — feed the actual scan/image so it reads the document.
+  // Gemini is multimodal - feed the actual scan/image so it reads the document.
   if (file.base64Data && file.mimeType) {
     parts.push({ inlineData: { mimeType: file.mimeType, data: file.base64Data } });
   }
@@ -464,16 +465,7 @@ export default function MedicalInput() {
     try {
       const recognition = new SpeechRecognition();
       recognition.continuous = false;
-      
-      const activeLang = localStorage.getItem("artham_language") || "en";
-      const localeMap: Record<string, string> = {
-        en: "en-IN",
-        hi: "hi-IN",
-        mr: "mr-IN",
-        kn: "kn-IN",
-        bn: "bn-IN"
-      };
-      recognition.lang = localeMap[activeLang] || "en-IN";
+      recognition.lang = getSpeechLocale();
       recognition.interimResults = false;
       recognition.maxAlternatives = 1;
 
@@ -518,7 +510,7 @@ export default function MedicalInput() {
       .replace(/₹/g, "Rupees");
   };
 
-  const toggleSpeakMessage = (index: number, text: string) => {
+  const toggleSpeakMessage = async (index: number, text: string) => {
     if (!window.speechSynthesis) {
       window.dispatchEvent(new CustomEvent("show-toast", {
         detail: { msg: "Text-to-speech is not supported in this browser.", type: "error" }
@@ -534,21 +526,12 @@ export default function MedicalInput() {
 
     window.speechSynthesis.cancel();
     const cleanText = stripMarkdown(text);
+    const targetLocale = getSpeechLocale();
+    const voices = await loadVoices();
+    const matchingVoice = pickVoiceForLocale(voices, targetLocale);
+
     const utterance = new SpeechSynthesisUtterance(cleanText);
-
-    const activeLang = localStorage.getItem("artham_language") || "en";
-    const localeMap: Record<string, string> = {
-      en: "en-IN",
-      hi: "hi-IN",
-      mr: "mr-IN",
-      kn: "kn-IN",
-      bn: "bn-IN"
-    };
-    utterance.lang = localeMap[activeLang] || "en-IN";
-
-    const voices = window.speechSynthesis.getVoices();
-    const targetLocale = localeMap[activeLang] || "en-IN";
-    const matchingVoice = voices.find(voice => voice.lang.toLowerCase().replace("_", "-") === targetLocale.toLowerCase());
+    utterance.lang = matchingVoice?.lang || targetLocale;
     if (matchingVoice) {
       utterance.voice = matchingVoice;
     }
@@ -654,7 +637,7 @@ export default function MedicalInput() {
 
         if (lowerText.includes("hospital") || lowerText.includes("apollo") || lowerText.includes("max")) {
           reply = "Hospital setting updated. We will match this with empanelled insurers and apply room rent limits.";
-          badge = "Extracted: Preference — Private Empanelled";
+          badge = "Extracted: Preference - Private Empanelled";
         } else if (lowerText.includes("cost") || lowerText.includes("price") || lowerText.includes("lakh")) {
           reply = "Cost quotation noted. This will be analyzed against critical illness policy ceilings.";
           badge = "Extracted: Cost Quote Captured";
@@ -917,63 +900,54 @@ Failed to analyze document: ${errMsg}.
     <AppShell>
       <div className="h-[calc(100vh-64px)] flex flex-col bg-surface-bright relative w-full overflow-hidden">
 
-        {/* Chat Header Bar */}
-        <header className="px-md py-sm border-b border-outline-variant/40 bg-surface-container-low flex justify-between items-center shrink-0 z-10 shadow-sm">
-          <div className="flex items-center gap-xs">
-            <span className="material-symbols-outlined text-primary text-[20px]">medical_services</span>
-            <span className="font-headline-sm text-sm font-bold text-on-surface">{t("nav_medical")}</span>
-          </div>
-          <button
-            onClick={() => window.dispatchEvent(new CustomEvent("start-new-chat"))}
-            disabled={messages.length === 0 && !draft}
-            className="flex items-center gap-xs px-3 py-1.5 rounded-full border border-outline-variant bg-surface-bright text-on-surface hover:bg-surface-container hover:border-primary/40 text-xs font-semibold transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
-            title="New Chat"
-            aria-label="New Chat"
-          >
-            <span className="material-symbols-outlined text-[18px]">add_comment</span>
-            <span>New Chat</span>
-          </button>
-        </header>
+        {/* New Chat - minimal floating control, no header bar */}
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent("start-new-chat"))}
+          disabled={messages.length === 0 && !draft}
+          className="absolute top-3 right-4 z-20 flex items-center gap-xs px-3 py-1.5 rounded-full border border-outline-variant/70 bg-surface-bright/90 backdrop-blur-sm text-on-surface-variant hover:text-on-surface hover:bg-surface-container hover:border-primary/40 text-xs font-semibold transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+          title="New Chat"
+          aria-label="New Chat"
+        >
+          <span className="material-symbols-outlined text-[16px]">add_comment</span>
+          <span>New Chat</span>
+        </button>
 
         {/* Scrollable Conversation Workspace */}
         <div
-          className="flex-grow overflow-y-auto px-4 py-6 md:px-8 space-y-md custom-scrollbar bg-surface-bright/20 flex flex-col relative"
+          className="flex-grow overflow-y-auto px-4 pt-6 pb-36 md:px-8 space-y-md custom-scrollbar bg-surface-bright/20 flex flex-col relative"
           role="log"
           aria-live="polite"
         >
           {messages.length === 0 ? (
             /* Centered Welcome Landing State */
-            <div className="flex-grow flex flex-col items-center justify-center py-6 max-w-3xl mx-auto w-full animate-fade-in my-auto">
+            <div className="flex-grow flex flex-col items-center justify-center max-w-xl mx-auto w-full animate-fade-in">
 
               {/* Glossy Logo Orb */}
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-secondary via-surface-tint to-primary shadow-xl relative overflow-hidden flex items-center justify-center border border-white/20 mb-6 shrink-0">
-                <div className="absolute top-1 left-2 w-12 h-6 bg-white/25 rounded-full blur-[1px] rotate-[-15deg]"></div>
-                <span className="material-symbols-outlined text-[36px] text-white/90">neurology</span>
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-secondary via-surface-tint to-primary shadow-xl relative overflow-hidden flex items-center justify-center border border-white/20 mb-5 shrink-0">
+                <div className="absolute top-1 left-2 w-10 h-5 bg-white/25 rounded-full blur-[1px] rotate-[-15deg]"></div>
+                <span className="material-symbols-outlined text-[28px] text-white/90">neurology</span>
               </div>
 
               {/* Greeting */}
-              <h2 className="font-headline-lg text-2xl md:text-3xl text-on-surface font-semibold tracking-tight text-center mb-2">
+              <h2 className="font-headline-lg text-xl md:text-2xl text-on-surface font-semibold tracking-tight text-center mb-1">
                 {t("mi_welcome")}
               </h2>
-              <h3 className="font-headline-md text-xl md:text-2xl text-on-surface-variant font-medium tracking-tight text-center mb-4">
+              <h3 className="font-headline-md text-base md:text-lg text-on-surface-variant font-medium tracking-tight text-center mb-6">
                 {t("mi_welcome_sub")}
               </h3>
-              <p className="text-xs md:text-sm text-outline text-center mb-8 max-w-md">
-                {t("mi_welcome_desc")}
-              </p>
 
-              {/* Suggestions Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-3xl mb-4">
+              {/* Suggestions - minimal single-column list */}
+              <div className="flex flex-col gap-1.5 w-full mb-3">
                 {currentSuggestions.map((s, idx) => (
                   <button
                     key={idx}
                     onClick={() => send(s.text)}
-                    className="p-4 rounded-2xl border border-outline-variant/60 bg-surface-container-lowest hover:bg-surface-container-low hover:border-outline transition-all text-left text-sm group shadow-sm flex flex-col justify-between h-24"
+                    className="flex items-center justify-between gap-sm px-4 py-2.5 rounded-xl border border-outline-variant/40 hover:bg-surface-container-low hover:border-outline-variant transition-all text-left group"
                   >
-                    <span className="text-on-surface leading-normal text-xs md:text-sm">
-                      <strong className="text-primary font-bold">{s.bold}</strong>{s.normal}
+                    <span className="text-on-surface-variant leading-snug text-[13px]">
+                      <span className="text-on-surface font-medium">{s.bold}</span>{s.normal}
                     </span>
-                    <span className="material-symbols-outlined text-outline group-hover:text-primary transition-colors text-[18px] self-end mt-1">
+                    <span className="material-symbols-outlined text-outline/60 group-hover:text-primary transition-colors text-[16px] shrink-0">
                       arrow_forward
                     </span>
                   </button>
@@ -983,9 +957,9 @@ Failed to analyze document: ${errMsg}.
               {/* Refresh Prompts button */}
               <button
                 onClick={() => setPromptOffset((prev) => (prev + 4) % allSuggestions.length)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-outline-variant/80 bg-surface-bright text-outline hover:text-on-surface hover:bg-surface-container transition-all text-xs font-bold shrink-0"
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full text-outline/70 hover:text-on-surface transition-all text-[11px] font-medium shrink-0"
               >
-                <span className="material-symbols-outlined text-[16px]">refresh</span>
+                <span className="material-symbols-outlined text-[14px]">refresh</span>
                 <span>Refresh prompts</span>
               </button>
             </div>

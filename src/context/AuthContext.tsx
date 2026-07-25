@@ -72,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
       clearTimeout(readyFallback);
       if (nextUser) {
-        // Clear the NEW_SIGNUP flag if set — real-time sync seeds new accounts
+        // Clear the NEW_SIGNUP flag if set - real-time sync seeds new accounts
         // automatically (first snapshot for a doc-less uid), so it's no longer
         // consulted; we just tidy it up.
         sessionStorage.removeItem(NEW_SIGNUP_FLAG);

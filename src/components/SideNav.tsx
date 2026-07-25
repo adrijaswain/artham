@@ -45,7 +45,7 @@ export default function SideNav() {
           </NavLink>
         ))}
       </nav>
-      <div className="px-md mt-auto pt-md space-y-sm">
+      <div className="px-md mt-auto pt-md">
         <button
           onClick={downloadReport}
           className="w-full bg-primary text-on-primary py-2.5 rounded-full font-label-md text-label-md hover:brightness-110 transition-all flex items-center justify-center gap-xs shadow-sm active:scale-95"
@@ -53,14 +53,6 @@ export default function SideNav() {
           <span className="material-symbols-outlined text-[18px]">download</span>
           {t("nav_download")}
         </button>
-        <div className="flex flex-col gap-1 border-t border-outline-variant pt-md">
-          <a className="flex items-center gap-sm text-on-surface-variant font-label-md hover:text-primary py-1 transition-colors" href="#">
-            <span className="material-symbols-outlined text-[18px]">help</span>{t("nav_support")}
-          </a>
-          <a className="flex items-center gap-sm text-on-surface-variant font-label-md hover:text-primary py-1 transition-colors" href="#">
-            <span className="material-symbols-outlined text-[18px]">shield</span>{t("nav_privacy")}
-          </a>
-        </div>
       </div>
     </aside>
   );
