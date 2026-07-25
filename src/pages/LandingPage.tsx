@@ -172,40 +172,40 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Two paths - soft tinted panels, side by side below the hero row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-md mt-lg pt-lg border-t border-white/10">
+            {/* Two paths - two separate solid white boxes, side by side below the hero row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-md mt-lg">
               <button
                 onClick={() => nav("/intake")}
-                className="group flex flex-col items-start gap-xs text-left rounded-2xl bg-white/10 hover:bg-white/[0.14] p-md transition-all"
+                className="group flex flex-col items-start gap-xs text-left rounded-2xl bg-white shadow-xl hover:shadow-2xl hover:-translate-y-0.5 p-md transition-all"
               >
-                <span className="flex items-center gap-xs text-secondary-fixed-dim text-[11px] font-semibold uppercase tracking-wide">
+                <span className="flex items-center gap-xs text-secondary text-[11px] font-semibold uppercase tracking-wide">
                   <span className="material-symbols-outlined text-[14px]">request_quote</span>
                   {t("lp_path_diagnosed_kicker")}
                 </span>
-                <span className="flex items-center gap-sm text-on-primary font-bold text-lg">
+                <span className="flex items-center gap-sm text-primary font-bold text-lg">
                   {t("lp_btn_start")}
-                  <span className="w-7 h-7 rounded-full bg-white/15 flex items-center justify-center group-hover:bg-white/30 transition-all">
-                    <span className="material-symbols-outlined text-[16px] group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
+                  <span className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-all">
+                    <span className="material-symbols-outlined text-[16px] text-primary group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
                   </span>
                 </span>
-                <span className="text-on-primary/70 text-xs leading-snug max-w-sm">{t("lp_btn_start_desc")}</span>
+                <span className="text-on-surface-variant text-xs leading-snug max-w-sm">{t("lp_btn_start_desc")}</span>
               </button>
 
               <button
                 onClick={() => nav("/preventive-plans")}
-                className="group flex flex-col items-start gap-xs text-left rounded-2xl bg-white/[0.05] hover:bg-white/10 p-md transition-all"
+                className="group flex flex-col items-start gap-xs text-left rounded-2xl bg-white shadow-xl hover:shadow-2xl hover:-translate-y-0.5 p-md transition-all"
               >
-                <span className="flex items-center gap-xs text-secondary-fixed-dim text-[11px] font-semibold uppercase tracking-wide">
+                <span className="flex items-center gap-xs text-secondary text-[11px] font-semibold uppercase tracking-wide">
                   <span className="material-symbols-outlined text-[14px]">health_and_safety</span>
                   {t("lp_path_preventive_kicker")}
                 </span>
-                <span className="flex items-center gap-sm text-on-primary font-bold text-lg">
+                <span className="flex items-center gap-sm text-primary font-bold text-lg">
                   {t("lp_btn_preventive")}
-                  <span className="w-7 h-7 rounded-full bg-white/15 flex items-center justify-center group-hover:bg-white/30 transition-all">
-                    <span className="material-symbols-outlined text-[16px] group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
+                  <span className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-all">
+                    <span className="material-symbols-outlined text-[16px] text-primary group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
                   </span>
                 </span>
-                <span className="text-on-primary/70 text-xs leading-snug max-w-sm">{t("lp_btn_preventive_desc")}</span>
+                <span className="text-on-surface-variant text-xs leading-snug max-w-sm">{t("lp_btn_preventive_desc")}</span>
               </button>
             </div>
           </div>
