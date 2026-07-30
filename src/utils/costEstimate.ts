@@ -65,14 +65,23 @@ const RADIATION = {
   regional: { Government: 100000, Private: 250000, Premium: 400000 },
 };
 
-const HORMONE = {
+// Per-year list price; multiplied by a representative 5-year course length
+// below (the guideline-minimum duration - many higher-risk patients take it
+// for 10, but 5 is the conservative standard-of-care baseline).
+const HORMONE_ANNUAL = {
   tamoxifen: { Government: 10000, Private: 50000, Premium: 75000 },
   letrozole: { Government: 25000, Private: 100000, Premium: 150000 },
 };
+const HORMONE_THERAPY_YEARS = 5;
 
+// Trastuzumab pricing reflects the biosimilars (Hertraz, Ogivri, Canmab, etc.)
+// that most Indian patients are actually prescribed today, not the originator
+// Herceptin brand - biosimilars run 40-70% cheaper for a full ~17-18 dose
+// course. Pertuzumab has no Indian biosimilar yet, so that combo stays
+// priced closer to originator rates.
 const TARGETED = {
-  trastuzumab: { Government: 400000, Private: 1200000, Premium: 1800000 },
-  pertuzumabTrastuzumab: { Government: 800000, Private: 1800000, Premium: 2500000 },
+  trastuzumab: { Government: 180000, Private: 450000, Premium: 750000 },
+  pertuzumabTrastuzumab: { Government: 500000, Private: 1200000, Premium: 1800000 },
 };
 
 const IMMUNO = {
@@ -86,6 +95,11 @@ const ADDITIONAL = {
   admission: { Government: 2000, Private: 10000, Premium: 25000 },
   icu: { Government: 10000, Private: 40000, Premium: 75000 },
 };
+
+// Roughly what Ayushman Bharat PM-JAY (and similar state schemes) actually
+// caps at per family per year - the low-income out-of-pocket break below is
+// bounded by this instead of assuming welfare schemes cover an unlimited bill.
+const GOVERNMENT_SCHEME_CAP = 500000;
 
 // State-level cost-of-living adjustment: metro states carry meaningfully
 // higher private/premium hospital pricing than smaller states, while
@@ -188,8 +202,8 @@ export function computeCostEstimate(intake: IntakeProfile): CostEstimate {
 
     let hormoneCost = 0;
     if (hormoneStatus === "ER+/PR+ Positive") {
-      hormoneCost = Number(age) >= 50 ? HORMONE.letrozole[category] : HORMONE.tamoxifen[category];
-      hormoneCost = Math.round(hormoneCost * effectiveMultiplier);
+      const annualHormoneCost = Number(age) >= 50 ? HORMONE_ANNUAL.letrozole[category] : HORMONE_ANNUAL.tamoxifen[category];
+      hormoneCost = Math.round(annualHormoneCost * HORMONE_THERAPY_YEARS * effectiveMultiplier);
     }
 
     let targetedCost = 0;
@@ -235,12 +249,21 @@ export function computeCostEstimate(intake: IntakeProfile): CostEstimate {
   let outOfPocket = totalEstimate - insuranceShare;
 
   if (isIntakeFilled) {
-    if (incomeBracket === "Below ₹2,50,000") outOfPocket = 0;
-    else if (incomeBracket === "₹2,50,000 – ₹5,00,000") outOfPocket = Math.round(outOfPocket * 0.5);
+    if (incomeBracket === "Below ₹2,50,000") {
+      // Public hospitals routinely waive cost entirely for BPL patients under
+      // state welfare schemes - but at a private/premium hospital, welfare
+      // schemes (e.g. Ayushman Bharat PM-JAY) only offset up to their own
+      // package cap, not the patient's full bill.
+      outOfPocket = category === "Government" ? 0 : Math.max(0, outOfPocket - GOVERNMENT_SCHEME_CAP);
+    } else if (incomeBracket === "₹2,50,000 – ₹5,00,000") {
+      const partialSubsidy = Math.min(outOfPocket * 0.5, GOVERNMENT_SCHEME_CAP);
+      outOfPocket = Math.round(outOfPocket - partialSubsidy);
+    }
   }
 
-  const confidenceScore = !isIntakeFilled ? "None" : stage === "Unsure" ? "Medium" : "High";
-  const confidenceText = !isIntakeFilled ? "Intake pending" : stage === "Unsure" ? "Diagnostics pending" : "Verified diagnostics";
+  const hasUnsureAnswer = [stage, hormoneStatus, surgery, chemo, radiation].includes("Unsure");
+  const confidenceScore = !isIntakeFilled ? "None" : hasUnsureAnswer ? "Medium" : "High";
+  const confidenceText = !isIntakeFilled ? "Intake pending" : hasUnsureAnswer ? "Diagnostics pending" : "Verified diagnostics";
 
   const treatmentDesc = isIntakeFilled
     ? [
