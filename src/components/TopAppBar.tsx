@@ -6,7 +6,12 @@ import type { Language } from "../utils/translations";
 
 const logoSrc = new URL("../assets/artham_logo_transparent.png", import.meta.url).href;
 
-export default function TopAppBar() {
+type Props = {
+  /** Shown only when the page has a SideNav to reveal (i.e. AppShell !bare). */
+  onMenuClick?: () => void;
+};
+
+export default function TopAppBar({ onMenuClick }: Props) {
   const navigate = useNavigate();
   const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
   const { isLoggedIn, displayName: userName, logout } = useAuth();
@@ -47,19 +52,31 @@ export default function TopAppBar() {
   const { language, setLanguage } = useLanguage();
 
   return (
-    <header className="flex justify-between items-center px-md py-sm w-full fixed top-0 z-50 bg-surface/90 backdrop-blur-md border-b border-outline-variant h-16">
-      <Link to="/" className="flex items-center gap-sm group">
-        <img src={logoSrc} alt="Artham logo" className="w-10 h-10 rounded-2xl shadow-sm object-cover group-hover:scale-105 transition-transform" />
-        <span className="font-headline-md text-headline-md font-bold text-on-surface tracking-tight">
-          Artham
-        </span>
-      </Link>
-      <div className="flex items-center gap-md">
+    <header className="flex justify-between items-center px-sm sm:px-md py-sm w-full fixed top-0 z-50 bg-surface/90 backdrop-blur-md border-b border-outline-variant h-16">
+      <div className="flex items-center gap-xs sm:gap-sm min-w-0">
+        {onMenuClick && (
+          <button
+            onClick={onMenuClick}
+            className="md:hidden -ml-1 p-2 rounded-full text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all shrink-0"
+            aria-label="Open navigation menu"
+          >
+            <span className="material-symbols-outlined text-[24px]">menu</span>
+          </button>
+        )}
+        <Link to="/" className="flex items-center gap-xs sm:gap-sm group min-w-0">
+          <img src={logoSrc} alt="Artham logo" className="w-8 h-8 sm:w-10 sm:h-10 rounded-2xl shadow-sm object-cover group-hover:scale-105 transition-transform shrink-0" />
+          <span className="font-headline-md text-lg sm:text-headline-md font-bold text-on-surface tracking-tight truncate">
+            Artham
+          </span>
+        </Link>
+      </div>
+      <div className="flex items-center gap-xs sm:gap-md shrink-0">
         <div className="relative flex items-center">
-          <select 
+          <select
             value={language}
             onChange={(e) => setLanguage(e.target.value as Language)}
-            className="appearance-none bg-transparent border-none pr-8 pl-2 py-1 text-label-md font-label-md text-on-surface-variant hover:text-primary cursor-pointer outline-none transition-colors"
+            aria-label="Select language"
+            className="appearance-none bg-transparent border-none pr-6 sm:pr-8 pl-1 sm:pl-2 py-1 w-7 sm:w-auto text-[0px] sm:text-label-md font-label-md text-on-surface-variant hover:text-primary cursor-pointer outline-none transition-colors"
           >
             <option value="en">English</option>
             <option value="hi">हिन्दी (Hindi)</option>
@@ -67,7 +84,7 @@ export default function TopAppBar() {
             <option value="kn">ಕನ್ನಡ (Kannada)</option>
             <option value="bn">বাঙালি (Bengali)</option>
           </select>
-          <span className="material-symbols-outlined absolute right-1 pointer-events-none text-on-surface-variant text-[20px]">
+          <span className="material-symbols-outlined absolute right-0.5 sm:right-1 pointer-events-none text-on-surface-variant text-[18px] sm:text-[20px]">
             language
           </span>
         </div>
@@ -99,7 +116,7 @@ export default function TopAppBar() {
             </Link>
             <Link
               to="/signup"
-              className="flex items-center gap-xs px-3.5 py-2 rounded-full bg-primary text-on-primary text-xs font-semibold hover:brightness-110 transition-all active:scale-95 shadow-sm"
+              className="flex items-center gap-xs px-2.5 sm:px-3.5 py-2 rounded-full bg-primary text-on-primary text-xs font-semibold hover:brightness-110 transition-all active:scale-95 shadow-sm whitespace-nowrap"
             >
               <span className="material-symbols-outlined text-[18px]">account_circle</span>
               <span>Get started</span>
