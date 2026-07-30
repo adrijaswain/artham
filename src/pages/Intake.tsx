@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import AppShell from "../components/AppShell";
 import { useLanguage } from "../components/LanguageContext";
 import { useAuth } from "../context/AuthContext";
+import { INDIAN_STATES_AND_UTS, getStateLabel } from "../utils/indianStates";
 
 export default function Intake() {
   const { t, language } = useLanguage();
@@ -177,15 +178,7 @@ export default function Intake() {
   const getLocalValue = (field: string, value: string) => {
     if (!value || value === "Not specified") return t("it_not_specified");
     if (field === "state") {
-      const stateTranslations: Record<string, Record<string, string>> = {
-        en: { Karnataka: "Karnataka", Maharashtra: "Maharashtra", Delhi: "Delhi", "Tamil Nadu": "Tamil Nadu", "West Bengal": "West Bengal", Kerala: "Kerala", Gujarat: "Gujarat", Telangana: "Telangana", "Andhra Pradesh": "Andhra Pradesh", "Uttar Pradesh": "Uttar Pradesh", Rajasthan: "Rajasthan", Odisha: "Odisha", Haryana: "Haryana", Punjab: "Punjab", Assam: "Assam", Other: "Other State" },
-        hi: { Karnataka: "कर्नाटक", Maharashtra: "महाराष्ट्र", Delhi: "दिल्ली", "Tamil Nadu": "तमिलनाडु", "West Bengal": "पश्चिम बंगाल", Kerala: "केरल", Gujarat: "गुजरात", Telangana: "तेलंगाना", "Andhra Pradesh": "आंध्र प्रदेश", "Uttar Pradesh": "उत्तर प्रदेश", Rajasthan: "राजस्थान", Odisha: "ओडिशा", Haryana: "हरियाणा", Punjab: "पंजाब", Assam: "असम", Other: "अन्य राज्य" },
-        mr: { Karnataka: "कर्नाटक", Maharashtra: "महाराष्ट्र", Delhi: "दिल्ली", "Tamil Nadu": "तमिळनाडू", "West Bengal": "पश्चिम बंगाल", Kerala: "केरल", Gujarat: "गुजरात", Telangana: "तेलंगणा", "Andhra Pradesh": "आंध्र प्रदेश", "Uttar Pradesh": "उत्तर प्रदेश", Rajasthan: "राजस्थान", Odisha: "ओडिशा", Haryana: "हरियाणा", Punjab: "पंजाब", Assam: "आसाम", Other: "इतर राज्य" },
-        kn: { Karnataka: "ಕರ್ನಾಟಕ", Maharashtra: "ಮಹಾರಾಷ್ಟ್ರ", Delhi: "ದೆಹಲಿ", "Tamil Nadu": "ತಮಿಳುನಾಡು", "West Bengal": "ಪಶ್ಚಿಮ ಬಂಗಾಳ", Kerala: "ಕೇರಳ", Gujarat: "ಗುಜರಾತ್", Telangana: "ತೆಲಂಗಾಣ", "Andhra Pradesh": "ಆಂಧ್ರಪ್ರದೇಶ", "Uttar Pradesh": "ಉತ್ತರ ಪ್ರದೇಶ", Rajasthan: "ರಾಜಸ್ಥಾನ", Odisha: "ಒಡಿಸ್ಸಾ", Haryana: "ಹರಿಯಾಣ", Punjab: "ಪಂಜಾಬ್", Assam: "ಅಸ್ಸಾಂ", Other: "ಇತರ ರಾಜ್ಯ" },
-        bn: { Karnataka: "কর্ণাটক", Maharashtra: "মহারাষ্ট্র", Delhi: "দিল্লি", "Tamil Nadu": "তামিলনাড়ু", "West Bengal": "পশ্চিমবঙ্গ", Kerala: "কেরালা", Gujarat: "গুজরাট", Telangana: "তেলেঙ্গানা", "Andhra Pradesh": "অন্ধ্রপ্রদেশ", "Uttar Pradesh": "উত্তরপ্রদেশ", Rajasthan: "রাজস্থান", Odisha: "ওড়িশা", Haryana: "হরিয়ানা", Punjab: "পাঞ্জাব", Assam: "আসাম", Other: "অন্যান্য রাজ্য" }
-      };
-      const langDict = stateTranslations[language] || stateTranslations["en"];
-      return langDict[value] || value;
+      return getStateLabel(value, language);
     }
     if (field === "stage") {
       if (value === "Stage I") return t("it_stage_i");
@@ -297,18 +290,9 @@ export default function Intake() {
                 className="w-full bg-transparent border-b border-outline-variant/60 focus:border-primary py-1 outline-none text-xs font-bold text-on-surface cursor-pointer"
               >
                 <option value="">{t("it_select_state")}</option>
-                <option value="Karnataka">{getLocalValue("state", "Karnataka")}</option>
-                <option value="Maharashtra">{getLocalValue("state", "Maharashtra")}</option>
-                <option value="Delhi">{getLocalValue("state", "Delhi")}</option>
-                <option value="Tamil Nadu">{getLocalValue("state", "Tamil Nadu")}</option>
-                <option value="West Bengal">{getLocalValue("state", "West Bengal")}</option>
-                <option value="Kerala">{getLocalValue("state", "Kerala")}</option>
-                <option value="Gujarat">{getLocalValue("state", "Gujarat")}</option>
-                <option value="Telangana">{getLocalValue("state", "Telangana")}</option>
-                <option value="Andhra Pradesh">{getLocalValue("state", "Andhra Pradesh")}</option>
-                <option value="Uttar Pradesh">{getLocalValue("state", "Uttar Pradesh")}</option>
-                <option value="Rajasthan">{getLocalValue("state", "Rajasthan")}</option>
-                <option value="Odisha">{getLocalValue("state", "Odisha")}</option>
+                {INDIAN_STATES_AND_UTS.map((s) => (
+                  <option key={s} value={s}>{getLocalValue("state", s)}</option>
+                ))}
                 <option value="Other">{getLocalValue("state", "Other")}</option>
               </select>
             </SummaryCard>
@@ -598,18 +582,9 @@ export default function Intake() {
                         className="w-full px-md py-sm border border-outline-variant rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all font-body-md text-body-md text-xs bg-white"
                       >
                         <option value="">{t("it_select_state")}</option>
-                        <option value="Karnataka">{getLocalValue("state", "Karnataka")}</option>
-                        <option value="Maharashtra">{getLocalValue("state", "Maharashtra")}</option>
-                        <option value="Delhi">{getLocalValue("state", "Delhi")}</option>
-                        <option value="Tamil Nadu">{getLocalValue("state", "Tamil Nadu")}</option>
-                        <option value="West Bengal">{getLocalValue("state", "West Bengal")}</option>
-                        <option value="Kerala">{getLocalValue("state", "Kerala")}</option>
-                        <option value="Gujarat">{getLocalValue("state", "Gujarat")}</option>
-                        <option value="Telangana">{getLocalValue("state", "Telangana")}</option>
-                        <option value="Andhra Pradesh">{getLocalValue("state", "Andhra Pradesh")}</option>
-                        <option value="Uttar Pradesh">{getLocalValue("state", "Uttar Pradesh")}</option>
-                        <option value="Rajasthan">{getLocalValue("state", "Rajasthan")}</option>
-                        <option value="Odisha">{getLocalValue("state", "Odisha")}</option>
+                        {INDIAN_STATES_AND_UTS.map((s) => (
+                          <option key={s} value={s}>{getLocalValue("state", s)}</option>
+                        ))}
                         <option value="Other">{getLocalValue("state", "Other")}</option>
                       </select>
                     </Field>

@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import AppShell from "../components/AppShell";
 import { useLanguage } from "../components/LanguageContext";
+import { INDIAN_STATES_AND_UTS } from "../utils/indianStates";
 
 type SchemeLink = {
   label: string;
@@ -1753,40 +1754,7 @@ const schemes: Scheme[] = [
   }
 ];
 
-const statesList = [
-  "All India",
-  "Andhra Pradesh",
-  "Arunachal Pradesh",
-  "Assam",
-  "Bihar",
-  "Chhattisgarh",
-  "Delhi",
-  "Goa",
-  "Gujarat",
-  "Haryana",
-  "Himachal Pradesh",
-  "Jammu & Kashmir",
-  "Jharkhand",
-  "Karnataka",
-  "Kerala",
-  "Madhya Pradesh",
-  "Maharashtra",
-  "Manipur",
-  "Meghalaya",
-  "Mizoram",
-  "Nagaland",
-  "Odisha",
-  "Puducherry",
-  "Punjab",
-  "Rajasthan",
-  "Sikkim",
-  "Tamil Nadu",
-  "Telangana",
-  "Tripura",
-  "Uttar Pradesh",
-  "Uttarakhand",
-  "West Bengal"
-];
+const statesList = ["All India", ...INDIAN_STATES_AND_UTS];
 
 export const generalInsurers: Insurance[] = [
   {

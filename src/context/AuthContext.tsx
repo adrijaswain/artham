@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import type { User } from "firebase/auth";
@@ -62,6 +62,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authReady, setAuthReady] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [displayName, setDisplayName] = useState("");
+  // True once this listener has actually observed a signed-in user, so the
+  // `else` branch below can tell a real sign-out (user -> null) apart from a
+  // guest's very first resolution (no session -> null). Only the former
+  // should wipe LocalStorage - otherwise a guest filling out the intake form
+  // loses all of it the moment onAuthStateChanged resolves (or on any
+  // refresh), since "not logged in" was being treated as "just logged out".
+  const hasSeenUserRef = useRef(false);
 
   useEffect(() => {
     // Safety net: never trap the user behind the loading gate if Firebase auth
@@ -72,6 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
       clearTimeout(readyFallback);
       if (nextUser) {
+        hasSeenUserRef.current = true;
         // Clear the NEW_SIGNUP flag if set - real-time sync seeds new accounts
         // automatically (first snapshot for a doc-less uid), so it's no longer
         // consulted; we just tidy it up.
@@ -107,7 +115,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem("artham_is_logged_in");
         localStorage.removeItem("artham_user_name");
         localStorage.removeItem("artham_user_email");
-        clearLocalUserData();
+        // Only wipe user-scoped data on an actual sign-out transition. If we
+        // never saw a signed-in user in this session, this is a guest whose
+        // in-progress intake/dashboard data must survive reloads.
+        if (hasSeenUserRef.current) {
+          clearLocalUserData();
+          hasSeenUserRef.current = false;
+        }
         window.dispatchEvent(new CustomEvent("auth-change"));
         setAuthReady(true);
       }

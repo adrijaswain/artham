@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import AppShell from "../components/AppShell";
 import { useLanguage } from "../components/LanguageContext";
+import { getStateLabel } from "../utils/indianStates";
 
 type Doc = { name: string; sub: string; status: "ready" | "warning" | "pending" };
 
@@ -151,15 +152,7 @@ export default function ActionPlan() {
   const getLocalValue = (field: string, value: string) => {
     if (!value || value === "Not specified" || value === "Pending") return t("it_not_specified");
     if (field === "state") {
-      const stateTranslations: Record<string, Record<string, string>> = {
-        en: { Karnataka: "Karnataka", Maharashtra: "Maharashtra", Delhi: "Delhi", "Tamil Nadu": "Tamil Nadu", "West Bengal": "West Bengal", Kerala: "Kerala", Gujarat: "Gujarat", Telangana: "Telangana", "Andhra Pradesh": "Andhra Pradesh", "Uttar Pradesh": "Uttar Pradesh", Rajasthan: "Rajasthan", Odisha: "Odisha", Haryana: "Haryana", Punjab: "Punjab", Assam: "Assam", Other: "Other State" },
-        hi: { Karnataka: "कर्नाटक", Maharashtra: "महाराष्ट्र", Delhi: "दिल्ली", "Tamil Nadu": "तमिलनाडु", "West Bengal": "पश्चिम बंगाल", Kerala: "केरल", Gujarat: "गुजरात", Telangana: "तेलंगाना", "Andhra Pradesh": "आंध्र प्रदेश", "Uttar Pradesh": "उत्तर प्रदेश", Rajasthan: "राजस्थान", Odisha: "ओडिशा", Haryana: "हरियाणा", Punjab: "पंजाब", Assam: "असम", Other: "अन्य राज्य" },
-        mr: { Karnataka: "कर्नाटक", Maharashtra: "महाराष्ट्र", Delhi: "दिल्ली", "Tamil Nadu": "तमिळनाडू", "West Bengal": "पश्चिम बंगाल", Kerala: "केरल", Gujarat: "गुजरात", Telangana: "तेलंगणा", "Andhra Pradesh": "आंध्र प्रदेश", "Uttar Pradesh": "उत्तर प्रदेश", Rajasthan: "राजस्थान", Odisha: "ओडिशा", Haryana: "हरियाणा", Punjab: "पंजाब", Assam: "आसाम", Other: "इतर राज्य" },
-        kn: { Karnataka: "ಕರ್ನಾಟಕ", Maharashtra: "ಮಹಾರಾಷ್ಟ್ರ", Delhi: "ದೆಹಲಿ", "Tamil Nadu": "ತಮಿಳುನಾಡು", "West Bengal": "ಪಶ್ಚಿಮ ಬಂಗಾಳ", Kerala: "ಕೇರಳ", Gujarat: "ಗುಜರಾತ್", Telangana: "ತೆಲಂಗಾಣ", "Andhra Pradesh": "ಆಂಧ್ರಪ್ರದೇಶ", "Uttar Pradesh": "ಉತ್ತರ ಪ್ರದೇಶ", Rajasthan: "ರಾಜಸ್ಥಾನ", Odisha: "ಒಡಿಸ್ಸಾ", Haryana: "ಹರಿಯಾಣ", Punjab: "ಪಂಜಾಬ್", Assam: "ಅಸ್ಸಾಂ", Other: "ಇತರ राज्य" },
-        bn: { Karnataka: "কর্ণাটক", Maharashtra: "মহারাষ্ট্র", Delhi: "দিল্লি", "Tamil Nadu": "তামিলনাড়ু", "West Bengal": "পশ্চিমবঙ্গ", Kerala: "কেরালা", Gujarat: "গুজরাট", Telangana: "তেলেঙ্গানা", "Andhra Pradesh": "অন্ধ্রপ্রদেশ", "Uttar Pradesh": "উত্তরপ্রদেশ", Rajasthan: "রাজস্থান", Odisha: "ওড়িশা", Haryana: "হরিয়ানা", Punjab: "পাঞ্জাব", Assam: "আসাম", Other: "অন্যান্য রাজ্য" }
-      };
-      const langDict = stateTranslations[language] || stateTranslations["en"];
-      return langDict[value] || value;
+      return getStateLabel(value, language);
     }
     if (field === "stage") {
       if (value === "Stage I") return t("it_stage_i");
@@ -1261,60 +1254,6 @@ export default function ActionPlan() {
                     <span className="material-symbols-outlined text-[14px]">restart_alt</span>
                     {language === "en" ? "Reset Profile" : language === "hi" ? "प्रोफ़ाइल रीसेट" : language === "mr" ? "प्रोफाइल रीसेट" : language === "kn" ? "ರಿಸೆಟ್" : "রিসেট প্রোফাইল"}
                   </button>
-                </div>
-              </section>
-
-              {/* Key contacts */}
-              <section className="bg-surface-container-low border border-outline-variant/60 rounded-3xl p-md shadow-sm space-y-sm">
-                <h3 className="font-bold text-primary text-xs uppercase tracking-wider pl-1">
-                  {t("nav_support")}
-                </h3>
-                
-                <div className="space-y-sm">
-                  <div className="bg-surface-bright p-sm rounded-2xl border border-outline-variant/40 space-y-sm">
-                    <div className="flex items-center gap-sm">
-                      <div className="w-9 h-9 rounded-full bg-secondary-container flex items-center justify-center text-secondary">
-                        <span className="material-symbols-outlined text-[18px]">person</span>
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-on-surface text-xs leading-none">
-                          {language === "en" ? "Mrs. Ananya Sharma" : language === "hi" ? "श्रीमती अनन्या शर्मा" : language === "mr" ? "श्रीमती अनन्या शर्मा" : language === "kn" ? "ಶ್ರೀಮತಿ ಅನನ್ಯಾ ಶರ್ಮಾ" : "শ্রীমতি অনন্যা শর্মা"}
-                        </h4>
-                        <p className="text-[10px] text-on-surface-variant mt-1 leading-none font-medium text-outline">
-                          {language === "en" ? "Hospital Social Worker" : language === "hi" ? "अस्पताल समाज सेवक" : language === "mr" ? "रुग्णालय समाज सेवक" : language === "kn" ? "ಆಸ್ಪತ್ರೆ ಸಮಾಜ ಸೇವಕ" : "হাসপাতাল সমাজ কর্মী"}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-xs pt-xs">
-                      <a className="flex-1 bg-secondary hover:bg-secondary/90 text-on-secondary py-2 rounded-xl flex items-center justify-center gap-xs font-bold text-xs shadow-sm transition-all" href="tel:1234567890">
-                        <span className="material-symbols-outlined text-[15px]">call</span> {language === "en" ? "Call" : language === "hi" ? "कॉल करें" : language === "mr" ? "कॉल करा" : language === "kn" ? "ಕರೆ ಮಾಡಿ" : "কল করুন"}
-                      </a>
-                      <button 
-                        onClick={() => alert(language === "en" ? "Initiating chat session with counselor..." : "काउंसलर के साथ चैट शुरू हो रही है...")} 
-                        className="flex-1 border border-secondary text-secondary py-2 rounded-xl flex items-center justify-center gap-xs font-bold text-xs hover:bg-secondary/5 transition-all"
-                      >
-                        <span className="material-symbols-outlined text-[15px]">chat</span> {language === "en" ? "Chat" : language === "hi" ? "चैट करें" : language === "mr" ? "चॅट करा" : language === "kn" ? "ಚಾಟ್ ಮಾಡಿ" : "চ্যাট করুন"}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="bg-surface-bright p-sm rounded-2xl border border-outline-variant/40 text-center space-y-sm">
-                    <div className="text-left">
-                      <h4 className="font-bold text-primary text-xs leading-none">
-                        {language === "en" ? "Government Helpline" : language === "hi" ? "सरकारी हेल्पलाइन" : language === "mr" ? "शासकीय हेल्पलाईन" : language === "kn" ? "ಸರ್ಕಾರಿ ಸಹಾಯವಾಣಿ" : "সরকারি হেল্পলাইন"}
-                      </h4>
-                      <p className="text-[10px] text-on-surface-variant leading-tight mt-1.5 font-medium">
-                        {language === "en" ? "Available 24/7 for insurance claims and public welfare queries." :
-                         language === "hi" ? "बीमा दावों और सार्वजनिक कल्याण प्रश्नों के लिए 24/7 उपलब्ध।" :
-                         language === "mr" ? "विमा दावे आणि सार्वजनिक कल्याण प्रश्नांसाठी २४/७ उपलब्ध." :
-                         language === "kn" ? "ವಿಮೆ ಕ್ಲೈಮ್‌ಗಳು ಮತ್ತು ಸಾರ್ವಜನಿಕ ಕಲ್ಯಾಣ ಪ್ರಶ್ನೆಗಳಿಗೆ 24/7 ಲಭ್ಯವಿದೆ." :
-                         "বীমা দাবি এবং জনকল্যাণমূলক জিজ্ঞাসার জন্য ২৪/৭ উপলব্ধ।"}
-                      </p>
-                    </div>
-                    <a className="w-full bg-primary hover:bg-primary-hover text-on-primary py-2 rounded-xl flex items-center justify-center gap-xs font-bold text-xs shadow-sm transition-all block font-bold" href="tel:104">
-                      <span className="material-symbols-outlined text-[16px]">support_agent</span> {language === "en" ? "Dial 104" : language === "hi" ? "104 डायल करें" : language === "mr" ? "१०४ डायल करा" : language === "kn" ? "104 ಡಯಲ್ ಮಾಡಿ" : "১০৪ ডায়াল করুন"}
-                    </a>
-                  </div>
                 </div>
               </section>
 

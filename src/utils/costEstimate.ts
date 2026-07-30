@@ -87,6 +87,32 @@ const ADDITIONAL = {
   icu: { Government: 10000, Private: 40000, Premium: 75000 },
 };
 
+// State-level cost-of-living adjustment: metro states carry meaningfully
+// higher private/premium hospital pricing than smaller states, while
+// government-rate care is far more nationally standardized. Government/
+// Private/Premium base tables above are calibrated to a mid-tier baseline,
+// so this scales the deviation from that baseline per hospital category.
+const HIGH_COST_STATES = new Set([
+  "Delhi", "Maharashtra", "Karnataka", "Tamil Nadu", "Telangana", "Gujarat", "Chandigarh", "Puducherry",
+]);
+const LOW_COST_STATES = new Set([
+  "Odisha", "Bihar", "Jharkhand", "Chhattisgarh", "Assam", "Arunachal Pradesh", "Manipur", "Meghalaya",
+  "Mizoram", "Nagaland", "Sikkim", "Tripura", "Andaman and Nicobar Islands", "Lakshadweep",
+  "Dadra and Nagar Haveli and Daman and Diu",
+]);
+
+function getStateCostMultiplier(state: string): number {
+  if (HIGH_COST_STATES.has(state)) return 1.12;
+  if (LOW_COST_STATES.has(state)) return 0.85;
+  return 1.0;
+}
+
+const CATEGORY_STATE_SENSITIVITY: Record<HospitalCategory, number> = {
+  Government: 0.3,
+  Private: 1.0,
+  Premium: 1.15,
+};
+
 export function computeCostEstimate(intake: IntakeProfile): CostEstimate {
   const { state, age, stage, hormoneStatus, surgery, chemo, radiation, hospitalType, hasInsurance, incomeBracket } = intake;
   const isIntakeFilled = !!state && !!age && !!stage;
@@ -94,6 +120,11 @@ export function computeCostEstimate(intake: IntakeProfile): CostEstimate {
   let category: HospitalCategory = "Private";
   if (hospitalType === "Government / Public Hospital") category = "Government";
   else if (hospitalType === "Premium Corporate Hospital") category = "Premium";
+
+  // How much this patient's state pulls hospital pricing away from the
+  // calibrated baseline, damped per category (government rates barely move).
+  const stateMultiplier = getStateCostMultiplier(state);
+  const effectiveMultiplier = 1 + (stateMultiplier - 1) * CATEGORY_STATE_SENSITIVITY[category];
 
   const breakdown: CostBreakdownLine[] = [];
   let totalEstimate = 0;
@@ -105,7 +136,7 @@ export function computeCostEstimate(intake: IntakeProfile): CostEstimate {
     if (hormoneStatus === "HER2 Positive" || hormoneStatus === "Triple Negative" || Number(age) < 40) {
       imagingCost += DIAGNOSTICS.mri[category];
     }
-    const diagnosticsCost = biopsyCost + imagingCost;
+    const diagnosticsCost = Math.round((biopsyCost + imagingCost) * effectiveMultiplier);
 
     let surgeryCost = 0;
     if (surgery !== "No" && surgery !== "") {
@@ -120,7 +151,7 @@ export function computeCostEstimate(intake: IntakeProfile): CostEstimate {
         nodeSurgery = SURGERY.alnd[category];
       }
       if (stage === "Stage II" || stage === "Stage III") reconSurgery = SURGERY.reconstruction[category];
-      surgeryCost = baseSurgery + nodeSurgery + reconSurgery;
+      surgeryCost = Math.round((baseSurgery + nodeSurgery + reconSurgery) * effectiveMultiplier);
     }
 
     let chemoCost = 0;
@@ -144,6 +175,7 @@ export function computeCostEstimate(intake: IntakeProfile): CostEstimate {
         chemoCost = CHEMO.act[category];
         chemoCyclesCount = 8;
       }
+      chemoCost = Math.round(chemoCost * effectiveMultiplier);
     }
 
     let radiationCost = 0;
@@ -151,11 +183,13 @@ export function computeCostEstimate(intake: IntakeProfile): CostEstimate {
       radiationCost = stage === "Stage I" || stage === "Stage II"
         ? RADIATION.whole[category]
         : RADIATION.chestWall[category] + RADIATION.regional[category];
+      radiationCost = Math.round(radiationCost * effectiveMultiplier);
     }
 
     let hormoneCost = 0;
     if (hormoneStatus === "ER+/PR+ Positive") {
       hormoneCost = Number(age) >= 50 ? HORMONE.letrozole[category] : HORMONE.tamoxifen[category];
+      hormoneCost = Math.round(hormoneCost * effectiveMultiplier);
     }
 
     let targetedCost = 0;
@@ -163,11 +197,12 @@ export function computeCostEstimate(intake: IntakeProfile): CostEstimate {
       targetedCost = stage === "Stage III" || stage === "Stage IV"
         ? TARGETED.pertuzumabTrastuzumab[category]
         : TARGETED.trastuzumab[category];
+      targetedCost = Math.round(targetedCost * effectiveMultiplier);
     }
 
     let immunoCost = 0;
     if (hormoneStatus === "Triple Negative" && (stage === "Stage III" || stage === "Stage IV")) {
-      immunoCost = IMMUNO.pembrolizumab[category];
+      immunoCost = Math.round(IMMUNO.pembrolizumab[category] * effectiveMultiplier);
     }
 
     const consultationCost = ADDITIONAL.consultationInit[category] + 10 * ADDITIONAL.consultationFollow[category];
@@ -176,7 +211,7 @@ export function computeCostEstimate(intake: IntakeProfile): CostEstimate {
     const icuCost = stage === "Stage III" || stage === "Stage IV" || category === "Premium" || category === "Private"
       ? 1 * ADDITIONAL.icu[category]
       : 0;
-    const careLogisticsCost = consultationCost + chemoAdminCost + hospitalizationCost + icuCost;
+    const careLogisticsCost = Math.round((consultationCost + chemoAdminCost + hospitalizationCost + icuCost) * effectiveMultiplier);
 
     totalEstimate =
       diagnosticsCost + surgeryCost + chemoCost + radiationCost + hormoneCost + targetedCost + immunoCost + careLogisticsCost;
