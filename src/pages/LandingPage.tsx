@@ -94,7 +94,7 @@ export default function LandingPage() {
           </div>
           <div className="max-w-container-max mx-auto px-margin-mobile md:px-md pt-lg md:pt-xl pb-lg">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-lg items-center">
-              <div className="lg:col-span-7">
+              <div className="lg:col-span-7 order-1">
                 <h1 className="font-headline-lg text-headline-lg md:text-[56px] md:leading-[1.05] md:tracking-[-0.02em] text-on-primary font-bold mb-md">
                   {t("lp_hero_title")}
                 </h1>
@@ -103,8 +103,45 @@ export default function LandingPage() {
                 </p>
               </div>
 
+              {/* Two paths - on mobile shown above the hero picture; on desktop, below the full row */}
+              <div className="order-2 lg:order-3 lg:col-span-12 grid grid-cols-1 sm:grid-cols-2 gap-md">
+                <button
+                  onClick={() => nav("/intake")}
+                  className="group flex flex-col items-start gap-xs text-left rounded-2xl bg-white shadow-xl hover:shadow-2xl hover:-translate-y-0.5 p-md transition-all"
+                >
+                  <span className="flex items-center gap-xs text-secondary text-[11px] font-semibold uppercase tracking-wide">
+                    <span className="material-symbols-outlined text-[14px]">request_quote</span>
+                    {t("lp_path_diagnosed_kicker")}
+                  </span>
+                  <span className="flex items-center gap-sm text-primary font-bold text-lg">
+                    {t("lp_btn_start")}
+                    <span className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-all">
+                      <span className="material-symbols-outlined text-[16px] text-primary group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
+                    </span>
+                  </span>
+                  <span className="text-on-surface-variant text-xs leading-snug max-w-sm">{t("lp_btn_start_desc")}</span>
+                </button>
+
+                <button
+                  onClick={() => nav("/preventive-plans")}
+                  className="group flex flex-col items-start gap-xs text-left rounded-2xl bg-white shadow-xl hover:shadow-2xl hover:-translate-y-0.5 p-md transition-all"
+                >
+                  <span className="flex items-center gap-xs text-secondary text-[11px] font-semibold uppercase tracking-wide">
+                    <span className="material-symbols-outlined text-[14px]">health_and_safety</span>
+                    {t("lp_path_preventive_kicker")}
+                  </span>
+                  <span className="flex items-center gap-sm text-primary font-bold text-lg">
+                    {t("lp_btn_preventive")}
+                    <span className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-all">
+                      <span className="material-symbols-outlined text-[16px] text-primary group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
+                    </span>
+                  </span>
+                  <span className="text-on-surface-variant text-xs leading-snug max-w-sm">{t("lp_btn_preventive_desc")}</span>
+                </button>
+              </div>
+
               {/* Hero Visual: clean product preview (mirrors the dashboard) */}
-              <div className="lg:col-span-5">
+              <div className="order-3 lg:order-2 lg:col-span-5">
                 <div className="relative">
                   <div className="bg-surface rounded-2xl shadow-lg border border-outline-variant overflow-hidden">
                     {/* Faux window bar */}
@@ -170,43 +207,6 @@ export default function LandingPage() {
                   </div>
                 </div>
               </div>
-            </div>
-
-            {/* Two paths - two separate solid white boxes, side by side below the hero row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-md mt-lg">
-              <button
-                onClick={() => nav("/intake")}
-                className="group flex flex-col items-start gap-xs text-left rounded-2xl bg-white shadow-xl hover:shadow-2xl hover:-translate-y-0.5 p-md transition-all"
-              >
-                <span className="flex items-center gap-xs text-secondary text-[11px] font-semibold uppercase tracking-wide">
-                  <span className="material-symbols-outlined text-[14px]">request_quote</span>
-                  {t("lp_path_diagnosed_kicker")}
-                </span>
-                <span className="flex items-center gap-sm text-primary font-bold text-lg">
-                  {t("lp_btn_start")}
-                  <span className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-all">
-                    <span className="material-symbols-outlined text-[16px] text-primary group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
-                  </span>
-                </span>
-                <span className="text-on-surface-variant text-xs leading-snug max-w-sm">{t("lp_btn_start_desc")}</span>
-              </button>
-
-              <button
-                onClick={() => nav("/preventive-plans")}
-                className="group flex flex-col items-start gap-xs text-left rounded-2xl bg-white shadow-xl hover:shadow-2xl hover:-translate-y-0.5 p-md transition-all"
-              >
-                <span className="flex items-center gap-xs text-secondary text-[11px] font-semibold uppercase tracking-wide">
-                  <span className="material-symbols-outlined text-[14px]">health_and_safety</span>
-                  {t("lp_path_preventive_kicker")}
-                </span>
-                <span className="flex items-center gap-sm text-primary font-bold text-lg">
-                  {t("lp_btn_preventive")}
-                  <span className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-all">
-                    <span className="material-symbols-outlined text-[16px] text-primary group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
-                  </span>
-                </span>
-                <span className="text-on-surface-variant text-xs leading-snug max-w-sm">{t("lp_btn_preventive_desc")}</span>
-              </button>
             </div>
           </div>
         </section>
