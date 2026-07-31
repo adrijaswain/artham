@@ -74,7 +74,8 @@ const USER_SCOPED_KEYS = [
   "artham_dashboard_chat_messages",
   "artham_chatbot_diagnosis_details",
   "artham_chatbot_next_steps",
-  "artham_custom_breakdown"
+  "artham_custom_breakdown",
+  "artham_ai_cost_estimate"
 ];
 const USER_SCOPED_SET = new Set<string>(USER_SCOPED_KEYS);
 
@@ -121,7 +122,8 @@ function collectLocalUserData() {
     dashboardMessages: readJson<unknown[]>("artham_dashboard_chat_messages", []),
     diagnosisDetails: localStorage.getItem("artham_chatbot_diagnosis_details") || "",
     nextSteps: localStorage.getItem("artham_chatbot_next_steps") || "",
-    customBreakdown: readJson<Record<string, unknown> | null>("artham_custom_breakdown", null)
+    customBreakdown: readJson<Record<string, unknown> | null>("artham_custom_breakdown", null),
+    aiCostEstimate: readJson<Record<string, unknown> | null>("artham_ai_cost_estimate", null)
   };
 }
 
@@ -157,6 +159,9 @@ function applyProfileToLocal(data: Record<string, unknown>) {
     }
     if (data.customBreakdown) {
       rawSetItem("artham_custom_breakdown", JSON.stringify(data.customBreakdown));
+    }
+    if (data.aiCostEstimate) {
+      rawSetItem("artham_ai_cost_estimate", JSON.stringify(data.aiCostEstimate));
     }
   } finally {
     applyingRemote = false;

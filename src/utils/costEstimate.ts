@@ -30,6 +30,16 @@ export type CostEstimate = {
   confidenceScore: "None" | "Medium" | "High";
   confidenceText: string;
   breakdown: CostBreakdownLine[];
+  /** Whether the treatment total came from the AI personalization or the static pricing model. */
+  source: "ai" | "model";
+};
+
+/** Lets a caller (e.g. the AI cost estimator) supply the treatment total and
+ *  breakdown directly, while still running through the same insurance /
+ *  subsidy / confidence rules below. */
+export type CostEstimateOverride = {
+  totalEstimate: number;
+  breakdown: CostBreakdownLine[];
 };
 
 // Pricing maps calibrated against Dr. Jay Anam's clinical records.
@@ -127,7 +137,7 @@ const CATEGORY_STATE_SENSITIVITY: Record<HospitalCategory, number> = {
   Premium: 1.15,
 };
 
-export function computeCostEstimate(intake: IntakeProfile): CostEstimate {
+export function computeCostEstimate(intake: IntakeProfile, aiOverride?: CostEstimateOverride): CostEstimate {
   const { state, age, stage, hormoneStatus, surgery, chemo, radiation, hospitalType, hasInsurance, incomeBracket } = intake;
   const isIntakeFilled = !!state && !!age && !!stage;
 
@@ -143,7 +153,13 @@ export function computeCostEstimate(intake: IntakeProfile): CostEstimate {
   const breakdown: CostBreakdownLine[] = [];
   let totalEstimate = 0;
 
-  if (isIntakeFilled) {
+  if (isIntakeFilled && aiOverride) {
+    // AI-personalized total/breakdown - skip the static pricing model below
+    // entirely, but still run the same insurance/subsidy/confidence rules on
+    // top of it further down.
+    totalEstimate = aiOverride.totalEstimate;
+    breakdown.push(...aiOverride.breakdown);
+  } else if (isIntakeFilled) {
     const biopsyCost = DIAGNOSTICS.biopsy[category] + DIAGNOSTICS.histopathology[category] + DIAGNOSTICS.ihc[category];
     let imagingCost = DIAGNOSTICS.mammogram[category] + DIAGNOSTICS.ultrasound[category] + DIAGNOSTICS.bloodTests[category];
     if (stage === "Stage III" || stage === "Stage IV") imagingCost += DIAGNOSTICS.pet[category];
@@ -288,6 +304,7 @@ export function computeCostEstimate(intake: IntakeProfile): CostEstimate {
     confidenceScore,
     confidenceText,
     breakdown,
+    source: aiOverride ? "ai" : "model",
   };
 }
 

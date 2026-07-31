@@ -5,6 +5,7 @@ import { useLanguage } from "../components/LanguageContext";
 import { consumeShowChatPopup } from "../context/AuthContext";
 import { getSpeechLocale, loadVoices, pickVoiceForLocale } from "../utils/voice";
 import { computeCostEstimate } from "../utils/costEstimate";
+import { readCachedAiOverride, queryAiTreatmentCost, type AiCostOverride } from "../utils/aiCostEstimate";
 
 type ChatMsg = {
   role: "bot" | "user";
@@ -110,7 +111,7 @@ Read the dialogue and extract any values the user mentions. You MUST respond ONL
 };
 
 export default function Dashboard() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem("artham_is_logged_in") === "true");
 
   // Load intake parameters reactively
@@ -327,17 +328,7 @@ export default function Dashboard() {
     return () => window.removeEventListener("auth-change", handleAuthChange);
   }, []);
 
-  const {
-    isIntakeFilled,
-    totalEstimate,
-    minCost,
-    maxCost,
-    insuranceShare,
-    outOfPocket,
-    treatmentDesc,
-    confidenceScore,
-    confidenceText,
-  } = computeCostEstimate({
+  const intakeProfile = {
     state: patientState,
     age,
     stage,
@@ -348,7 +339,61 @@ export default function Dashboard() {
     hospitalType,
     hasInsurance,
     incomeBracket,
-  });
+  };
+  const isIntakeFilledBasic = !!patientState && !!age && !!stage;
+
+  // AI-personalized cost total: cached per intake fingerprint so it's reused
+  // on every future visit until the user actually changes their intake, and
+  // only recomputed (one Gemini call) when the profile actually changes.
+  const [aiOverride, setAiOverride] = useState<AiCostOverride | null>(null);
+  const [aiCostStatus, setAiCostStatus] = useState<"idle" | "loading" | "ai" | "unavailable">("idle");
+
+  useEffect(() => {
+    if (!isIntakeFilledBasic) {
+      setAiOverride(null);
+      setAiCostStatus("idle");
+      return;
+    }
+
+    const cached = readCachedAiOverride(intakeProfile);
+    if (cached) {
+      setAiOverride(cached);
+      setAiCostStatus("ai");
+      return;
+    }
+
+    if (!apiKey) {
+      setAiOverride(null);
+      setAiCostStatus("unavailable");
+      return;
+    }
+
+    let cancelled = false;
+    setAiCostStatus("loading");
+    queryAiTreatmentCost(intakeProfile, language, apiKey).then((result) => {
+      if (cancelled) return;
+      setAiOverride(result);
+      setAiCostStatus(result ? "ai" : "unavailable");
+    });
+    return () => {
+      cancelled = true;
+    };
+    // Re-run only when a field that actually changes cost changes - matches
+    // the fingerprint aiCostEstimate.ts caches against.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patientState, age, stage, hormoneStatus, surgery, chemo, radiation, hospitalType, hasInsurance, incomeBracket, apiKey, language]);
+
+  const {
+    isIntakeFilled,
+    totalEstimate,
+    minCost,
+    maxCost,
+    insuranceShare,
+    outOfPocket,
+    treatmentDesc,
+    confidenceScore,
+    confidenceText,
+  } = computeCostEstimate(intakeProfile, aiOverride || undefined);
 
   // Deduct interactive savings selected by user
   let totalSavings = 0;
@@ -592,7 +637,7 @@ export default function Dashboard() {
               </p>
             </div>
 
-            <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
               {isIntakeFilled ? (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-outline-variant">
                   <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
@@ -602,6 +647,23 @@ export default function Dashboard() {
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 border border-outline-variant">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                   Incomplete
+                </span>
+              )}
+              {isIntakeFilled && aiCostStatus !== "idle" && (
+                <span
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-primary-container text-on-primary-container border border-outline-variant"
+                  title={
+                    aiCostStatus === "ai"
+                      ? "This estimate was personalized by AI for your exact intake profile."
+                      : aiCostStatus === "loading"
+                      ? "Personalizing your estimate with AI…"
+                      : "Showing the standard pricing model - AI personalization is unavailable right now."
+                  }
+                >
+                  <span className={`material-symbols-outlined text-[14px] ${aiCostStatus === "loading" ? "animate-spin" : ""}`}>
+                    {aiCostStatus === "ai" ? "auto_awesome" : aiCostStatus === "loading" ? "progress_activity" : "calculate"}
+                  </span>
+                  {aiCostStatus === "ai" ? "AI-personalized" : aiCostStatus === "loading" ? "Personalizing…" : "Standard estimate"}
                 </span>
               )}
             </div>

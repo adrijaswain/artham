@@ -4,6 +4,7 @@ import AppShell from "../components/AppShell";
 import { useLanguage } from "../components/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { INDIAN_STATES_AND_UTS, getStateLabel } from "../utils/indianStates";
+import { clearCachedAiOverride } from "../utils/aiCostEstimate";
 
 export default function Intake() {
   const { t, language } = useLanguage();
@@ -149,6 +150,7 @@ export default function Intake() {
         "artham_chatbot_next_steps"
       ];
       INTAKE_KEYS.forEach(key => localStorage.removeItem(key));
+      clearCachedAiOverride();
 
       window.dispatchEvent(new CustomEvent("auth-change"));
     }

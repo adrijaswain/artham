@@ -5,6 +5,7 @@
 // print window is blocked.
 
 import { computeCostEstimate, readIntakeProfileFromStorage } from "./costEstimate";
+import { readCachedAiOverride } from "./aiCostEstimate";
 
 type VaultFileLike = {
   name?: string;
@@ -56,7 +57,8 @@ function buildReportHtml(): string {
   const diagnosis = localStorage.getItem("artham_chatbot_diagnosis_details") || "";
   const nextSteps = localStorage.getItem("artham_chatbot_next_steps") || "";
   const vault = readJson<VaultFileLike[]>("artham_vault_files", []);
-  const cost = computeCostEstimate(readIntakeProfileFromStorage());
+  const intakeProfile = readIntakeProfileFromStorage();
+  const cost = computeCostEstimate(intakeProfile, readCachedAiOverride(intakeProfile) || undefined);
 
   const today = new Date().toLocaleDateString("en-IN", {
     year: "numeric",

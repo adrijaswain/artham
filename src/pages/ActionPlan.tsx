@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import AppShell from "../components/AppShell";
 import { useLanguage } from "../components/LanguageContext";
 import { getStateLabel } from "../utils/indianStates";
+import { clearCachedAiOverride } from "../utils/aiCostEstimate";
 
 type Doc = { name: string; sub: string; status: "ready" | "warning" | "pending" };
 
@@ -210,6 +211,7 @@ export default function ActionPlan() {
         "artham_intake_step"
       ];
       INTAKE_KEYS.forEach(key => localStorage.removeItem(key));
+      clearCachedAiOverride();
 
       window.dispatchEvent(new CustomEvent("auth-change"));
     }
