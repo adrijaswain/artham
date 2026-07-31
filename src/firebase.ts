@@ -13,6 +13,32 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:1234567890:web:mockappid123"
 };
 
+// If any real VITE_FIREBASE_* var is missing at build time, the app silently
+// falls back to the placeholder config above, which points at a project that
+// doesn't exist - sign-in and Firestore sync then fail with no obvious cause
+// (this is exactly what happens when a deployment's environment variables
+// aren't set, e.g. in the hosting provider's dashboard, even though a local
+// .env works fine). Surface that loudly instead of letting it fail silently.
+const REQUIRED_FIREBASE_ENV_VARS = [
+  "VITE_FIREBASE_API_KEY",
+  "VITE_FIREBASE_AUTH_DOMAIN",
+  "VITE_FIREBASE_PROJECT_ID",
+  "VITE_FIREBASE_STORAGE_BUCKET",
+  "VITE_FIREBASE_MESSAGING_SENDER_ID",
+  "VITE_FIREBASE_APP_ID"
+] as const;
+
+export const missingFirebaseEnvVars = REQUIRED_FIREBASE_ENV_VARS.filter((key) => !import.meta.env[key]);
+export const isFirebaseConfigured = missingFirebaseEnvVars.length === 0;
+
+if (!isFirebaseConfigured) {
+  console.error(
+    `[Artham] Missing Firebase environment variable(s): ${missingFirebaseEnvVars.join(", ")}. ` +
+    "Falling back to placeholder credentials - sign-in, sign-up and cloud sync will NOT work on this " +
+    "deployment until these are set (e.g. in your hosting provider's Environment Variables settings)."
+  );
+}
+
 // Initialize Firebase App
 const app = initializeApp(firebaseConfig);
 

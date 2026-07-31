@@ -4,6 +4,7 @@ import TopAppBar from "./TopAppBar";
 import SideNav from "./SideNav";
 import OnboardingTour from "./OnboardingTour";
 import { needsTour } from "../context/AuthContext";
+import { isFirebaseConfigured } from "../firebase";
 
 type Props = {
   children: ReactNode;
@@ -24,6 +25,11 @@ export default function AppShell({ children, bare = false, bg = "bg-background" 
       <TopAppBar onMenuClick={bare ? undefined : () => setMobileNavOpen(true)} />
       {!bare && <SideNav isOpen={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />}
       <main className={`flex-1 pt-16 ${bare ? "" : "md:ml-64"}`}>
+        {!isFirebaseConfigured && (
+          <div className="bg-error text-on-error text-xs font-semibold text-center py-2 px-4">
+            Cloud sync isn't configured on this deployment - sign-in, sign-up and saved data won't work until the Firebase environment variables are set.
+          </div>
+        )}
         {children}
       </main>
       {showTour && <OnboardingTour onFinish={() => setShowTour(false)} />}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   createUserWithEmailAndPassword,
@@ -45,9 +45,11 @@ export default function AuthPage({ mode }: { mode: Mode }) {
   const [busy, setBusy] = useState(false);
 
   // Already authenticated users don't need this page.
-  if (isLoggedIn) {
-    navigate("/dashboard", { replace: true });
-  }
+  useEffect(() => {
+    if (isLoggedIn) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [isLoggedIn, navigate]);
 
   const heading = mode === "signup" ? "Create your account" : mode === "login" ? "Welcome back" : "Reset your password";
   const sub =
