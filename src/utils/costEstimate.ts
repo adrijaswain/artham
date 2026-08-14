@@ -42,8 +42,10 @@ export type CostEstimateOverride = {
   breakdown: CostBreakdownLine[];
 };
 
-// Pricing maps calibrated against Dr. Jay Anam's clinical records.
-const DIAGNOSTICS = {
+// Pricing maps calibrated against Dr. Jay Anam's clinical records. Exported
+// so other pages (e.g. the Cost Breakdown item list) build their line items
+// from the exact same numbers instead of a stale, hand-copied duplicate.
+export const DIAGNOSTICS = {
   mammogram: { Government: 1000, Private: 3000, Premium: 5000 },
   ultrasound: { Government: 1500, Private: 4000, Premium: 6000 },
   biopsy: { Government: 5000, Private: 20000, Premium: 35000 },
@@ -54,7 +56,7 @@ const DIAGNOSTICS = {
   bloodTests: { Government: 2000, Private: 8000, Premium: 12000 },
 };
 
-const SURGERY = {
+export const SURGERY = {
   lumpectomy: { Government: 75000, Private: 185000, Premium: 350000 },
   mastectomy: { Government: 100000, Private: 270000, Premium: 500000 },
   slnb: { Government: 30000, Private: 75000, Premium: 125000 },
@@ -62,14 +64,14 @@ const SURGERY = {
   reconstruction: { Government: 100000, Private: 250000, Premium: 600000 },
 };
 
-const CHEMO = {
+export const CHEMO = {
   tc4: { Government: 100000, Private: 200000, Premium: 350000 },
   fac: { Government: 90000, Private: 180000, Premium: 300000 },
   act: { Government: 150000, Private: 320000, Premium: 600000 },
   tch6: { Government: 300000, Private: 500000, Premium: 800000 },
 };
 
-const RADIATION = {
+export const RADIATION = {
   whole: { Government: 75000, Private: 200000, Premium: 350000 },
   chestWall: { Government: 75000, Private: 200000, Premium: 350000 },
   regional: { Government: 100000, Private: 250000, Premium: 400000 },
@@ -78,27 +80,27 @@ const RADIATION = {
 // Per-year list price; multiplied by a representative 5-year course length
 // below (the guideline-minimum duration - many higher-risk patients take it
 // for 10, but 5 is the conservative standard-of-care baseline).
-const HORMONE_ANNUAL = {
+export const HORMONE_ANNUAL = {
   tamoxifen: { Government: 10000, Private: 50000, Premium: 75000 },
   letrozole: { Government: 25000, Private: 100000, Premium: 150000 },
 };
-const HORMONE_THERAPY_YEARS = 5;
+export const HORMONE_THERAPY_YEARS = 5;
 
 // Trastuzumab pricing reflects the biosimilars (Hertraz, Ogivri, Canmab, etc.)
 // that most Indian patients are actually prescribed today, not the originator
 // Herceptin brand - biosimilars run 40-70% cheaper for a full ~17-18 dose
 // course. Pertuzumab has no Indian biosimilar yet, so that combo stays
 // priced closer to originator rates.
-const TARGETED = {
+export const TARGETED = {
   trastuzumab: { Government: 180000, Private: 450000, Premium: 750000 },
   pertuzumabTrastuzumab: { Government: 500000, Private: 1200000, Premium: 1800000 },
 };
 
-const IMMUNO = {
+export const IMMUNO = {
   pembrolizumab: { Government: 1000000, Private: 1500000, Premium: 2500000 },
 };
 
-const ADDITIONAL = {
+export const ADDITIONAL = {
   consultationInit: { Government: 500, Private: 2000, Premium: 4000 },
   consultationFollow: { Government: 500, Private: 1500, Premium: 3000 },
   chemoAdmin: { Government: 2000, Private: 10000, Premium: 20000 },
@@ -137,6 +139,41 @@ const CATEGORY_STATE_SENSITIVITY: Record<HospitalCategory, number> = {
   Premium: 1.15,
 };
 
+/** How much this patient's state pulls hospital pricing away from the
+ *  calibrated baseline, damped per hospital category. Exported so any page
+ *  pricing individual line items applies the exact same adjustment the
+ *  dashboard total is built from. */
+export function getEffectiveMultiplier(state: string, category: HospitalCategory): number {
+  const stateMultiplier = getStateCostMultiplier(state);
+  return 1 + (stateMultiplier - 1) * CATEGORY_STATE_SENSITIVITY[category];
+}
+
+export type IncomeSubsidyResult = {
+  outOfPocket: number;
+  subsidyApplied: boolean;
+  subsidyAmount: number;
+  subsidyName: string;
+};
+
+/** Applies the same income-bracket welfare subsidy rules used for the
+ *  dashboard total to any out-of-pocket figure, so per-item breakdowns and
+ *  the headline estimate never drift apart. */
+export function applyIncomeSubsidy(outOfPocketBefore: number, category: HospitalCategory, incomeBracket: string): IncomeSubsidyResult {
+  if (incomeBracket === "Below ₹2,50,000") {
+    // Public hospitals routinely waive cost entirely for BPL patients under
+    // state welfare schemes - but at a private/premium hospital, welfare
+    // schemes (e.g. Ayushman Bharat PM-JAY) only offset up to their own
+    // package cap, not the patient's full bill.
+    const outOfPocket = category === "Government" ? 0 : Math.max(0, outOfPocketBefore - GOVERNMENT_SCHEME_CAP);
+    return { outOfPocket, subsidyApplied: true, subsidyAmount: outOfPocketBefore - outOfPocket, subsidyName: "Ayushman Bharat PM-JAY (100% Subsidy)" };
+  }
+  if (incomeBracket === "₹2,50,000 – ₹5,00,000") {
+    const subsidyAmount = Math.round(Math.min(outOfPocketBefore * 0.5, GOVERNMENT_SCHEME_CAP));
+    return { outOfPocket: outOfPocketBefore - subsidyAmount, subsidyApplied: true, subsidyAmount, subsidyName: "National Illness Assistance Fund (50% Subsidy)" };
+  }
+  return { outOfPocket: outOfPocketBefore, subsidyApplied: false, subsidyAmount: 0, subsidyName: "" };
+}
+
 export function computeCostEstimate(intake: IntakeProfile, aiOverride?: CostEstimateOverride): CostEstimate {
   const { state, age, stage, hormoneStatus, surgery, chemo, radiation, hospitalType, hasInsurance, incomeBracket } = intake;
   const isIntakeFilled = !!state && !!age && !!stage;
@@ -145,10 +182,7 @@ export function computeCostEstimate(intake: IntakeProfile, aiOverride?: CostEsti
   if (hospitalType === "Government / Public Hospital") category = "Government";
   else if (hospitalType === "Premium Corporate Hospital") category = "Premium";
 
-  // How much this patient's state pulls hospital pricing away from the
-  // calibrated baseline, damped per category (government rates barely move).
-  const stateMultiplier = getStateCostMultiplier(state);
-  const effectiveMultiplier = 1 + (stateMultiplier - 1) * CATEGORY_STATE_SENSITIVITY[category];
+  const effectiveMultiplier = getEffectiveMultiplier(state, category);
 
   const breakdown: CostBreakdownLine[] = [];
   let totalEstimate = 0;
@@ -265,16 +299,7 @@ export function computeCostEstimate(intake: IntakeProfile, aiOverride?: CostEsti
   let outOfPocket = totalEstimate - insuranceShare;
 
   if (isIntakeFilled) {
-    if (incomeBracket === "Below ₹2,50,000") {
-      // Public hospitals routinely waive cost entirely for BPL patients under
-      // state welfare schemes - but at a private/premium hospital, welfare
-      // schemes (e.g. Ayushman Bharat PM-JAY) only offset up to their own
-      // package cap, not the patient's full bill.
-      outOfPocket = category === "Government" ? 0 : Math.max(0, outOfPocket - GOVERNMENT_SCHEME_CAP);
-    } else if (incomeBracket === "₹2,50,000 – ₹5,00,000") {
-      const partialSubsidy = Math.min(outOfPocket * 0.5, GOVERNMENT_SCHEME_CAP);
-      outOfPocket = Math.round(outOfPocket - partialSubsidy);
-    }
+    outOfPocket = applyIncomeSubsidy(outOfPocket, category, incomeBracket).outOfPocket;
   }
 
   const hasUnsureAnswer = [stage, hormoneStatus, surgery, chemo, radiation].includes("Unsure");

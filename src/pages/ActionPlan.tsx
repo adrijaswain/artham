@@ -424,8 +424,6 @@ export default function ActionPlan() {
     title: string;
     description: string;
     matchReason: string;
-    suitability: string;
-    matchScore: number;
     steps: { head: string; sub: string }[];
     documents: string[];
     contact: { tollFree: string; deskName: string; actionUrl: string };
@@ -442,8 +440,6 @@ export default function ActionPlan() {
                  language === "mr" ? `${patientState || "भारत"} रहिवासी म्हणून पात्र.` :
                  language === "kn" ? `${patientState || "ಭಾರತ"} ನಿವಾಸಿಯಾಗಿರುವುದರಿಂದ ಅರ್ಹರು.` :
                  `${patientState || "ভারত"} এর বাসিন্দা হিসেবে যোগ্য।`,
-    suitability: language === "en" ? "High" : language === "hi" ? "उच्च" : language === "mr" ? "उच्च" : language === "kn" ? "ಹೆಚ್ಚು" : "উচ্চ",
-    matchScore: 95,
     steps: [
       { 
         head: language === "en" ? "Visit the Empanelled Hospital Nodal Counter" :
@@ -515,8 +511,6 @@ export default function ActionPlan() {
                    language === "mr" ? `उत्पन्न गट (${incomeBracket}) किंवा शासकीय रुग्णालयाच्या पर्यायामुळे जुळले.` :
                    language === "kn" ? `ಆದಾಯ ವರ್ಗ (${incomeBracket}) ಅಥವಾ ಸರ್ಕಾರಿ ಆಸ್ಪತ್ರೆಯ ಆಯ್ಕೆಯಿಂದಾಗಿ ಶಿಫಾರಸು ಮಾಡಲಾಗಿದೆ.` :
                    `আয়ের সীমা (${incomeBracket}) বা সরকারি হাসপাতালের পছন্দের কারণে সামঞ্জস্যপূর্ণ।`,
-      suitability: language === "en" ? "Moderate to High" : language === "hi" ? "मध्यम से उच्च" : language === "mr" ? "मध्यम ते उच्च" : language === "kn" ? "ಮಧ್ಯಮದಿಂದ ಹೆಚ್ಚು" : "মাঝারি থেকে উচ্চ",
-      matchScore: 84,
       steps: [
         { 
           head: language === "en" ? "Obtain Application Form" :
@@ -584,8 +578,6 @@ export default function ActionPlan() {
                    language === "mr" ? "सरकारी रुग्णालयाची निवड आणि बीपीएल उत्पन्न स्थितीमुळे पात्र." :
                    language === "kn" ? "ಸರ್ಕಾರಿ ಆಸ್ಪತ್ರೆಯ ಆದ್ಯತೆ ಮತ್ತು ಬಿಪಿಎಲ್ ಕಾರ್ಡ್ ಇರುವುದರಿಂದ ಅರ್ಹರು." :
                    "সরকারি হাসপাতালের পছন্দ এবং বিপিএল আয়ের স্তরের কারণে যোগ্য।",
-      suitability: language === "en" ? "High" : language === "hi" ? "उच्च" : language === "mr" ? "उच्च" : language === "kn" ? "ಹೆಚ್ಚು" : "উচ্চ",
-      matchScore: 90,
       steps: [
         { 
           head: language === "en" ? "Hospital Verification" :
@@ -653,8 +645,6 @@ export default function ActionPlan() {
                    language === "mr" ? "तुमच्या प्रोफाइलमध्ये नोंदवलेले: खाजगी विमा." :
                    language === "kn" ? "ನಿಮ್ಮ ಪ್ರೊಫೈಲ್‌ನಲ್ಲಿ ದಾಖಲಿಸಲಾಗಿದೆ: ಖಾಸಗಿ ವಿಮೆ." :
                    "আপনার প্রোফাইলে কনফিগার করা হয়েছে: বেসরকারি বীমা।",
-      suitability: language === "en" ? "High" : language === "hi" ? "उच्च" : language === "mr" ? "उच्च" : language === "kn" ? "ಹೆಚ್ಚು" : "উচ্চ",
-      matchScore: 92,
       steps: [
         { 
           head: language === "en" ? "File Pre-Authorization" :
@@ -719,8 +709,6 @@ export default function ActionPlan() {
                    language === "mr" ? "तुमच्याकडे कोणताही खाजगी विमा नसल्यामुळे शिफारस केली आहे." :
                    language === "kn" ? "ಯಾವುದೇ ಖಾಸಗಿ ವಿಮೆ ಇಲ್ಲದಿರುವುದರಿಂದ ಈ ಆಯ್ಕೆಯನ್ನು ಶಿಫಾರಸು ಮಾಡಲಾಗಿದೆ." :
                    "কোনো বাণিজ্যিক বেসরকারি বীমা না থাকায় এটি সুপারিশ করা হচ্ছে।",
-      suitability: language === "en" ? "Moderate" : language === "hi" ? "मध्यम" : language === "mr" ? "मध्यम" : language === "kn" ? "ಮಧ್ಯಮ" : "মাঝারি",
-      matchScore: 70,
       steps: [
         { 
           head: language === "en" ? "Set up Online Campaign" :
@@ -809,23 +797,6 @@ export default function ActionPlan() {
             <p className="font-body-md text-on-surface-variant leading-relaxed text-sm">
               {t("ap_subtitle")}
             </p>
-          </div>
-          <div className="bg-surface-bright border border-outline-variant rounded-2xl p-sm shadow-sm shrink-0 flex items-center gap-sm">
-            <div className="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center text-secondary">
-              <span className="material-symbols-outlined text-[20px]">verified</span>
-            </div>
-            <div>
-              <p className="font-label-sm text-outline text-[10px] font-semibold uppercase tracking-wider">
-                {language === "en" ? "Security Checked" : language === "hi" ? "सुरक्षा जांची गई" : language === "mr" ? "सुरक्षा तपासली" : language === "kn" ? "ಭದ್ರತೆ ಪರಿಶೀಲಿಸಲಾಗಿದೆ" : "সুরক্ষা যাচাই করা হয়েছে"}
-              </p>
-              <p className="font-bold text-secondary text-xs">
-                {language === "en" ? "85% Match Accuracy" :
-                 language === "hi" ? "85% मिलान सटीकता" :
-                 language === "mr" ? "85% अचूकता" :
-                 language === "kn" ? "85% ನಿಖರತೆ" :
-                 "85% ম্যাচ সঠিকতা"}
-              </p>
-            </div>
           </div>
         </header>
 
@@ -1012,15 +983,6 @@ export default function ActionPlan() {
                         <span className="inline-block px-sm py-[2px] bg-primary/10 border border-primary/20 text-primary text-[9px] font-bold rounded-lg">
                           {scheme.type}
                         </span>
-                        
-                        <div className="flex items-center gap-sm text-[10px] font-semibold">
-                          <span className="text-[#4c3a69] bg-[#e7def3]/10 border border-[#e7def3]/30 px-xs py-[2px] rounded-lg">
-                            {language === "en" ? "Score" : language === "hi" ? "सटीकता" : language === "mr" ? "गुण" : language === "kn" ? "ಅಂಕ" : "স্কোর"}: {scheme.matchScore}%
-                          </span>
-                          <span className="text-secondary bg-secondary-container/10 border border-secondary/20 px-xs py-[2px] rounded-lg">
-                            {language === "en" ? "Suitability" : language === "hi" ? "उपयुक्तता" : language === "mr" ? "योग्यता" : language === "kn" ? "ಸೂಕ್ತತೆ" : "উপযোগিতা"}: {scheme.suitability}
-                          </span>
-                        </div>
                       </div>
 
                       {/* Info header */}
@@ -1149,21 +1111,6 @@ export default function ActionPlan() {
                   );
                 })}
 
-                {/* Lower grid (Generics & PMBJP Advice) */}
-                <div className="p-md bg-[#e7def3]/10 border border-[#e7def3]/30 rounded-2xl space-y-xs animate-fade-in">
-                  <h4 className="font-label-md text-primary font-bold flex items-center gap-xs text-xs">
-                    <span className="material-symbols-outlined text-primary text-[20px]">lightbulb</span>
-                    {language === "en" ? "Recommendation" : language === "hi" ? "सिफारिश" : language === "mr" ? "शिफारस" : language === "kn" ? "ಶಿಫಾರಸು" : "সুপারিশ"}
-                  </h4>
-                  <p className="text-body-sm text-on-surface text-xs leading-relaxed">
-                    {language === "en" ? "Based on your prescription history, consider purchasing generic medicines at PMBJP outlets to save 40% to 90% on monthly drug therapies." :
-                     language === "hi" ? "अपने नुस्खे के इतिहास के आधार पर, मासिक दवा उपचारों पर 40% से 90% की बचत करने के लिए पीएमबीजेपी (PMBJP) केंद्रों पर जेनेरिक दवाएं खरीदने पर विचार करें।" :
-                     language === "mr" ? "तुमच्या डॉक्टरांच्या चिठ्ठीनुसार, मासिक औषधोपचारांवर ४०% ते ९०% बचत करण्यासाठी पीएमबीजेपी (PMBJP) केंद्रांवरून जेनेरिक औषध खरेदी करण्याचा विचार करा." :
-                     language === "kn" ? "ನಿಮ್ಮ ಪ್ರಿಸ್ಕ್ರಿಪ್ಷನ್ ಇತಿಹಾಸದ ಆಧಾರದ ಮೇಲೆ, ಮಾಸಿಕ ಚಿಕಿತ್ಸೆಗಳ ವೆಚ್ಚದಲ್ಲಿ 40% ರಿಂದ 90% ರಷ್ಟು ಉಳಿಸಲು ಪಿಎಂಬಿಜೆಪಿ (PMBJP) ಮಳಿಗೆಗಳಲ್ಲಿ ಜೆನೆರಿಕ್ ಔಷಧಿಗಳನ್ನು ಖರೀದಿಸುವುದನ್ನು ಪರಿಗಣಿಸಿ." :
-                     "আপনার প্রেসক্রিপশনের ইতিহাসের উপর ভিত্তি করে, মাসিক ওষুধের খরচে ৪০% থেকে ৯০% সাশ্রয় করতে পিএমবিজেপি (PMBJP) কেন্দ্রগুলিতে জেনেরিক ওষুধ কেনার কথা বিবেচনা করুন।"}
-                  </p>
-                </div>
-
                 {/* Navigate Schemes CTA */}
                 <Link
                   to="/schemes"
@@ -1200,43 +1147,31 @@ export default function ActionPlan() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 mt-xs">
+                <div className="flex flex-wrap gap-1.5 mt-xs">
                   {[
-                    { id: "state", icon: "map", label: t("it_state"), value: patientState ? getLocalValue("state", patientState) : null, color: "text-[#4c3a69] bg-[#e7def3]" },
-                    { id: "age", icon: "calendar_month", label: t("it_age"), value: age || null, color: "text-[#7458a6] bg-[#ece3f6]" },
-                    { id: "stage", icon: "biotech", label: t("it_stage"), value: stage ? getLocalValue("stage", stage) : null, color: "text-secondary bg-secondary-container/40" },
-                    { id: "receptor", icon: "science", label: t("it_receptor"), value: hormoneStatus ? getLocalValue("receptor", hormoneStatus) : null, color: "text-[#9478c4] bg-[#efe8f8]" },
-                    { id: "surgery", icon: "medical_services", label: t("it_surgery"), value: surgery ? getLocalValue("yesno", surgery) : null, color: "text-[#4c3a69] bg-[#e7def3]" },
-                    { id: "chemo", icon: "medication", label: t("it_chemo"), value: chemo ? getLocalValue("yesno", chemo) : null, color: "text-[#7458a6] bg-[#ece3f6]" },
-                    { id: "radiation", icon: "bolt", label: t("it_radiation"), value: radiation ? getLocalValue("yesno", radiation) : null, color: "text-[#9478c4] bg-[#efe8f8]" },
-                    { id: "hospital", icon: "home_health", label: t("it_hospital"), value: hospitalType ? getLocalValue("hospital", hospitalType) : null, color: "text-[#4c3a69] bg-[#e7def3]" },
-                    { id: "insurance", icon: "shield", label: t("it_insurance_status"), value: insurance ? getLocalValue("insurance", insurance) : null, color: "text-[#7458a6] bg-[#ece3f6]" },
-                    { id: "income", icon: "payments", label: t("it_income"), value: incomeBracket ? getLocalValue("income", incomeBracket) : null, color: "text-[#9478c4] bg-[#efe8f8]" }
+                    { id: "state", label: t("it_state"), value: patientState ? getLocalValue("state", patientState) : null },
+                    { id: "age", label: t("it_age"), value: age || null },
+                    { id: "stage", label: t("it_stage"), value: stage ? getLocalValue("stage", stage) : null },
+                    { id: "receptor", label: t("it_receptor"), value: hormoneStatus ? getLocalValue("receptor", hormoneStatus) : null },
+                    { id: "surgery", label: t("it_surgery"), value: surgery ? getLocalValue("yesno", surgery) : null },
+                    { id: "chemo", label: t("it_chemo"), value: chemo ? getLocalValue("yesno", chemo) : null },
+                    { id: "radiation", label: t("it_radiation"), value: radiation ? getLocalValue("yesno", radiation) : null },
+                    { id: "hospital", label: t("it_hospital"), value: hospitalType ? getLocalValue("hospital", hospitalType) : null },
+                    { id: "insurance", label: t("it_insurance_status"), value: insurance ? getLocalValue("insurance", insurance) : null },
+                    { id: "income", label: t("it_income"), value: incomeBracket ? getLocalValue("income", incomeBracket) : null }
                   ].map((item) => {
                     const isPending = !item.value || item.value === t("it_not_specified") || item.value === "Pending";
-                    const pendingText = language === "en" ? "Pending" : language === "hi" ? "लंबित" : language === "mr" ? "प्रलंबित" : language === "kn" ? "ಬಾಕಿ ಇದೆ" : "বাকি আছে";
-                    
                     return (
-                      <div 
-                        key={item.id} 
-                        className={`p-2 rounded-xl border flex flex-col justify-between transition-all duration-300 ${
-                          isPending 
-                            ? "bg-surface-container-lowest/20 border-dashed border-outline-variant/30 opacity-60" 
-                            : "bg-surface-container-lowest border-outline-variant/60 hover:shadow-sm hover:border-primary/30 transform hover:-translate-y-[0.5px]"
+                      <span
+                        key={item.id}
+                        className={`px-2 py-1 rounded-lg text-[10px] font-medium border ${
+                          isPending
+                            ? "border-dashed border-outline-variant/40 text-outline/70 italic"
+                            : "border-outline-variant/50 bg-surface-container-lowest text-on-surface"
                         }`}
                       >
-                        <div className="flex items-center gap-[4px] mb-1">
-                          <span className={`material-symbols-outlined text-[12px] p-0.5 rounded-md shrink-0 ${isPending ? "text-outline bg-surface-container" : item.color}`}>
-                            {item.icon}
-                          </span>
-                          <span className="text-[8px] uppercase tracking-wider text-on-surface-variant font-bold truncate max-w-[65px]">
-                            {item.label}
-                          </span>
-                        </div>
-                        <div className={`text-[10px] font-bold truncate leading-tight ${isPending ? "text-outline/70 italic font-normal" : "text-on-surface"}`} title={item.value || pendingText}>
-                          {item.value || pendingText}
-                        </div>
-                      </div>
+                        {item.label}: <span className="font-bold">{item.value || "-"}</span>
+                      </span>
                     );
                   })}
                 </div>
@@ -1258,27 +1193,6 @@ export default function ActionPlan() {
                   </button>
                 </div>
               </section>
-
-              {/* Pro-Tips Panel */}
-              <div className="p-md rounded-3xl bg-gradient-to-br from-primary-container/30 to-primary text-on-primary shadow-sm space-y-sm relative overflow-hidden border border-primary/20">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-xl pointer-events-none" />
-                <span className="material-symbols-outlined text-[32px] text-white">description</span>
-                <h3 className="font-headline-sm text-sm font-bold text-white leading-none mt-2">{t("ap_org_advice")}</h3>
-                <p className="text-[11px] opacity-90 leading-relaxed font-medium">
-                  {language === "en" ? "Keep all original medical receipts and diagnostic scans in a waterproof folder. Photocopy each document 3 times before your Nodal Office visit." :
-                   language === "hi" ? "सभी मूल मेडिकल रसीदें और नैदानिक स्कैन वाटरप्रूफ फोल्डर में रखें। अपने नोडल कार्यालय के दौरे से पहले प्रत्येक दस्तावेज़ की 3 फोटोकॉपी बना लें।" :
-                   language === "mr" ? "सर्व मूळ वैद्यकीय पावत्या आणि चाचण्यांचे अहवाल वॉटरप्रूफ फोल्डरमध्ये ठेवा. नोडल कार्यालयाला भेट देण्यापूर्वी प्रत्येक कागदपत्राच्या ३ छायाप्रती काढा." :
-                   language === "kn" ? "ಎಲ್ಲಾ ಮೂಲ ವೈದ್ಯಕೀಯ ರಶೀದಿಗಳು ಮತ್ತು ಸ್ಕ್ಯಾನ್ ವರದಿಗಳನ್ನು ಜಲನಿರೋಧಕ ಫೋಲ್ಡರ್‌ನಲ್ಲಿ ಇರಿಸಿ. ನಿಮ್ಮ ನೋಡಲ್ ಕಚೇರಿ ಭೇಟಿಗೆ ಮುನ್ನ ಪ್ರತಿ ದಾಖಲೆಯ 3 ನಕಲುಗಳನ್ನು ತಯಾರಿಸಿ." :
-                   "সমস্ত মূল মেডিকেল রসিদ এবং পরীক্ষার রিপোর্ট ওয়াটারপ্রুফ ফোল্ডারে রাখুন। নোডাল অফিসে যাওয়ার আগে প্রতিটি নথির ৩টি করে ফটোকপি করে রাখুন।"}
-                </p>
-                <button 
-                  onClick={() => alert("Downloading digital documentation template checklist...")} 
-                  className="w-full py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl font-bold text-xs transition-colors font-bold"
-                >
-                  {language === "en" ? "View Document Guide Booklet" : language === "hi" ? "दस्तावेज़ मार्गदर्शिका पुस्तिका देखें" : language === "mr" ? "दस्तऐवज मार्गदर्शिका पुस्तिका पहा" : language === "kn" ? "ದಾಖಲೆ ಮಾರ್ಗದರ್ಶಿ ಪುಸ್ತಕ ನೋಡಿ" : "নথি নির্দেশিকা পুস্তিকা দেখুন"}
-                </button>
-              </div>
-
             </div>
 
           </div>

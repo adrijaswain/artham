@@ -3,6 +3,21 @@ import { Link } from "react-router-dom";
 import AppShell from "../components/AppShell";
 import MarkdownRenderer from "../components/MarkdownRenderer";
 import { useLanguage } from "../components/LanguageContext";
+import {
+  DIAGNOSTICS,
+  SURGERY,
+  CHEMO,
+  RADIATION,
+  HORMONE_ANNUAL,
+  HORMONE_THERAPY_YEARS,
+  TARGETED,
+  IMMUNO,
+  ADDITIONAL,
+  getEffectiveMultiplier,
+  applyIncomeSubsidy,
+  type HospitalCategory,
+} from "../utils/costEstimate";
+import { readCachedAiOverride, type AiCostOverride } from "../utils/aiCostEstimate";
 
 type Item = { 
   title: string; 
@@ -268,6 +283,23 @@ export default function CostBreakdown() {
     return () => window.removeEventListener("auth-change", handleAuthChange);
   }, []);
 
+  // Reuses the same AI-personalized total the Dashboard computed and cached
+  // (keyed to this exact intake profile) so both pages report the same
+  // headline cost instead of the static model number drifting from it.
+  const [aiOverride, setAiOverride] = useState<AiCostOverride | null>(null);
+  useEffect(() => {
+    if (!patientState || !age || !stage) {
+      setAiOverride(null);
+      return;
+    }
+    setAiOverride(
+      readCachedAiOverride({
+        state: patientState, age, stage, hormoneStatus, surgery, chemo, radiation,
+        hospitalType, hasInsurance, incomeBracket,
+      })
+    );
+  }, [patientState, age, stage, hormoneStatus, surgery, chemo, radiation, hospitalType, hasInsurance, incomeBracket]);
+
   const saveCustomBreakdown = (breakdown: Record<string, unknown> | null) => {
     // LocalStorage write auto-syncs to Firestore via the central sync layer.
     localStorage.setItem("artham_custom_breakdown", JSON.stringify(breakdown));
@@ -387,72 +419,13 @@ export default function CostBreakdown() {
   const effHospitalType = hospitalType || "Private Medical Center";
 
   // Hospital Category: "Government" | "Private" | "Premium"
-  const category: "Government" | "Private" | "Premium" =
+  const category: HospitalCategory =
     effHospitalType === "Government / Public Hospital" ? "Government" :
     effHospitalType === "Premium Corporate Hospital" ? "Premium" : "Private";
 
-  // Define exact pricing maps calibrated against Dr. Jay Anam's clinical records
-  const DIAGNOSTICS = {
-    mammogram: { Government: 1000, Private: 3000, Premium: 5000 },
-    ultrasound: { Government: 1500, Private: 4000, Premium: 6000 },
-    biopsy: { Government: 5000, Private: 20000, Premium: 35000 },
-    histopathology: { Government: 3000, Private: 10000, Premium: 15000 },
-    ihc: { Government: 5000, Private: 15000, Premium: 25000 },
-    pet: { Government: 10000, Private: 30000, Premium: 45000 },
-    mri: { Government: 8000, Private: 25000, Premium: 40000 },
-    bloodTests: { Government: 2000, Private: 8000, Premium: 12000 }
-  };
-
-  const SURGERY = {
-    lumpectomy: { Government: 75000, Private: 185000, Premium: 350000 },
-    mastectomy: { Government: 100000, Private: 270000, Premium: 500000 },
-    slnb: { Government: 30000, Private: 75000, Premium: 125000 },
-    alnd: { Government: 50000, Private: 100000, Premium: 175000 },
-    reconstruction: { Government: 100000, Private: 250000, Premium: 600000 }
-  };
-
-  const CHEMO = {
-    ac4: { Government: 80000, Private: 150000, Premium: 250000 },
-    act: { Government: 150000, Private: 320000, Premium: 600000 },
-    tc4: { Government: 100000, Private: 200000, Premium: 350000 },
-    tc6: { Government: 150000, Private: 300000, Premium: 500000 },
-    fac: { Government: 90000, Private: 180000, Premium: 300000 },
-    fec: { Government: 100000, Private: 200000, Premium: 350000 },
-    cmf: { Government: 70000, Private: 150000, Premium: 250000 },
-    tch6: { Government: 300000, Private: 500000, Premium: 800000 }
-  };
-
-  const RADIATION = {
-    whole: { Government: 75000, Private: 200000, Premium: 350000 },
-    chestWall: { Government: 75000, Private: 200000, Premium: 350000 },
-    regional: { Government: 100000, Private: 250000, Premium: 400000 }
-  };
-
-  const HORMONE = {
-    tamoxifen: { Government: 10000, Private: 50000, Premium: 75000 },
-    letrozole: { Government: 25000, Private: 100000, Premium: 150000 },
-    anastrozole: { Government: 30000, Private: 120000, Premium: 180000 },
-    exemestane: { Government: 40000, Private: 150000, Premium: 200000 }
-  };
-
-  const TARGETED = {
-    trastuzumab: { Government: 400000, Private: 1200000, Premium: 1800000 },
-    pertuzumabTrastuzumab: { Government: 800000, Private: 1800000, Premium: 2500000 },
-    tdm1: { Government: 800000, Private: 1500000, Premium: 2200000 }
-  };
-
-  const IMMUNO = {
-    pembrolizumab: { Government: 1000000, Private: 1500000, Premium: 2500000 },
-    atezolizumab: { Government: 800000, Private: 1200000, Premium: 2000000 }
-  };
-
-  const ADDITIONAL = {
-    consultationInit: { Government: 500, Private: 2000, Premium: 4000 },
-    consultationFollow: { Government: 500, Private: 1500, Premium: 3000 },
-    chemoAdmin: { Government: 2000, Private: 10000, Premium: 20000 },
-    admission: { Government: 2000, Private: 10000, Premium: 25000 },
-    icu: { Government: 10000, Private: 40000, Premium: 75000 }
-  };
+  // Same state cost-of-living adjustment the Dashboard total is built from,
+  // so a Delhi/Premium patient sees the same skew here as on the Dashboard.
+  const effectiveMultiplier = getEffectiveMultiplier(patientState, category);
 
   const formatINR = (val: number) => {
     return "₹" + val.toLocaleString("en-IN");
@@ -478,15 +451,14 @@ export default function CostBreakdown() {
     return { isRelevant, isNotNeeded, note };
   };
 
-  const createItem = (title: string, body: string, estimateVal: number, itemKey: string): Item => {
+  const createItem = (title: string, body: string, rawEstimateVal: number, itemKey: string): Item => {
+    // Same state cost-of-living multiplier applied to every line item, so the
+    // sum of items matches the Dashboard's model-based total. Income-bracket
+    // welfare subsidies are applied once to the aggregate out-of-pocket total
+    // below (matching how the Dashboard applies them), not per line item.
+    const estimateVal = Math.round(rawEstimateVal * effectiveMultiplier);
     const itemInsuranceShare = Math.round(estimateVal * coveragePercent);
-    let itemOop = estimateVal - itemInsuranceShare;
-
-    if (incomeBracket === "Below ₹2,50,000") {
-      itemOop = 0;
-    } else if (incomeBracket === "₹2,50,000 – ₹5,00,000") {
-      itemOop = Math.round(itemOop * 0.5);
-    }
+    const itemOop = estimateVal - itemInsuranceShare;
 
     const { isRelevant, isNotNeeded, note } = getItemCustomDetails(itemKey);
 
@@ -617,10 +589,10 @@ export default function CostBreakdown() {
       let hormoneVal = 0;
       let chosenHormoneName = "";
       if (Number(effAge) >= 50) {
-        hormoneVal = HORMONE.letrozole[category];
+        hormoneVal = HORMONE_ANNUAL.letrozole[category] * HORMONE_THERAPY_YEARS;
         chosenHormoneName = "Letrozole (5 years)";
       } else {
-        hormoneVal = HORMONE.tamoxifen[category];
+        hormoneVal = HORMONE_ANNUAL.tamoxifen[category] * HORMONE_THERAPY_YEARS;
         chosenHormoneName = "Tamoxifen (5 years)";
       }
       medicationItems.push(createItem(`Hormone Therapy: ${chosenHormoneName}`, "Long-term daily oral maintenance therapy (5-year course).", hormoneVal, "hormonal"));
@@ -662,6 +634,26 @@ export default function CostBreakdown() {
     }
   }
 
+  // When the Dashboard has an AI-personalized total cached for this exact
+  // intake profile, scale every line item proportionally so this page's
+  // total matches the Dashboard's headline figure exactly, instead of the
+  // two pages quoting two different numbers for the same patient.
+  if (aiOverride) {
+    const rawModelTotal = [...diagnosticsItems, ...primaryItems, ...medicationItems, ...hospitalizationItems]
+      .filter((it) => !it.isExcluded)
+      .reduce((sum, it) => sum + (parseFloat(it.estimate.replace(/[₹,]/g, "")) || 0), 0);
+    const aiScaleFactor = rawModelTotal > 0 ? aiOverride.totalEstimate / rawModelTotal : 1;
+
+    if (aiScaleFactor !== 1) {
+      const scaleAmount = (v: string) => formatINR(Math.round((parseFloat(v.replace(/[₹,]/g, "")) || 0) * aiScaleFactor));
+      const scaleItem = (it: Item): Item => ({ ...it, estimate: scaleAmount(it.estimate), insurance: scaleAmount(it.insurance), oop: scaleAmount(it.oop) });
+      diagnosticsItems.splice(0, diagnosticsItems.length, ...diagnosticsItems.map(scaleItem));
+      primaryItems.splice(0, primaryItems.length, ...primaryItems.map(scaleItem));
+      medicationItems.splice(0, medicationItems.length, ...medicationItems.map(scaleItem));
+      hospitalizationItems.splice(0, hospitalizationItems.length, ...hospitalizationItems.map(scaleItem));
+    }
+  }
+
   const getSumOfNonExcludedItems = (items: Item[]) => {
     return items
       .filter(it => !it.isExcluded)
@@ -688,23 +680,12 @@ export default function CostBreakdown() {
   let outOfPocket = getOopSumOfNonExcludedItems(allItems);
   const insuranceShare = totalEstimate - outOfPocket;
 
-  let subsidyApplied = false;
-  let subsidyAmount = 0;
-  let subsidyName = "";
-
-  {
-    if (incomeBracket === "Below ₹2,50,000") {
-      subsidyApplied = true;
-      subsidyAmount = outOfPocket;
-      outOfPocket = 0;
-      subsidyName = "Ayushman Bharat PM-JAY (100% Subsidy)";
-    } else if (incomeBracket === "₹2,50,000 – ₹5,00,000") {
-      subsidyApplied = true;
-      subsidyAmount = Math.round(outOfPocket * 0.5);
-      outOfPocket = outOfPocket - subsidyAmount;
-      subsidyName = "National Illness Assistance Fund (50% Subsidy)";
-    }
-  }
+  // Same welfare-subsidy rule the Dashboard applies to its aggregate total
+  // (capped per the government scheme's real annual package limit, not an
+  // unconditional zero/half-off) - keeps the two pages' bottom lines in sync.
+  const subsidyResult = applyIncomeSubsidy(outOfPocket, category, incomeBracket);
+  const { subsidyApplied, subsidyAmount, subsidyName } = subsidyResult;
+  outOfPocket = subsidyResult.outOfPocket;
 
   let localizedSubsidyName = subsidyName;
   if (subsidyName.includes("PM-JAY")) {

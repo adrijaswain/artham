@@ -403,11 +403,6 @@ export default function Dashboard() {
 
   const outOfPocketAdjusted = Math.max(0, outOfPocket - totalSavings);
 
-  // "Best case" scenario = the realistic out-of-pocket you'd actually pay once
-  // insurance coverage and income-based welfare subsidies are applied to your
-  // intake profile (vs. the gross "Expected" total treatment cost).
-  const bestCaseOop = outOfPocketAdjusted;
-
   const formatINR = (val: number) => "₹" + val.toLocaleString("en-IN");
 
   // Mock Cost Calculator extraction fallback
@@ -699,30 +694,6 @@ export default function Dashboard() {
 
         {/* Responsive Grid layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-gutter items-start">
-
-          {/* Scenario Comparison: horizontal row spanning the full width */}
-          <div className="lg:col-span-12">
-            <div className="flex justify-between items-center px-xs mb-sm">
-              <h3 className="font-headline-sm text-sm text-primary uppercase tracking-wider font-bold">{t("db_scenarios")}</h3>
-              <span className="material-symbols-outlined text-outline cursor-pointer hover:text-primary transition-colors">info</span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-sm">
-              <ScenarioCard
-                label={t("db_best")}
-                value={isIntakeFilled ? formatINR(bestCaseOop) : "-"}
-                icon="trending_down"
-                tone="secondary"
-                body={isIntakeFilled ? t("db_best_desc") : t("db_fill")}
-              />
-              <ScenarioCard
-                label={t("db_expected")}
-                value={isIntakeFilled ? formatINR(totalEstimate) : "-"}
-                icon="stars"
-                tone="primary"
-                body={isIntakeFilled ? t("db_expected_desc") : t("db_fill")}
-              />
-            </div>
-          </div>
 
           {/* Left Column: AI context summary & Tips */}
           <div className="lg:col-span-4 space-y-md">
@@ -1028,44 +999,6 @@ export default function Dashboard() {
     </AppShell>
   );
 }
-
-function ScenarioCard({
-  label,
-  value,
-  icon,
-  tone,
-  body,
-}: {
-  label: string;
-  value: string;
-  icon: string;
-  tone: "secondary" | "primary" | "tertiary";
-  body: string;
-}) {
-  const gradientCls = {
-    secondary: "from-white/95 to-secondary/5 border-l-4 border-l-secondary",
-    primary: "from-white/95 to-primary/5 border-l-4 border-l-primary ring-2 ring-primary/10 shadow-md",
-    tertiary: "from-white/95 to-tertiary/5 border-l-4 border-l-tertiary",
-  }[tone];
-  
-  const toneCls = {
-    secondary: "text-secondary",
-    primary: "text-primary",
-    tertiary: "text-tertiary",
-  }[tone];
-  
-  return (
-    <div className={`p-sm rounded-2xl flex flex-col h-full bg-gradient-to-br border border-outline-variant/40 hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 ${gradientCls}`}>
-      <div className="flex justify-between items-start mb-xs">
-        <span className={`font-label-sm uppercase tracking-wider font-bold text-[10px] ${toneCls}`}>{label}</span>
-        <span className={`material-symbols-outlined fill-icon ${toneCls}`}>{icon}</span>
-      </div>
-      <p className="font-headline-sm text-lg font-extrabold mb-xs text-on-surface">{value}</p>
-      <p className="font-body-sm text-on-surface-variant text-[10px] leading-relaxed flex-grow">{body}</p>
-    </div>
-  );
-}
-
 
 function Tip({
   icon,
