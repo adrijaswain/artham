@@ -101,7 +101,10 @@ const USER_SCOPED_KEYS = [
   "artham_chatbot_diagnosis_details",
   "artham_chatbot_next_steps",
   "artham_custom_breakdown",
-  "artham_ai_cost_estimate"
+  "artham_ai_cost_estimate",
+  "artham_action_plan_doc_status",
+  "artham_action_plan_completed_steps",
+  "artham_action_plan_completed_scheme_steps"
 ];
 const USER_SCOPED_SET = new Set<string>(USER_SCOPED_KEYS);
 
@@ -149,7 +152,10 @@ function collectLocalUserData() {
     diagnosisDetails: localStorage.getItem("artham_chatbot_diagnosis_details") || "",
     nextSteps: localStorage.getItem("artham_chatbot_next_steps") || "",
     customBreakdown: readJson<Record<string, unknown> | null>("artham_custom_breakdown", null),
-    aiCostEstimate: readJson<Record<string, unknown> | null>("artham_ai_cost_estimate", null)
+    aiCostEstimate: readJson<Record<string, unknown> | null>("artham_ai_cost_estimate", null),
+    actionPlanDocStatus: readJson<unknown[]>("artham_action_plan_doc_status", []),
+    actionPlanCompletedSteps: readJson<unknown[]>("artham_action_plan_completed_steps", []),
+    actionPlanCompletedSchemeSteps: readJson<unknown[]>("artham_action_plan_completed_scheme_steps", [])
   };
 }
 
@@ -188,6 +194,15 @@ function applyProfileToLocal(data: Record<string, unknown>) {
     }
     if (data.aiCostEstimate) {
       rawSetItem("artham_ai_cost_estimate", JSON.stringify(data.aiCostEstimate));
+    }
+    if (Array.isArray(data.actionPlanDocStatus)) {
+      rawSetItem("artham_action_plan_doc_status", JSON.stringify(data.actionPlanDocStatus));
+    }
+    if (Array.isArray(data.actionPlanCompletedSteps)) {
+      rawSetItem("artham_action_plan_completed_steps", JSON.stringify(data.actionPlanCompletedSteps));
+    }
+    if (Array.isArray(data.actionPlanCompletedSchemeSteps)) {
+      rawSetItem("artham_action_plan_completed_scheme_steps", JSON.stringify(data.actionPlanCompletedSchemeSteps));
     }
   } finally {
     applyingRemote = false;

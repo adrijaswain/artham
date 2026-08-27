@@ -788,7 +788,7 @@ export default function Intake() {
                             {item.label}
                           </span>
                         </div>
-                        <div className={`text-[10px] font-bold truncate leading-tight ${isPending ? "text-outline/70 italic font-normal" : "text-on-surface"}`} title={item.value || pendingText}>
+                        <div className={`text-[10px] font-bold leading-tight ${item.id === "insurance" ? "break-words" : "truncate"} ${isPending ? "text-outline/70 italic font-normal" : "text-on-surface"}`} title={item.value || pendingText}>
                           {item.value || pendingText}
                         </div>
                       </div>

@@ -76,7 +76,7 @@ export default function TopAppBar({ onMenuClick }: Props) {
             value={language}
             onChange={(e) => setLanguage(e.target.value as Language)}
             aria-label="Select language"
-            className="appearance-none bg-transparent border-none pr-6 sm:pr-8 pl-1 sm:pl-2 py-1 w-7 sm:w-auto text-[0px] sm:text-label-md font-label-md text-on-surface-variant hover:text-primary cursor-pointer outline-none transition-colors"
+            className="appearance-none bg-none bg-transparent border-none pr-6 sm:pr-8 pl-1 sm:pl-2 py-1 w-7 sm:w-auto text-[0px] sm:text-label-md font-label-md text-on-surface-variant hover:text-primary cursor-pointer outline-none transition-colors"
           >
             <option value="en">English</option>
             <option value="hi">हिन्दी (Hindi)</option>

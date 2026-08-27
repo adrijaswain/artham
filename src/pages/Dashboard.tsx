@@ -671,12 +671,12 @@ export default function Dashboard() {
               { label: t("it_state"), value: patientState || "-" },
               { label: t("it_stage"), value: stage || "-" },
               { label: t("it_hospital"), value: hospitalType ? hospitalType.split(" ")[0] : "-" },
-              { label: t("it_insurance_status"), value: hasInsurance ? (insuranceProvider || t("it_insured")) : t("it_not_insured") },
+              { label: t("it_insurance_status"), value: hasInsurance ? (insuranceProvider || t("it_insured")) : t("it_not_insured"), fullText: true },
               { label: t("db_confidence"), value: `${confidenceScore} · ${confidenceText}` }
             ].map((m) => (
               <div key={m.label} className="min-w-0">
                 <p className="text-[10px] uppercase tracking-wider font-semibold text-on-surface-variant mb-1 truncate">{m.label}</p>
-                <p className="text-sm font-semibold text-on-surface truncate" title={String(m.value)}>{m.value}</p>
+                <p className={`text-sm font-semibold text-on-surface ${m.fullText ? "break-words" : "truncate"}`} title={String(m.value)}>{m.value}</p>
               </div>
             ))}
           </div>
@@ -761,26 +761,6 @@ export default function Dashboard() {
                 <span className="material-symbols-outlined text-sm">arrow_forward</span>
               </Link>
             </div>
-
-            {/* Guest save status card */}
-            {!isLoggedIn && (
-              <div className="bg-gradient-to-br from-primary/5 via-secondary/5 to-surface-bright border border-outline-variant/50 rounded-2xl p-md shadow-xs flex flex-col gap-sm">
-                <div className="flex items-center gap-xs">
-                  <span className="material-symbols-outlined text-primary text-[20px]">verified_user</span>
-                  <h3 className="font-label-md text-xs font-bold text-primary uppercase tracking-wider">{t("db_save")}</h3>
-                </div>
-                <p className="text-xs text-on-surface-variant leading-relaxed">
-                  {t("db_save_desc")}
-                </p>
-                <button
-                  onClick={() => window.dispatchEvent(new CustomEvent("open-auth"))}
-                  className="w-full py-2 bg-primary text-on-primary hover:brightness-110 text-xs font-bold rounded-xl transition-all shadow-xs active:scale-95 flex items-center justify-center gap-xs"
-                >
-                  <span className="material-symbols-outlined text-[16px]">lock_open</span>
-                  <span>{t("db_secure")}</span>
-                </button>
-              </div>
-            )}
 
           </div>
 
@@ -932,16 +912,16 @@ export default function Dashboard() {
           {chatMessages.length <= 1 && (
             <div className="px-sm py-1 border-t border-outline-variant/30 bg-surface-bright/20 flex flex-wrap gap-xs shrink-0">
               <button
-                onClick={() => sendChatMessage("Estimate Stage 2 private care in Karnataka")}
+                onClick={() => sendChatMessage(t("db_suggest1_query"))}
                 className="text-[9px] px-2 py-1 rounded bg-white hover:bg-surface-container-low border border-outline-variant/30 font-medium transition-colors"
               >
-                Stage II in Karnataka
+                {t("db_suggest1_label")}
               </button>
               <button
-                onClick={() => sendChatMessage("Costs for government hospital stage 3, no insurance")}
+                onClick={() => sendChatMessage(t("db_suggest2_query"))}
                 className="text-[9px] px-2 py-1 rounded bg-white hover:bg-surface-container-low border border-outline-variant/30 font-medium transition-colors"
               >
-                Govt Hospital Stage III
+                {t("db_suggest2_label")}
               </button>
             </div>
           )}

@@ -252,7 +252,6 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
-          <p className="text-center text-body-sm text-on-surface-variant/70 mt-md max-w-2xl mx-auto italic">{t("lp_ed_note")}</p>
         </section>
 
         {/* THE COST OF WAITING - DELAYED-TREATMENT STATISTICS */}
@@ -332,8 +331,6 @@ export default function LandingPage() {
             <div className="space-y-xl">
               <ShowcaseRow
                 reverse={false}
-                icon="edit_note"
-                eyebrow={t("nav_intake")}
                 title={t("lp_feat_quest_title")}
                 body={t("lp_feat_quest_desc")}
                 to="/intake"
@@ -344,8 +341,6 @@ export default function LandingPage() {
 
               <ShowcaseRow
                 reverse
-                icon="receipt_long"
-                eyebrow={t("nav_breakdown")}
                 title={t("lp_feat_breakdown_title")}
                 body={t("lp_feat_breakdown_desc")}
                 to="/cost-breakdown"
@@ -356,8 +351,6 @@ export default function LandingPage() {
 
               <ShowcaseRow
                 reverse={false}
-                icon="monitoring"
-                eyebrow={t("nav_dashboard")}
                 title={t("lp_feat_db_title")}
                 body={t("lp_feat_db_desc")}
                 to="/dashboard"
@@ -368,8 +361,6 @@ export default function LandingPage() {
 
               <ShowcaseRow
                 reverse
-                icon="forum"
-                eyebrow={t("nav_medical")}
                 title={t("lp_feat_voice_title")}
                 body={t("lp_feat_voice_desc")}
                 to="/medical-input"
@@ -386,9 +377,9 @@ export default function LandingPage() {
                   <Link
                     key={f.title}
                     to={f.to}
-                    className="group flex items-center gap-3 rounded-2xl border border-outline-variant bg-surface-container-lowest p-3 hover:border-primary hover:shadow-md transition-all"
+                    className="group flex items-center gap-3 rounded-lg border border-outline-variant bg-surface-container-lowest p-3 hover:border-primary hover:shadow-md transition-all"
                   >
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${toneStyles[f.tone].iconBg} ${toneStyles[f.tone].iconText}`}>
+                    <div className={`w-9 h-9 rounded-md flex items-center justify-center shrink-0 ${toneStyles[f.tone].iconBg} ${toneStyles[f.tone].iconText}`}>
                       <span className="material-symbols-outlined text-[18px]">{f.icon}</span>
                     </div>
                     <h3 className="font-headline-sm text-sm text-on-surface font-semibold leading-snug">{f.title}</h3>
@@ -443,8 +434,6 @@ type TFn = (key: string) => string;
 
 function ShowcaseRow({
   reverse,
-  icon,
-  eyebrow,
   title,
   body,
   to,
@@ -452,8 +441,6 @@ function ShowcaseRow({
   children,
 }: {
   reverse: boolean;
-  icon: string;
-  eyebrow: string;
   title: string;
   body: string;
   to: string;
@@ -463,10 +450,6 @@ function ShowcaseRow({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-lg items-center">
       <div className={reverse ? "lg:order-2" : ""}>
-        <div className="inline-flex items-center gap-xs px-sm py-xs bg-surface border border-outline-variant rounded-full font-label-sm text-label-sm text-on-surface-variant mb-sm">
-          <span className="material-symbols-outlined text-[16px] text-secondary">{icon}</span>
-          {eyebrow}
-        </div>
         <h3 className="font-headline-lg text-[26px] leading-tight text-primary font-bold mb-sm">{title}</h3>
         <p className="font-body-lg text-body-lg text-on-surface-variant mb-md">{body}</p>
         <Link to={to} className="inline-flex items-center gap-xs text-primary font-label-md hover:underline">

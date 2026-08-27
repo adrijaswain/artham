@@ -2639,18 +2639,19 @@ function getSchemeAttributes(s: Scheme): {
   }
 
   // 6. Determine Gender Focus
+  // Mentioning breast cancer coverage does not make a scheme gender-restricted -
+  // breast cancer can affect any gender, and these are general health/financial
+  // schemes open to all beneficiaries. Only flag schemes that explicitly restrict
+  // eligibility to women.
   let gender = "General / All Genders";
   if (
-    title.includes("female") ||
-    title.includes("woman") ||
-    title.includes("women") ||
-    title.includes("breast cancer") ||
-    body.includes("breast cancer") ||
-    bulletsStr.includes("breast cancer") ||
-    bulletsStr.includes("women") ||
-    bulletsStr.includes("female") ||
-    desc.includes("breast cancer") ||
-    desc.includes("women")
+    title.includes("women only") ||
+    title.includes("female only") ||
+    bulletsStr.includes("women only") ||
+    bulletsStr.includes("female only") ||
+    bulletsStr.includes("female beneficiaries only") ||
+    desc.includes("women only") ||
+    desc.includes("female only")
   ) {
     gender = "Female Only";
   }
@@ -4169,10 +4170,6 @@ function SchemeTile({ scheme, onViewDetails }: SchemeTileProps) {
                     {attrs.ageGroup}
                   </span>
                 )}
-                <span className="px-2 py-0.5 bg-secondary-container/10 text-on-secondary-container rounded-md text-[10px] font-medium flex items-center gap-[2px] select-none">
-                  <span className="material-symbols-outlined text-[12px]">currency_rupee</span>
-                  {attrs.coverageAmount.split(" ")[0]}
-                </span>
                 {attrs.gender !== "General / All Genders" && (
                   <span className="px-2 py-0.5 bg-error-container/20 text-on-error-container rounded-md text-[10px] font-medium flex items-center gap-[2px] select-none">
                     <span className="material-symbols-outlined text-[12px]">wc</span>
@@ -4260,7 +4257,7 @@ function InsuranceTile({ insurance, onViewDetails }: InsuranceTileProps) {
     <div className="bg-surface-container-lowest border border-outline-variant/50 rounded-3xl overflow-hidden flex flex-col hover:shadow-lg hover:border-primary/30 transition-all duration-300">
       <div className="p-lg flex-grow flex flex-col">
         <div className="flex items-start justify-between gap-sm mb-sm">
-          <h3 className="font-headline-sm text-headline-sm text-on-surface line-clamp-2">
+          <h3 className="font-headline-sm text-headline-sm text-on-surface">
             {insurance.name}
           </h3>
           <span className={`shrink-0 px-2.5 py-1 rounded-full font-label-sm text-[11px] font-semibold ${tagCls}`}>

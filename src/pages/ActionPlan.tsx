@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 import AppShell from "../components/AppShell";
 import { useLanguage } from "../components/LanguageContext";
 import { getStateLabel } from "../utils/indianStates";
-import { clearCachedAiOverride } from "../utils/aiCostEstimate";
+import { clearCachedAiOverride, readCachedAiOverride } from "../utils/aiCostEstimate";
+import { computeCostEstimate } from "../utils/costEstimate";
 
 type Doc = { name: string; sub: string; status: "ready" | "warning" | "pending" };
 
@@ -125,6 +126,29 @@ export default function ActionPlan() {
   const [incomeBracket, setIncomeBracket] = useState(() => localStorage.getItem("artham_intake_income_bracket") || "");
 
   const isIntakeFilled = !!patientState && !!age && !!stage;
+
+  // Cost breakdown, computed the same way as the Dashboard/Cost Breakdown pages,
+  // so the action plan can react to the actual estimated cost, not just the raw
+  // intake answers.
+  const intakeProfile = {
+    state: patientState,
+    age,
+    stage,
+    hormoneStatus,
+    surgery,
+    chemo,
+    radiation,
+    hospitalType,
+    hasInsurance,
+    incomeBracket
+  };
+  const aiOverride = readCachedAiOverride(intakeProfile);
+  const costEstimate = computeCostEstimate(intakeProfile, aiOverride ?? undefined);
+  const { totalEstimate, outOfPocket, insuranceShare } = costEstimate;
+  const formatINR = (val: number) => "₹" + Math.round(val).toLocaleString("en-IN");
+  // A large out-of-pocket gap should surface financial-aid options even for
+  // patients whose declared income bracket alone wouldn't have triggered them.
+  const hasHighOutOfPocket = isIntakeFilled && outOfPocket >= 150000;
 
   useEffect(() => {
     const syncProfile = () => {
@@ -325,10 +349,54 @@ export default function ActionPlan() {
 
   const stateScheme = getStateScheme(patientState);
 
-  // Interactive state variables
-  const [docs, setDocs] = useState<Doc[]>(docsInitial);
-  const [completedSteps, setCompletedSteps] = useState<number[]>([1]);
-  const [completedSchemeSteps, setCompletedSchemeSteps] = useState<string[]>([]);
+  // Interactive state variables, persisted to LocalStorage (and synced to
+  // Firestore for signed-in users via the interception in firebase.ts).
+  const [docs, setDocs] = useState<Doc[]>(() => {
+    const saved = localStorage.getItem("artham_action_plan_doc_status");
+    if (saved) {
+      try {
+        const statuses: Doc["status"][] = JSON.parse(saved);
+        return docsInitial.map((d, i) => (statuses[i] ? { ...d, status: statuses[i] } : d));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return docsInitial;
+  });
+  const [completedSteps, setCompletedSteps] = useState<number[]>(() => {
+    const saved = localStorage.getItem("artham_action_plan_completed_steps");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return [1];
+  });
+  const [completedSchemeSteps, setCompletedSchemeSteps] = useState<string[]>(() => {
+    const saved = localStorage.getItem("artham_action_plan_completed_scheme_steps");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem("artham_action_plan_doc_status", JSON.stringify(docs.map((d) => d.status)));
+  }, [docs]);
+
+  useEffect(() => {
+    localStorage.setItem("artham_action_plan_completed_steps", JSON.stringify(completedSteps));
+  }, [completedSteps]);
+
+  useEffect(() => {
+    localStorage.setItem("artham_action_plan_completed_scheme_steps", JSON.stringify(completedSchemeSteps));
+  }, [completedSchemeSteps]);
 
   // Derive timeline steps reactively
   const timelineSteps: TimelineStepType[] = [];
@@ -492,7 +560,7 @@ export default function ActionPlan() {
 
   // 2. Private Trust Aid
   const isLowerIncome = incomeBracket === "Below ₹2,50,000" || incomeBracket === "₹2,50,000 – ₹5,00,000";
-  if (isLowerIncome || hospitalType === "Government / Public Hospital") {
+  if (isLowerIncome || hospitalType === "Government / Public Hospital" || hasHighOutOfPocket) {
     suggestedSchemes.push({
       id: "private_trust",
       type: language === "en" ? "Private Trust Aid" : language === "hi" ? "निजी ट्रस्ट सहायता" : language === "mr" ? "खाजगी ट्रस्ट मदत" : language === "kn" ? "ಖಾಸಗಿ ಟ್ರಸ್ಟ್ ನೆರವು" : "বেসরকারি ট্রাস্ট সহায়তা",
@@ -506,11 +574,17 @@ export default function ActionPlan() {
                    language === "mr" ? "नोंदणीकृत कर्करोग केंद्रांमध्ये औषधे, केमोथेरपी सायकल आणि रेडिएशन पॅकेजसाठी अनुदान-आधारित वित्तीय मदत प्रदान करते." :
                    language === "kn" ? "ಕ್ಯಾನ್ಸರ್ ಔಷಧಿಗಳು, ಕೀಮೋ ಚಕ್ರಗಳು ಮತ್ತು ರೇಡಿಯೇಷನ್ ವೆಚ್ಚಗಳಿಗೆ ಸಹಾಯಧನ ಒದಗಿಸುತ್ತದೆ." :
                    "প্যানেলভুক্ত ক্যান্সার কেন্দ্রগুলিতে জটিল ক্যান্সারের ওষুধ, কেমোথেরাপি চক্র এবং রেডিয়েশন প্যাকেজের জন্য অনুদান-ভিত্তিক আর্থিক ভর্তুকি প্রদান করে।",
-      matchReason: language === "en" ? `Matched due to income bracket (${incomeBracket}) or public hospital choice.` :
-                   language === "hi" ? `आय वर्ग (${incomeBracket}) या सरकारी अस्पताल के विकल्प के कारण मिलान किया गया।` :
-                   language === "mr" ? `उत्पन्न गट (${incomeBracket}) किंवा शासकीय रुग्णालयाच्या पर्यायामुळे जुळले.` :
-                   language === "kn" ? `ಆದಾಯ ವರ್ಗ (${incomeBracket}) ಅಥವಾ ಸರ್ಕಾರಿ ಆಸ್ಪತ್ರೆಯ ಆಯ್ಕೆಯಿಂದಾಗಿ ಶಿಫಾರಸು ಮಾಡಲಾಗಿದೆ.` :
-                   `আয়ের সীমা (${incomeBracket}) বা সরকারি হাসপাতালের পছন্দের কারণে সামঞ্জস্যপূর্ণ।`,
+      matchReason: hasHighOutOfPocket
+        ? (language === "en" ? `Recommended because your estimated out-of-pocket cost of ${formatINR(outOfPocket)} is significant.` :
+           language === "hi" ? `सिफारिश की गई क्योंकि आपकी अनुमानित जेब से खर्च राशि ${formatINR(outOfPocket)} काफी अधिक है।` :
+           language === "mr" ? `शिफारस केली आहे कारण तुमचा अंदाजित खिशातील खर्च ${formatINR(outOfPocket)} लक्षणीय आहे.` :
+           language === "kn" ? `ನಿಮ್ಮ ಅಂದಾಜು ಸ್ವಂತ ವೆಚ್ಚ ${formatINR(outOfPocket)} ಗಣನೀಯವಾಗಿರುವುದರಿಂದ ಶಿಫಾರಸು ಮಾಡಲಾಗಿದೆ.` :
+           `আপনার আনুমানিক নিজস্ব খরচ ${formatINR(outOfPocket)} উল্লেখযোগ্য হওয়ায় সুপারিশ করা হয়েছে।`)
+        : (language === "en" ? `Matched due to income bracket (${incomeBracket}) or public hospital choice.` :
+           language === "hi" ? `आय वर्ग (${incomeBracket}) या सरकारी अस्पताल के विकल्प के कारण मिलान किया गया।` :
+           language === "mr" ? `उत्पन्न गट (${incomeBracket}) किंवा शासकीय रुग्णालयाच्या पर्यायामुळे जुळले.` :
+           language === "kn" ? `ಆದಾಯ ವರ್ಗ (${incomeBracket}) ಅಥವಾ ಸರ್ಕಾರಿ ಆಸ್ಪತ್ರೆಯ ಆಯ್ಕೆಯಿಂದಾಗಿ ಶಿಫಾರಸು ಮಾಡಲಾಗಿದೆ.` :
+           `আয়ের সীমা (${incomeBracket}) বা সরকারি হাসপাতালের পছন্দের কারণে সামঞ্জস্যপূর্ণ।`),
       steps: [
         { 
           head: language === "en" ? "Obtain Application Form" :
@@ -640,11 +714,17 @@ export default function ActionPlan() {
                    language === "mr" ? "कर्करोग शस्त्रक्रिया, रुग्णालय भरती आणि डेकेयर केमोथेरपीसाठी खाजगी आरोग्य विमा संरक्षण." :
                    language === "kn" ? "ಕ್ಯಾನ್ಸರ್ ಶಸ್ತ್ರಚಿಕಿತ್ಸೆಗಳು, ಆಸ್ಪತ್ರೆ ದಾಖಲಾತಿ ಮತ್ತು ಕೀಮೋ ಚಿಕಿತ್ಸೆಗಳಿಗೆ ಖಾಸಗಿ ಆರೋಗ್ಯ ವಿಮೆ ರಕ್ಷಣೆ." :
                    "ক্যান্সার সার্জারি, ইনপেশেন্ট হাসপাতালে ভর্তি এবং ডে-কেয়ার কেমোথেরাপির জন্য বাণিজ্যিক স্বাস্থ্য বীমা পলিসি কভারেজ।",
-      matchReason: language === "en" ? "Configured in your profile: Private Insurance." :
-                   language === "hi" ? "आपके प्रोफ़ाइल में कॉन्फ़िगर किया गया: निजी बीमा।" :
-                   language === "mr" ? "तुमच्या प्रोफाइलमध्ये नोंदवलेले: खाजगी विमा." :
-                   language === "kn" ? "ನಿಮ್ಮ ಪ್ರೊಫೈಲ್‌ನಲ್ಲಿ ದಾಖಲಿಸಲಾಗಿದೆ: ಖಾಸಗಿ ವಿಮೆ." :
-                   "আপনার প্রোফাইলে কনফিগার করা হয়েছে: বেসরকারি বীমা।",
+      matchReason: isIntakeFilled
+        ? (language === "en" ? `Your insurance is estimated to cover ${formatINR(insuranceShare)}, leaving ${formatINR(outOfPocket)} out-of-pocket.` :
+           language === "hi" ? `आपका बीमा अनुमानित रूप से ${formatINR(insuranceShare)} कवर करता है, जिससे ${formatINR(outOfPocket)} जेब से खर्च होंगे।` :
+           language === "mr" ? `तुमचा विमा अंदाजे ${formatINR(insuranceShare)} कव्हर करतो, उर्वरित ${formatINR(outOfPocket)} खिशातून भरावे लागतील.` :
+           language === "kn" ? `ನಿಮ್ಮ ವಿಮೆ ಅಂದಾಜು ${formatINR(insuranceShare)} ಭರಿಸುತ್ತದೆ, ಉಳಿದ ${formatINR(outOfPocket)} ನಿಮ್ಮ ಸ್ವಂತ ವೆಚ್ಚವಾಗಿರುತ್ತದೆ.` :
+           `আপনার বীমা আনুমানিক ${formatINR(insuranceShare)} কভার করে, বাকি ${formatINR(outOfPocket)} নিজের পকেট থেকে দিতে হবে।`)
+        : (language === "en" ? "Configured in your profile: Private Insurance." :
+           language === "hi" ? "आपके प्रोफ़ाइल में कॉन्फ़िगर किया गया: निजी बीमा।" :
+           language === "mr" ? "तुमच्या प्रोफाइलमध्ये नोंदवलेले: खाजगी विमा." :
+           language === "kn" ? "ನಿಮ್ಮ ಪ್ರೊಫೈಲ್‌ನಲ್ಲಿ ದಾಖಲಿಸಲಾಗಿದೆ: ಖಾಸಗಿ ವಿಮೆ." :
+           "আপনার প্রোফাইলে কনফিগার করা হয়েছে: বেসরকারি বীমা।"),
       steps: [
         { 
           head: language === "en" ? "File Pre-Authorization" :
@@ -694,7 +774,8 @@ export default function ActionPlan() {
         actionUrl: "/cost-breakdown"
       }
     });
-  } else {
+  }
+  if (!hasInsurance || hasHighOutOfPocket) {
     suggestedSchemes.push({
       id: "crowdfunding_alternatives",
       type: language === "en" ? "Alternative Funding" : language === "hi" ? "वैकल्पिक वित्तपोषण" : language === "mr" ? "पर्यायी निधी" : language === "kn" ? "ಪರ್ಯಾಯ ಧನಸಹಾಯ" : "বিকল্প অর্থায়ন",
@@ -704,11 +785,17 @@ export default function ActionPlan() {
                    language === "mr" ? "कर्करोगाच्या खर्चासाठी लोकांमडून मदत मिळवण्यासाठी ऑनलाइन क्राउडफंडिंग मोहीम सुरू करा." :
                    language === "kn" ? "ಕ್ಯಾನ್ಸರ್ ವೆಚ್ಚಗಳಿಗಾಗಿ ಸಮುದಾಯದಿಂದ ದೇಣಿಗೆ ಪಡೆಯಲು ಆನ್‌ಲೈನ್ ಧನಸಹಾಯ ಅಭಿಯಾನಗಳನ್ನು ರಚಿಸಿ." :
                    "ক্যান্সারের খরচের জন্য জনসাধারণের কাছ থেকে অনুদান পেতে অনলাইন ফান্ডরাইজিং অভিযান তৈরি করুন।",
-      matchReason: language === "en" ? "Recommended since no commercial private insurance was declared." :
+      matchReason: !hasInsurance
+        ? (language === "en" ? "Recommended since no commercial private insurance was declared." :
                    language === "hi" ? "सिफारिश की गई क्योंकि कोई व्यावसायिक निजी बीमा घोषित नहीं किया गया था।" :
                    language === "mr" ? "तुमच्याकडे कोणताही खाजगी विमा नसल्यामुळे शिफारस केली आहे." :
                    language === "kn" ? "ಯಾವುದೇ ಖಾಸಗಿ ವಿಮೆ ಇಲ್ಲದಿರುವುದರಿಂದ ಈ ಆಯ್ಕೆಯನ್ನು ಶಿಫಾರಸು ಮಾಡಲಾಗಿದೆ." :
-                   "কোনো বাণিজ্যিক বেসরকারি বীমা না থাকায় এটি সুপারিশ করা হচ্ছে।",
+           "কোনো বাণিজ্যিক বেসরকারি বীমা না থাকায় এটি সুপারিশ করা হচ্ছে।")
+        : (language === "en" ? `Even with insurance, your estimated out-of-pocket cost of ${formatINR(outOfPocket)} may need extra support.` :
+           language === "hi" ? `बीमा होने पर भी, आपकी अनुमानित जेब से खर्च राशि ${formatINR(outOfPocket)} के लिए अतिरिक्त सहायता की आवश्यकता हो सकती है।` :
+           language === "mr" ? `विमा असूनही, तुमच्या अंदाजित ${formatINR(outOfPocket)} खिशातील खर्चासाठी अतिरिक्त मदतीची आवश्यकता असू शकते.` :
+           language === "kn" ? `ವಿಮೆ ಇದ್ದರೂ, ನಿಮ್ಮ ಅಂದಾಜು ${formatINR(outOfPocket)} ಸ್ವಂತ ವೆಚ್ಚಕ್ಕೆ ಹೆಚ್ಚುವರಿ ನೆರವು ಬೇಕಾಗಬಹುದು.` :
+           `বীমা থাকলেও, আপনার আনুমানিক ${formatINR(outOfPocket)} নিজস্ব খরচের জন্য অতিরিক্ত সহায়তার প্রয়োজন হতে পারে।`),
       steps: [
         { 
           head: language === "en" ? "Set up Online Campaign" :
@@ -813,6 +900,28 @@ export default function ActionPlan() {
             >
               <span className="material-symbols-outlined text-[16px]">assignment</span>
               {t("db_start")}
+            </Link>
+          </div>
+        )}
+
+        {isIntakeFilled && (
+          <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-md md:p-lg flex flex-col sm:flex-row items-stretch gap-md shadow-sm">
+            <div className="flex items-center gap-sm text-xs text-on-surface-variant flex-1">
+              <span className="material-symbols-outlined text-secondary text-[22px] shrink-0">insights</span>
+              <p>
+                {language === "en" ? <>Based on your cost breakdown, your estimated treatment total is <strong className="text-on-surface">{formatINR(totalEstimate)}</strong>, with an estimated <strong className="text-on-surface">{formatINR(outOfPocket)}</strong> out-of-pocket after insurance. The plan below is prioritized accordingly.</> :
+                 language === "hi" ? <>आपके लागत विवरण के अनुसार, अनुमानित उपचार कुल लागत <strong className="text-on-surface">{formatINR(totalEstimate)}</strong> है, जिसमें से बीमा के बाद अनुमानित <strong className="text-on-surface">{formatINR(outOfPocket)}</strong> आपको जेब से देना होगा। नीचे दी गई योजना इसी अनुसार प्राथमिकता दी गई है।</> :
+                 language === "mr" ? <>तुमच्या खर्चाच्या अंदाजानुसार, अंदाजित उपचार खर्च <strong className="text-on-surface">{formatINR(totalEstimate)}</strong> आहे, ज्यामधून विम्यानंतर अंदाजे <strong className="text-on-surface">{formatINR(outOfPocket)}</strong> खिशातून भरावे लागतील. खालील योजना त्यानुसार प्राधान्यक्रमित केली आहे.</> :
+                 language === "kn" ? <>ನಿಮ್ಮ ವೆಚ್ಚದ ಅಂದಾಜಿನ ಪ್ರಕಾರ, ಅಂದಾಜು ಚಿಕಿತ್ಸಾ ವೆಚ್ಚ <strong className="text-on-surface">{formatINR(totalEstimate)}</strong>, ಮತ್ತು ವಿಮೆಯ ನಂತರ ಅಂದಾಜು <strong className="text-on-surface">{formatINR(outOfPocket)}</strong> ನಿಮ್ಮ ಸ್ವಂತ ವೆಚ್ಚವಾಗಿರುತ್ತದೆ. ಕೆಳಗಿನ ಯೋಜನೆಯನ್ನು ಅದಕ್ಕೆ ಅನುಗುಣವಾಗಿ ಆದ್ಯತೆ ನೀಡಲಾಗಿದೆ.</> :
+                 <>আপনার খরচের হিসাব অনুযায়ী, আনুমানিক চিকিৎসার মোট খরচ <strong className="text-on-surface">{formatINR(totalEstimate)}</strong>, যার মধ্যে বীমার পরে আনুমানিক <strong className="text-on-surface">{formatINR(outOfPocket)}</strong> নিজের পকেট থেকে দিতে হবে। নিচের পরিকল্পনাটি সেই অনুযায়ী অগ্রাধিকার দেওয়া হয়েছে।</>}
+              </p>
+            </div>
+            <Link
+              to="/cost-breakdown"
+              className="inline-flex items-center justify-center gap-xs text-primary font-bold text-xs hover:underline shrink-0 self-center"
+            >
+              {t("db_breakdown")}
+              <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
             </Link>
           </div>
         )}
