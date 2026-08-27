@@ -112,7 +112,7 @@ Read the dialogue and extract any values the user mentions. You MUST respond ONL
 
 export default function Dashboard() {
   const { t, language } = useLanguage();
-  const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem("artham_is_logged_in") === "true");
+  const [, setIsLoggedIn] = useState(() => localStorage.getItem("artham_is_logged_in") === "true");
 
   // Load intake parameters reactively
   const [patientState, setPatientState] = useState(() => localStorage.getItem("artham_intake_state") || "");
