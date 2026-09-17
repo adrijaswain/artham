@@ -266,6 +266,7 @@ localStorage.removeItem = function (key: string) {
 
 let unsubscribeSnapshot: (() => void) | null = null;
 let syncedUid: string | null = null;
+let syncFallbackTimer: ReturnType<typeof setTimeout> | null = null;
 
 /**
  * Begin streaming `users/{uid}` into LocalStorage.
@@ -285,24 +286,36 @@ export function startRealtimeSync(uid: string, onFirstSync?: () => void) {
   syncedUid = uid;
   hydrated = false;
   let firstResolved = false;
+
   const resolveFirst = () => {
     if (firstResolved) return;
     firstResolved = true;
     hydrated = true;
+    if (syncFallbackTimer) {
+      clearTimeout(syncFallbackTimer);
+      syncFallbackTimer = null;
+    }
     onFirstSync?.();
   };
+
+  // Hard safety timeout: never block the UI longer than 1000ms waiting for Firestore
+  syncFallbackTimer = setTimeout(() => {
+    resolveFirst();
+  }, 1000);
 
   unsubscribeSnapshot = onSnapshot(
     doc(db, "users", uid),
     async (snap) => {
-      // Ignore snapshots that only reflect our own un-acknowledged writes;
-      // wait for the server-confirmed version to avoid needless re-hydration.
-      if (snap.metadata.hasPendingWrites) return;
+      const isInitial = !firstResolved;
+
+      // On subsequent snapshots, ignore local mutations to avoid echoing our own writes.
+      // On the initial snapshot, NEVER drop or stall resolution even if there are pending writes.
+      if (!isInitial && snap.metadata.hasPendingWrites) return;
 
       if (!snap.exists()) {
         // Brand-new account: seed the cloud with any local/guest progress.
-        if (!firstResolved) {
-          hydrated = true; // allow the seeding push through
+        if (isInitial) {
+          hydrated = true;
           await pushLocalToFirestore(uid);
         }
       } else {
@@ -317,8 +330,8 @@ export function startRealtimeSync(uid: string, onFirstSync?: () => void) {
         new CustomEvent("show-toast", {
           detail: {
             msg: "Cloud sync is unavailable - your data is saved on this device only.",
-            type: "error"
-          }
+            type: "error",
+          },
         })
       );
       resolveFirst();
@@ -335,6 +348,10 @@ export function stopRealtimeSync() {
   if (pushTimer) {
     clearTimeout(pushTimer);
     pushTimer = null;
+  }
+  if (syncFallbackTimer) {
+    clearTimeout(syncFallbackTimer);
+    syncFallbackTimer = null;
   }
   syncedUid = null;
   hydrated = false;

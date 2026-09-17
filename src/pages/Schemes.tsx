@@ -2683,18 +2683,9 @@ export default function Schemes() {
   const [selectedBenefitType, setSelectedBenefitType] = useState("Any Benefit");
   const [selectedIncomeLimit, setSelectedIncomeLimit] = useState("Any Income Limit");
   const [selectedCoverageAmount, setSelectedCoverageAmount] = useState("Any Coverage");
-  const [selectedGender, setSelectedGender] = useState("Any Gender");
   const [sortBy, setSortBy] = useState("Default");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [activeDetailedInsurance, setActiveDetailedInsurance] = useState<Insurance | null>(null);
-
-  // Wizard States
-  const [wizardState, setWizardState] = useState("All India");
-  const [wizardAge, setWizardAge] = useState("");
-  const [wizardGender, setWizardGender] = useState("General / All Genders");
-  const [wizardProfession, setWizardProfession] = useState("General Public");
-  const [wizardIncome, setWizardIncome] = useState("Any Income");
-  const [showWizard, setShowWizard] = useState(false);
 
   const catalogRef = useRef<HTMLDivElement>(null);
 
@@ -2721,42 +2712,6 @@ export default function Schemes() {
       document.body.style.overflow = "unset";
     };
   }, [activeDetailedScheme, activeDetailedInsurance]);
-
-  const handleApplyWizard = () => {
-    // 1. Domicile state
-    setSelectedState(wizardState);
-    
-    // 2. Age parsing
-    if (wizardAge !== "") {
-      const ageNum = parseInt(wizardAge);
-      if (ageNum <= 18) {
-        setSelectedAgeGroup("Child (0-18)");
-      } else if (ageNum >= 60) {
-        setSelectedAgeGroup("Senior (60+)");
-      } else {
-        setSelectedAgeGroup("Adult (18-60)");
-      }
-    } else {
-      setSelectedAgeGroup("Any Age");
-    }
-
-    // 3. Gender Focus
-    setSelectedGender(wizardGender === "Female Only" ? "Female Only" : "Any Gender");
-
-    // 4. Profession
-    setSelectedProfession(wizardProfession);
-
-    // 5. Income Status
-    setSelectedIncomeLimit(wizardIncome === "Any Income" ? "Any Income Limit" : wizardIncome);
-
-    // 6. Force opening the advanced collapsible filter panel
-    setShowAdvancedFilters(true);
-
-    // 7. Scroll smoothly to results
-    setTimeout(() => {
-      catalogRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 100);
-  };
 
   const filteredSchemes = useMemo(() => {
     return schemes.filter((s) => {
@@ -2825,16 +2780,6 @@ export default function Schemes() {
         matchesCoverage = attrs.coverageAmount === selectedCoverageAmount;
       }
 
-      // 10. Gender Filter
-      let matchesGender = true;
-      if (selectedGender !== "Any Gender") {
-        if (selectedGender === "Female Only") {
-          matchesGender = attrs.gender === "Female Only";
-        } else {
-          matchesGender = attrs.gender === "General / All Genders";
-        }
-      }
-
       return (
         matchesSearch &&
         matchesCategory &&
@@ -2843,8 +2788,7 @@ export default function Schemes() {
         matchesProfession &&
         matchesBenefit &&
         matchesIncome &&
-        matchesCoverage &&
-        matchesGender
+        matchesCoverage
       );
     });
   }, [
@@ -2855,8 +2799,7 @@ export default function Schemes() {
     selectedProfession,
     selectedBenefitType,
     selectedIncomeLimit,
-    selectedCoverageAmount,
-    selectedGender
+    selectedCoverageAmount
   ]);
 
   const sortedAndFilteredSchemes = useMemo(() => {
@@ -2870,8 +2813,6 @@ export default function Schemes() {
 
       if (sortBy === "Coverage (High to Low)") {
         return attrsB.coverageNum - attrsA.coverageNum;
-      } else if (sortBy === "Reliability (High to Low)") {
-        return b.reliability - a.reliability;
       } else if (sortBy === "Name (A-Z)") {
         return a.title.localeCompare(b.title);
       }
@@ -2929,7 +2870,6 @@ export default function Schemes() {
     setSelectedBenefitType("Any Benefit");
     setSelectedIncomeLimit("Any Income Limit");
     setSelectedCoverageAmount("Any Coverage");
-    setSelectedGender("Any Gender");
     setSortBy("Default");
     setSelectedSector("All");
     setSelectedApplicability("All");
@@ -2954,130 +2894,6 @@ export default function Schemes() {
                  "ভারতে আইআরডিএআই (IRDAI) নিবন্ধিত স্বাস্থ্য বীমাকারীদের যাচাইকৃত ডিরেক্টরি।")}
           </p>
         </div>
-
-        {/* Smart Eligibility Matcher Card */}
-        {activeTab === "schemes" && (
-          <div className="bg-gradient-to-br from-primary/5 via-secondary/5 to-surface-container-lowest border border-primary/20 shadow-md rounded-2xl p-md md:p-lg mb-lg">
-            <div className="flex justify-between items-center mb-sm">
-              <h2 className="font-headline-sm text-[18px] md:text-headline-sm text-primary flex items-center gap-xs">
-                <span className="material-symbols-outlined text-primary text-[24px]">explore</span>
-                {language === "en" ? "Smart Scheme Matcher" : language === "hi" ? "स्मार्ट योजना मिलानकर्ता" : language === "mr" ? "स्मार्ट योजना मार्गदर्शक" : language === "kn" ? "ಸ್ಮಾರ್ಟ್ ಯೋಜನೆ ಶೋಧಕ" : "স্মার্ট স্কিম ম্যাচিং"}
-              </h2>
-              <button
-                onClick={() => setShowWizard(!showWizard)}
-                className="text-primary hover:text-primary-container font-label-md text-label-md flex items-center gap-2"
-              >
-                {showWizard ? (language === "en" ? "Minimize Matcher" : language === "hi" ? "छोटा करें" : language === "mr" ? "लहान करा" : language === "kn" ? "ಕುಗ್ಗಿಸು" : "ছোট করুন") : (language === "en" ? "Launch Profile Matcher" : language === "hi" ? "प्रोफ़ाइल मिलानकर्ता शुरू करें" : language === "mr" ? "पात्रता तपासा" : language === "kn" ? "ಪ್ರೊಫೈಲ್ ಶೋಧಕ ಚಾಲನೆಗೊಳಿಸಿ" : "প্রোফাইল ম্যাচিং শুরু করুন")}
-                <span className="material-symbols-outlined">
-                  {showWizard ? "expand_less" : "expand_more"}
-                </span>
-              </button>
-            </div>
-            <p className="font-body-md text-body-md text-on-surface-variant max-w-3xl mb-md">
-              {language === "en" ? "Answer a few questions about your profile (Age, State, Gender, Occupation, Income) and we will instantly find all eligible central and state schemes you qualify for." : language === "hi" ? "अपनी प्रोफ़ाइल (आयु, राज्य, लिंग, व्यवसाय, आय) के बारे में कुछ प्रश्नों के उत्तर दें और हम तुरंत उन सभी पात्र केंद्रीय और राज्य योजनाओं को ढूंढेंगे जिनके लिए आप योग्य हैं।" : language === "mr" ? "तुमच्या प्रोफाइल (वय, राज्य, लिंग, व्यवसाय, उत्पन्न) बद्दल काही प्रश्नांची यादी आणि तुमच्यासाठी पात्र असलेल्या सर्व केंद्रीय आणि राज्य योजना आम्ही शोधू." : language === "kn" ? "ನಿಮ್ಮ ಪ್ರೊಫೈಲ್ (ವಯಸ್ಸು, ರಾಜ್ಯ, ಲಿಂಗ, ವೃತ್ತಿ, ಆದಾಯ) ಬಗ್ಗೆ ಕೆಲವು ಪ್ರಶ್ನೆಗಳಿಗೆ ಉತ್ತರಿಸಿ ಮತ್ತು ನೀವು ಅರ್ಹರಾಗಿರುವ ಎಲ್ಲಾ ಯೋಜನೆಗಳನ್ನು ನಾವು ಹುಡುಕುತ್ತೇವೆ." : "আপনার প্রোফাইল (বয়স, রাজ্য, লিঙ্গ, পেশা, আয়) সম্পর্কে কয়েকটি প্রশ্নের উত্তর দিন এবং আমরা অবিলম্বে আপনার যোগ্য সমস্ত কেন্দ্রীয় ও রাজ্য প্রকল্পগুলি খুঁজে বের করব।"}
-            </p>
-
-            {showWizard && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-sm border-t border-outline-variant/40 pt-md mt-xs animate-fade-in">
-                {/* State */}
-                <div className="flex flex-col gap-xs">
-                  <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider pl-1">{t("it_state")}</label>
-                  <select
-                    value={wizardState}
-                    onChange={(e) => setWizardState(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-outline-variant bg-surface-bright font-body-sm text-on-surface outline-none cursor-pointer"
-                  >
-                    {statesList.map((state) => (
-                      <option key={state} value={state}>{state}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Age */}
-                <div className="flex flex-col gap-xs">
-                  <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider pl-1">{language === "en" ? "Age (Years)" : language === "hi" ? "आयु (वर्ष)" : language === "mr" ? "वय (वर्षे)" : language === "kn" ? "ವಯಸ್ಸು (ವರ್ಷಗಳು)" : "বয়স (বছর)"}</label>
-                  <input
-                    type="number"
-                    value={wizardAge}
-                    onChange={(e) => setWizardAge(e.target.value)}
-                    placeholder="Enter age (e.g. 45)"
-                    className="w-full p-2.5 rounded-xl border border-outline-variant bg-surface-bright font-body-sm text-on-surface outline-none"
-                    min="0"
-                    max="120"
-                  />
-                </div>
-
-                {/* Gender */}
-                <div className="flex flex-col gap-xs">
-                  <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider pl-1">{language === "en" ? "Gender Focus" : language === "hi" ? "लिंग फोकस" : language === "mr" ? "लिंग" : language === "kn" ? "ಲಿಂಗ" : "লিঙ্গ"}</label>
-                  <select
-                    value={wizardGender}
-                    onChange={(e) => setWizardGender(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-outline-variant bg-surface-bright font-body-sm text-on-surface outline-none cursor-pointer"
-                  >
-                    <option value="General / All Genders">{language === "en" ? "All Genders / General" : language === "hi" ? "सभी लिंग / सामान्य" : language === "mr" ? "सर्व लिंग / सामान्य" : language === "kn" ? "ಎಲ್ಲಾ ಲಿಂಗಗಳು / ಸಾಮಾನ್ಯ" : "সব লিঙ্গ / সাধারণ"}</option>
-                    <option value="Female Only">{language === "en" ? "Female focus" : language === "hi" ? "महिला फोकस" : language === "mr" ? "महिला विशेष" : language === "kn" ? "ಮಹಿಳಾ ವಿಶೇಷ" : "মহিলা বিশেষ"}</option>
-                  </select>
-                </div>
-
-                {/* Occupation */}
-                <div className="flex flex-col gap-xs">
-                  <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider pl-1">{language === "en" ? "Occupation" : language === "hi" ? "व्यवसाय" : language === "mr" ? "व्यवसाय" : language === "kn" ? "ವೃತ್ತಿ" : "পেশা"}</label>
-                  <select
-                    value={wizardProfession}
-                    onChange={(e) => setWizardProfession(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-outline-variant bg-surface-bright font-body-sm text-on-surface outline-none cursor-pointer"
-                  >
-                    <option value="General Public">{language === "en" ? "General Public (Any)" : language === "hi" ? "सामान्य जनता (कोई भी)" : language === "mr" ? "सामान्य जनता" : language === "kn" ? "ಸಾಮಾನ್ಯ ಸಾರ್ವಜನಿಕರು" : "সাধারণ জনগণ"}</option>
-                    <option value="Construction Worker">{language === "en" ? "Construction / BOCW" : language === "hi" ? "निर्माण / बीओसीडब्ल्यू" : language === "mr" ? "बांधकाम कामगार" : language === "kn" ? "ಕಟ್ಟಡ ಕಾರ್ಮಿಕರು" : "নির্মাণকর্মী"}</option>
-                    <option value="Transport Worker">{language === "en" ? "Transport Worker" : language === "hi" ? "परिवहन कार्यकर्ता" : language === "mr" ? "परिवहन कामगार" : language === "kn" ? "ಸಾರಿಗೆ ಕಾರ್ಮಿಕರು" : "পরিবহন কর্মী"}</option>
-                    <option value="Ex-Servicemen / Veterans">{language === "en" ? "Ex-Servicemen / Sainik" : language === "hi" ? "पूर्व सैनिक / सैनिक" : language === "mr" ? "माजी सैनिक" : language === "kn" ? "ಮಾಜಿ ಸೈನಿಕರು" : "প্রাক্তন সৈনিক"}</option>
-                    <option value="Govt Employee / Pensioner">{language === "en" ? "Govt Employee / Pensioner" : language === "hi" ? "सरकारी कर्मचारी / पेंशनभोगी" : language === "mr" ? "शासकीय कर्मचारी / निवृत्तीवेतनधारक" : language === "kn" ? "ಸರ್ಕಾರಿ ನೌಕರರು / ಪಿಂಚಣಿದಾರರು" : "সরকারি কর্মচারী / পেনশনভোগী"}</option>
-                    <option value="Tea Tribes / Adivasi">{language === "en" ? "Tea Tribes / Adivasi" : language === "hi" ? "चाय जनजाति / आदिवासी" : language === "mr" ? "चहा जमाती / आदिवासी" : language === "kn" ? "ಚಹಾ ಬುಡಕಟ್ಟುಗಳು" : "চা উপজাতি / আদিবাসী"}</option>
-                  </select>
-                </div>
-
-                {/* Income */}
-                <div className="flex flex-col gap-xs">
-                  <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider pl-1">{t("it_income")}</label>
-                  <select
-                    value={wizardIncome}
-                    onChange={(e) => setWizardIncome(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-outline-variant bg-surface-bright font-body-sm text-on-surface outline-none cursor-pointer"
-                  >
-                    <option value="Any Income">{language === "en" ? "General / Any Income" : language === "hi" ? "सामान्य / कोई भी आय" : language === "mr" ? "सामान्य / कोणतीही उत्पन्न मर्यादा नाही" : language === "kn" ? "ಸಾಮಾನ್ಯ / ಯಾವುದೇ ಆದಾಯ" : "সাধারণ / যেকোনো আয়"}</option>
-                    <option value="BPL Only">{language === "en" ? "Below Poverty Line (BPL)" : language === "hi" ? "गरीबी रेखा से नीचे (बीपीएल)" : language === "mr" ? "दारिद्र्यरेषेखालील (BPL)" : language === "kn" ? "ದಾರಿದ್ರ್ಯ ರೇಖೆಗಿಂತ ಕೆಳಗೆ (ಬಿಪಿಎಲ್)" : "দারিদ্র্য সীমার নিচে (বিपीএল)"}</option>
-                    <option value="Under ₹1.5 Lakhs">{language === "en" ? "Low Income (Under 1.5L/yr)" : language === "hi" ? "कम आय (1.5L/वर्ष से कम)" : language === "mr" ? "अल्प उत्पन्न (१.५ लाखांपेक्षा कमी/वर्ष)" : language === "kn" ? "ಕಡಿಮೆ ಆದಾಯ (ವಾರ್ಷಿಕ ೧.೫ಲಕ್ಷಕ್ಕಿಂತ ಕಡಿಮೆ)" : "কম আয় (বার্ষিক ১.৫ লাখের কম)"}</option>
-                    <option value="Under ₹4-6 Lakhs">{language === "en" ? "Middle Income (Under 4-6L/yr)" : language === "hi" ? "मध्यम आय (4-6L/वर्ष से कम)" : language === "mr" ? "मध्यम उत्पन्न (४-६ लाखांपेक्षा कमी/वर्ष)" : language === "kn" ? "ಮಧ್ಯಮ ಆದಾಯ (ವಾರ್ಷಿಕ ೪-೬ಲಕ್ಷಕ್ಕಿಂತ ಕಡಿಮೆ)" : "মধ্যম আয় (বার্ষিক ৪-৬ লাখের কম)"}</option>
-                  </select>
-                </div>
-
-                <div className="col-span-1 sm:col-span-2 md:col-span-5 flex justify-end gap-sm mt-md border-t border-dashed border-outline-variant/30 pt-md">
-                  <button
-                    onClick={() => {
-                      setWizardState("All India");
-                      setWizardAge("");
-                      setWizardGender("General / All Genders");
-                      setWizardProfession("General Public");
-                      setWizardIncome("Any Income");
-                      resetFilters();
-                    }}
-                    className="px-md py-2 border border-outline text-outline font-label-md text-label-md rounded-xl hover:bg-surface-container transition-all font-bold text-xs"
-                  >
-                    {language === "en" ? "Reset Form" : language === "hi" ? "फॉर्म रीसेट करें" : language === "mr" ? "फॉर्म रीसेट करा" : language === "kn" ? "ನಮೂನೆ ಮರುಹೊಂದಿಸಿ" : "ফর্ম রিসেট করুন"}
-                  </button>
-                  <button
-                    onClick={handleApplyWizard}
-                    className="px-lg py-2.5 bg-primary text-on-primary font-label-md text-label-md rounded-xl hover:brightness-110 shadow-md active:scale-95 transition-all flex items-center gap-xs font-bold text-xs"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">verified_user</span>
-                    {language === "en" ? "Find My Eligible Schemes" : language === "hi" ? "मेरी पात्र योजनाएं खोजें" : language === "mr" ? "माझ्या पात्र योजना शोधा" : language === "kn" ? "ನನ್ನ ಅರ್ಹ ಯೋಜನೆಗಳನ್ನು ಹುಡುಕಿ" : "আমার যোগ্য প্রকল্প খুঁজুন"}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* Filters Layout (Schemes tab only - the sector/insurer filters were removed from the Insurances tab) */}
         {activeTab === "schemes" && (
@@ -3132,20 +2948,20 @@ export default function Schemes() {
               <button
                 onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
                 className={`flex items-center justify-center gap-xs px-md py-3 rounded-xl border font-label-md text-label-md transition-all active:scale-[0.98] ${
-                  showAdvancedFilters || selectedAgeGroup !== "Any Age" || selectedProfession !== "Any Profession" || selectedBenefitType !== "Any Benefit" || selectedIncomeLimit !== "Any Income Limit" || selectedCoverageAmount !== "Any Coverage" || selectedGender !== "Any Gender"
+                  showAdvancedFilters || selectedAgeGroup !== "Any Age" || selectedProfession !== "Any Profession" || selectedBenefitType !== "Any Benefit" || selectedIncomeLimit !== "Any Income Limit" || selectedCoverageAmount !== "Any Coverage"
                     ? "bg-primary text-on-primary border-primary hover:brightness-110 shadow-sm"
                     : "border-outline text-outline hover:bg-surface-container"
                 }`}
               >
                 <span className="material-symbols-outlined text-[18px]">tune</span>
                 {language === "en" ? "Advanced Filters" : language === "hi" ? "उन्नत फ़िल्टर" : language === "mr" ? "प्रगत फिल्टर" : language === "kn" ? "ಸುಧಾರಿತ ಶೋಧಕಗಳು" : "উন্নত ফিল্টার"}
-                {(selectedAgeGroup !== "Any Age" || selectedProfession !== "Any Profession" || selectedBenefitType !== "Any Benefit" || selectedIncomeLimit !== "Any Income Limit" || selectedCoverageAmount !== "Any Coverage" || selectedGender !== "Any Gender") && (
+                {(selectedAgeGroup !== "Any Age" || selectedProfession !== "Any Profession" || selectedBenefitType !== "Any Benefit" || selectedIncomeLimit !== "Any Income Limit" || selectedCoverageAmount !== "Any Coverage") && (
                   <span className="w-2 h-2 rounded-full bg-secondary-fixed animate-pulse ml-xs" />
                 )}
               </button>
 
               {/* Reset Button */}
-              {(searchQuery || selectedState !== "All India" || selectedCategory !== "All" || selectedAgeGroup !== "Any Age" || selectedProfession !== "Any Profession" || selectedBenefitType !== "Any Benefit" || selectedIncomeLimit !== "Any Income Limit" || selectedCoverageAmount !== "Any Coverage" || selectedGender !== "Any Gender") && (
+              {(searchQuery || selectedState !== "All India" || selectedCategory !== "All" || selectedAgeGroup !== "Any Age" || selectedProfession !== "Any Profession" || selectedBenefitType !== "Any Benefit" || selectedIncomeLimit !== "Any Income Limit" || selectedCoverageAmount !== "Any Coverage") && (
                 <button
                   onClick={resetFilters}
                   className="flex items-center justify-center gap-xs px-md py-3 rounded-xl border border-outline text-outline font-label-md hover:bg-surface-container hover:text-primary transition-all active:scale-[0.98]"
@@ -3157,7 +2973,7 @@ export default function Schemes() {
 
           {/* Advanced Collapsible Filter Panel */}
           {showAdvancedFilters && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-sm mt-sm pt-sm border-t border-outline-variant/40 animate-slide-down">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-sm mt-sm pt-sm border-t border-outline-variant/40 animate-slide-down">
               {/* Age Group Filter */}
               <div className="flex flex-col gap-xs">
                 <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider pl-1 select-none font-bold">
@@ -3291,35 +3107,11 @@ export default function Schemes() {
                 </div>
               </div>
 
-              {/* Gender focus Filter */}
-              <div className="flex flex-col gap-xs">
-                <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider pl-1 select-none font-bold">
-                  {language === "en" ? "Gender Focus" : language === "hi" ? "लिंग फोकस" : language === "mr" ? "लिंग" : language === "kn" ? "ಲಿಂಗ" : "লিঙ্গ"}
-                </label>
-                <div className="relative flex items-center">
-                  <span className="material-symbols-outlined absolute left-3 text-outline text-[16px] pointer-events-none">
-                    wc
-                  </span>
-                  <select
-                    className="w-full pl-8 pr-7 py-2 rounded-xl border border-outline-variant bg-surface-container-lowest font-body-sm text-[12px] text-on-surface outline-none appearance-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20"
-                    value={selectedGender}
-                    onChange={(e) => setSelectedGender(e.target.value)}
-                  >
-                    <option value="Any Gender">{language === "en" ? "Any Gender" : language === "hi" ? "कोई भी लिंग" : language === "mr" ? "कोणतेही लिंग" : language === "kn" ? "ಯಾವುದೇ ಲಿಂಗ" : "যেকোনো লিঙ্গ"}</option>
-                    <option value="Female Only">{language === "en" ? "Female Only" : language === "hi" ? "केवल महिला" : language === "mr" ? "केवळ महिला" : language === "kn" ? "ಮಹಿಳೆಯರು ಮಾತ್ರ" : "শুধুমাত্র মহিলা"}</option>
-                    <option value="General / All Genders">{language === "en" ? "General / All Genders" : language === "hi" ? "सामान्य / सभी लिंग" : language === "mr" ? "सर्व लिंग / सामान्य" : language === "kn" ? "ಎಲ್ಲಾ ಲಿಂಗಗಳು / ಸಾಮಾನ್ಯ" : "সব লিঙ্গ / সাধারণ"}</option>
-                  </select>
-                  <span className="material-symbols-outlined absolute right-2 text-outline pointer-events-none text-[16px]">
-                    expand_more
-                  </span>
-                </div>
-              </div>
-
             </div>
           )}
 
           {/* Active Filter Tags (only under schemes tab) */}
-          {activeTab === "schemes" && (selectedAgeGroup !== "Any Age" || selectedProfession !== "Any Profession" || selectedBenefitType !== "Any Benefit" || selectedIncomeLimit !== "Any Income Limit" || selectedCoverageAmount !== "Any Coverage" || selectedGender !== "Any Gender") && (
+          {activeTab === "schemes" && (selectedAgeGroup !== "Any Age" || selectedProfession !== "Any Profession" || selectedBenefitType !== "Any Benefit" || selectedIncomeLimit !== "Any Income Limit" || selectedCoverageAmount !== "Any Coverage") && (
             <div className="flex flex-wrap gap-xs mt-sm pt-xs border-t border-outline-variant/40 animate-fade-in font-bold text-xs">
               <span className="text-[11px] font-bold text-outline uppercase tracking-wider flex items-center pr-xs select-none font-bold">
                 {language === "en" ? "Active Criteria:" : language === "hi" ? "सक्रिय मानदंड:" : language === "mr" ? "सक्रिय निकष:" : language === "kn" ? "ಸಕ್ರಿಯ ಶೋಧಕಗಳು:" : "সक्रिय মানদণ্ড:"}
@@ -3370,14 +3162,6 @@ export default function Schemes() {
                 </span>
               )}
 
-              {selectedGender !== "Any Gender" && (
-                <span className="inline-flex items-center gap-xs px-2.5 py-1 bg-secondary/10 text-secondary rounded-lg text-[12px] font-semibold">
-                  <span>{language === "en" ? "Gender" : language === "hi" ? "लिंग" : language === "mr" ? "लिंग" : language === "kn" ? "ಲಿಂಗ" : "লিঙ্গ"}: {selectedGender}</span>
-                  <button onClick={() => setSelectedGender("Any Gender")} className="hover:bg-secondary/20 rounded-full p-0.5 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-[12px] font-bold">close</span>
-                  </button>
-                </span>
-              )}
             </div>
           )}
 
@@ -3508,7 +3292,6 @@ export default function Schemes() {
                 <>
                   <option value="Default">{language === "en" ? "Default Order" : language === "hi" ? "डिफ़ॉल्ट क्रम" : language === "mr" ? "डीफॉल्ट क्रम" : language === "kn" ? "ಡೀಫಾಲ್ಟ್ ಆದೇಶ" : "ডিফল্ট ক্রম"}</option>
                   <option value="Coverage (High to Low)">{language === "en" ? "Coverage (High to Low)" : language === "hi" ? "कवरेज (उच्च से निम्न)" : language === "mr" ? "संरक्षण (जास्त ते कमी)" : language === "kn" ? "ಕವರೇಜ್ (ಹೆಚ್ಚಿನದರಿಂದ ಕಡಿಮೆ)" : "কভারেজ (উচ্চ থেকে নিম্ন)"}</option>
-                  <option value="Reliability (High to Low)">{language === "en" ? "Reliability (High to Low)" : language === "hi" ? "विश्वसनीयता (उच्च से निम्न)" : language === "mr" ? "विश्वासार्हता (जास्त ते कमी)" : language === "kn" ? "ವಿಶ್ವಾಸಾರ್ಹತೆ (ಹೆಚ್ಚಿನದರಿಂದ ಕಡಿಮೆ)" : "নির্ভরযোগ্যতা (উচ্চ থেকে নিম্ন)"}</option>
                   <option value="Name (A-Z)">{language === "en" ? "Name (A-Z)" : language === "hi" ? "नाम (A-Z)" : language === "mr" ? "नाव (A-Z)" : language === "kn" ? "ಹೆಸರು (A-Z)" : "নাম (A-Z)"}</option>
                 </>
               ) : (
@@ -3810,38 +3593,6 @@ export default function Schemes() {
                 </div>
               )}
 
-              {/* Trust/Reliability Meter */}
-              <div className="bg-surface-container-low p-md rounded-xl flex items-center gap-md border border-outline-variant/40">
-                <div className="w-14 h-14 relative flex items-center justify-center flex-shrink-0">
-                  <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                    <path
-                      className="text-outline-variant/30"
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                    />
-                    <path
-                      className="text-secondary transition-all duration-1000"
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeDasharray={`${activeDetailedScheme.reliability}, 100`}
-                      strokeLinecap="round"
-                      strokeWidth="3.5"
-                    />
-                  </svg>
-                  <span className="absolute text-[12px] font-bold text-secondary">
-                    {activeDetailedScheme.reliability}%
-                  </span>
-                </div>
-                <div>
-                  <p className="font-label-md text-label-md text-on-surface font-bold">{language === "en" ? "Reliability Score: Verified" : language === "hi" ? "विश्वसनीयता स्कोर: सत्यापित" : language === "mr" ? "विश्वासार्हता: सत्यापित" : language === "kn" ? "ವಿಶ್ವಾಸಾರ್ಹತೆ ಸ್ಕೋರ್: ಪರಿಶೀಲಿಸಲಾಗಿದೆ" : "নির্ভরযোগ্যতা স্কোর: যাচাইকৃত"}</p>
-                  <p className="text-[12px] text-on-surface-variant leading-tight">
-                    {language === "en" ? "This program has a verified approval success rate based on community feedback." : language === "hi" ? "सामुदायिक प्रतिक्रिया के आधार पर इस कार्यक्रम की सत्यापित स्वीकृति सफलता दर है।" : language === "mr" ? "सामूहिक अभिप्रायाच्या आधारे या योजनेचा यश दर सत्यापित केला गेला आहे." : language === "kn" ? "ಸಮುದಾಯದ ಪ್ರತಿಕ್ರಿಯೆಯ ಆಧಾರದ ಮೇಲೆ ಈ ಯೋಜನೆಯು ಪರಿಶೀಲಿಸಲ್ಪಟ್ಟ ಯಶಸ್ಸಿನ ಪ್ರಮಾಣವನ್ನು ಹೊಂದಿದೆ." : "সামাজিক প্রতিক্রিয়ার ভিত্তিতে এই প্রকল্পের যাচাইকৃত সাফল্যের হার রয়েছে।"}
-                  </p>
-                </div>
-              </div>
             </div>
 
             {/* Bottom Actions Footer */}
@@ -4195,36 +3946,6 @@ function SchemeTile({ scheme, onViewDetails }: SchemeTileProps) {
 
         {/* Reliability Score section */}
         <div>
-          <div className="bg-surface-container-low p-2 rounded-xl flex items-center gap-sm mb-md">
-            <div className="w-9 h-9 relative flex items-center justify-center flex-shrink-0">
-              <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                <path
-                  className="text-outline-variant/30"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                />
-                <path
-                  className="text-secondary"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeDasharray={`${scheme.reliability}, 100`}
-                  strokeLinecap="round"
-                  strokeWidth="2.5"
-                />
-              </svg>
-              <span className="absolute text-[9px] font-bold text-secondary">
-                {scheme.reliability}%
-              </span>
-            </div>
-            <div>
-              <p className="font-label-sm text-[11px] text-on-surface font-bold">Reliability Score</p>
-              <p className="text-[10px] text-on-surface-variant/80 leading-none">Community verified</p>
-            </div>
-          </div>
-
           {/* CTA View details */}
           <button
             onClick={onViewDetails}
@@ -4285,19 +4006,6 @@ function InsuranceTile({ insurance, onViewDetails }: InsuranceTileProps) {
         </div>
 
         <div className="flex-grow" />
-
-        {/* Network & reliability, inline */}
-        <div className="flex items-center gap-md text-[12px] text-on-surface-variant mb-md pt-sm border-t border-dashed border-outline-variant/40">
-          <span className="flex items-center gap-1">
-            <span className="material-symbols-outlined text-[15px] text-outline">local_hospital</span>
-            {insurance.networkSize > 0 ? insurance.networkHospitals.split(" ")[0] : "Reimbursement only"}
-          </span>
-          <span className="text-outline-variant">&middot;</span>
-          <span className="flex items-center gap-1">
-            <span className="material-symbols-outlined text-[15px] text-outline">percent</span>
-            {insurance.reliability}% claim ratio
-          </span>
-        </div>
 
         <button
           onClick={onViewDetails}

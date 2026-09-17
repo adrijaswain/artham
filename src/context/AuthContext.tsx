@@ -71,13 +71,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const hasSeenUserRef = useRef(false);
 
   useEffect(() => {
+    let isReady = false;
+    const markReady = () => {
+      if (!isReady) {
+        isReady = true;
+        setAuthReady(true);
+      }
+    };
+
     // Safety net: never trap the user behind the loading gate if Firebase auth
-    // is slow to initialize or unreachable. Reveal the app after a short wait;
-    // onAuthStateChanged still updates state (and hydrates data) when it lands.
-    const readyFallback = setTimeout(() => setAuthReady(true), 2500);
+    // or Firestore sync is slow/unreachable. Unblock the UI within 1000ms.
+    const readyFallback = setTimeout(markReady, 1000);
 
     const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
-      clearTimeout(readyFallback);
       if (nextUser) {
         hasSeenUserRef.current = true;
         // Clear the NEW_SIGNUP flag if set - real-time sync seeds new accounts
@@ -105,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setSyncing(false);
           // Let LocalStorage-backed pages re-read their now-current data.
           window.dispatchEvent(new CustomEvent("auth-change"));
-          setAuthReady(true);
+          markReady();
         });
       } else {
         stopRealtimeSync();
@@ -123,7 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           hasSeenUserRef.current = false;
         }
         window.dispatchEvent(new CustomEvent("auth-change"));
-        setAuthReady(true);
+        markReady();
       }
     });
 

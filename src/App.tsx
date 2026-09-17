@@ -12,12 +12,21 @@ import ActionPlan from "./pages/ActionPlan";
 import Schemes from "./pages/Schemes";
 import PreventivePlans from "./pages/PreventivePlans";
 
+import { useState, useEffect } from "react";
+
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { authReady } = useAuth();
+  const [failsafeReady, setFailsafeReady] = useState(false);
+
+  useEffect(() => {
+    // Failsafe: never block the user behind a loading screen for more than 1.2s
+    const timer = setTimeout(() => setFailsafeReady(true), 1200);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Hold rendering until the initial auth state resolves so pages never flash
   // guest/empty data before a returning user's profile is restored.
-  if (!authReady) {
+  if (!authReady && !failsafeReady) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-background text-on-surface-variant">
         <span className="material-symbols-outlined text-primary text-4xl animate-spin">progress_activity</span>

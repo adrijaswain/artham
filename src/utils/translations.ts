@@ -356,7 +356,7 @@ export const translations: Record<Language, Record<string, string>> = {
     ap_org_advice: "Organization Advice",
 
     // Schemes
-    sc_title: "Welfare Schemes & Network Insurers",
+    sc_title: "Welfare Schemes & Network Insurers - Government Schemes",
     sc_subtitle: "Explore government grants, cashless cards, and IRDAI-registered insurance providers.",
     sc_tab_schemes: "Government Subsidies",
     sc_tab_insurances: "General Insurances",
@@ -728,7 +728,7 @@ export const translations: Record<Language, Record<string, string>> = {
     ap_org_advice: "संगठन सलाह",
 
     // Schemes
-    sc_title: "कल्याण योजनाएं और नेटवर्क बीमाकर्ता",
+    sc_title: "कल्याण योजनाएं और नेटवर्क बीमाकर्ता - सरकारी योजनाएं",
     sc_subtitle: "सरकारी अनुदान, कैशलेस कार्ड और IRDAI-पंजीकृत बीमा प्रदाताओं का पता लगाएं।",
     sc_tab_schemes: "सरकारी सब्सिडी",
     sc_tab_insurances: "सामान्य बीमा",
@@ -1100,7 +1100,7 @@ export const translations: Record<Language, Record<string, string>> = {
     ap_org_advice: "संस्था सल्ला",
 
     // Schemes
-    sc_title: "शासकीय योजना आणि रुग्णालय नेटवर्क",
+    sc_title: "शासकीय योजना आणि रुग्णालय नेटवर्क - सरकारी योजना",
     sc_subtitle: "शासकीय अनुदान योजना, विमा कार्ड आणि आयआरडीएआय-नोंदणीकृत विमा कंपन्या शोधा.",
     sc_tab_schemes: "शासकीय योजना",
     sc_tab_insurances: "सामान्य विमा कंपन्या",
@@ -1472,7 +1472,7 @@ export const translations: Record<Language, Record<string, string>> = {
     ap_org_advice: "ಸಂಸ್ಥೆ ಸಲಹೆ",
 
     // Schemes
-    sc_title: "ಕಲ್ಯಾಣ ಯೋಜನೆಗಳು ಮತ್ತು ವಿಮೆದಾರರು",
+    sc_title: "ಕಲ್ಯಾಣ ಯೋಜನೆಗಳು ಮತ್ತು ವಿಮೆದಾರರು - ಸರ್ಕಾರಿ ಯೋಜನೆಗಳು",
     sc_subtitle: "ಸರ್ಕಾರಿ ಧನಸಹಾಯ ಯೋಜನೆಗಳು, ಕ್ಯಾಶ್‌ಲೆಸ್ ಕಾರ್ಡ್‌ಗಳು ಮತ್ತು ಐಆರ್‌ಡಿಎಐ-ನೋಂದಾಯಿತ ವಿಮೆದಾರರನ್ನು ಹುಡುಕಿ.",
     sc_tab_schemes: "ಸರ್ಕಾರಿ ಸಬ್ಸಿಡಿಗಳು",
     sc_tab_insurances: "ಸಾಮಾನ್ಯ ವಿಮೆ ಸಂಸ್ಥೆಗಳು",
@@ -1844,7 +1844,7 @@ export const translations: Record<Language, Record<string, string>> = {
     ap_org_advice: "সংস্থার পরামর্শ",
 
     // Schemes
-    sc_title: "সরকারি প্রকল্প ও নেটওয়ার্ক বীমাকারী",
+    sc_title: "সরকারি প্রকল্প ও নেটওয়ার্ক বীমাকারী - সরকারি প্রকল্প",
     sc_subtitle: "সরকারি অনুদান, ক্যাশলেস কার্ড এবং আইআরডিএআই-নিবন্ধিত বীমা সংস্থাগুলি খুঁজুন।",
     sc_tab_schemes: "সরকারি প্রকল্পসমূহ",
     sc_tab_insurances: "সাধারণ বীমা কোম্পানি",
